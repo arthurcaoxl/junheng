@@ -1,0 +1,31 @@
+# Dependencies and builds
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Validation output and temporary files
+validation-*/
+cloud-verify-*/
+artifacts/
+iteration-inputs/
+wechat-preview/
+playwright-report/
+test-results/
+screenshots/
+*.zip
+.DS_Store
+
+# Logs: Markdown reports only
+ops/logs/*
+!ops/logs/*.md
+
+# Archive: provenance only, never raw assets
+assets-archive/*
+!assets-archive/SOURCES.md

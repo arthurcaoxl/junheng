@@ -1,0 +1,14 @@
+import { chromium } from "playwright";
+const browser = await chromium.launch({ channel: "chrome", headless: true });
+const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+const errors = [];
+page.on("pageerror", (e) => errors.push(e.message));
+await page.goto("https://rtrzqrxly4mlo.ok.kimi.link", { waitUntil: "networkidle" });
+await page.waitForTimeout(2500);
+const title = await page.$eval("#research-title", (el) => el.textContent.replace(/\s+/g, ""));
+const version = await page.evaluate(() => document.body.innerText.match(/网站版本 v[\d.]+/)?.[0]);
+console.log("research title:", title, "| version:", version, "| errors:", errors);
+await page.evaluate(() => document.getElementById("research").scrollIntoView({ behavior: "instant" }));
+await page.waitForTimeout(1200);
+await page.screenshot({ path: "validation-v1.6.0/research-v161.png" });
+await browser.close();

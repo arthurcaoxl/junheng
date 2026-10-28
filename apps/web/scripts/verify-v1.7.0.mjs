@@ -1,0 +1,17 @@
+import { chromium } from "playwright";
+const browser = await chromium.launch({ channel: "chrome", headless: true });
+const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
+const errors = [];
+page.on("pageerror", (e) => errors.push(e.message));
+await page.goto("https://rtrzqrxly4mlo.ok.kimi.link", { waitUntil: "networkidle" });
+await page.waitForTimeout(2000);
+const version = await page.evaluate(() => document.body.innerText.match(/网站版本 v[\d.]+/)?.[0]);
+const code = await page.evaluate(() => JSON.parse(localStorage.getItem("junheng-checkin-v3") ?? "null"));
+const tabs = await page.$$eval(".day-tabs button", (els) => ({ total: els.length, disabled: els.filter((e) => e.disabled).length, firstDate: els[0].querySelector("small")?.textContent }));
+const csvButton = await page.getByRole("button", { name: "导出打卡 CSV" }).count();
+console.log("version:", version, "| code:", code?.userCode, "| start:", code?.startDate);
+console.log("tabs:", JSON.stringify(tabs), "| csv button:", csvButton, "| errors:", errors);
+await page.evaluate(() => document.querySelector(".record-identity").scrollIntoView({ behavior: "instant", block: "center" }));
+await page.waitForTimeout(600);
+await page.screenshot({ path: "validation-v1.7.0/online.png" });
+await browser.close();

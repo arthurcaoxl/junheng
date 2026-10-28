@@ -1,0 +1,18 @@
+services:
+  web:
+    image: node:22-bookworm
+    working_dir: /workspace/apps/web
+    volumes:
+      - .:/workspace
+    ports:
+      - "3000:3000"
+    command: sh -c "npm ci && npm run dev -- --host 0.0.0.0"
+
+  # Reserved for a future Supabase integration. Do not enable before adding
+  # contracts, migrations, local secrets and an explicit owner decision.
+  # supabase:
+  #   image: supabase/postgres:17
+  #   profiles: ["supabase"]
+  #   env_file: .env
+  #   ports:
+  #     - "54322:54322"
