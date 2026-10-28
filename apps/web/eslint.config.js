@@ -19,6 +19,9 @@ export default defineConfig([
       ecmaVersion: 2020,
       globals: globals.browser,
     },
+    rules: {
+      'no-irregular-whitespace': ['error', { skipJSXText: true, skipTemplates: true }],
+    },
   },
   {
     files: ['src/components/ui/**/*.{ts,tsx}'],
