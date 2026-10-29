@@ -16,6 +16,12 @@ describe("check-in routing", () => {
     expect(screen.queryByRole("heading", { name: "餐前伴侣助力脂代谢健康体重管理" })).not.toBeInTheDocument();
   });
 
+  it("serves the check-in flow on the static-host deep-link path", () => {
+    renderAt("/check-in/index.html");
+    expect(screen.getByRole("region", { name: "21 天，看见自己的节奏。" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "返回首页" })).toHaveAttribute("href", "/");
+  });
+
   it("serves the full narrative on the home route without the check-in form", () => {
     renderAt("/");
     expect(screen.getByRole("heading", { name: "餐前伴侣助力脂代谢健康体重管理" })).toBeInTheDocument();

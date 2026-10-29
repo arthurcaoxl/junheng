@@ -68,6 +68,9 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/check-in" element={<CheckInPage />} />
+          {/* 托管平台只按精确文件路径提供静态服务（无 SPA fallback），
+              打卡深链公开形式为 /check-in/index.html */}
+          <Route path="/check-in/index.html" element={<CheckInPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

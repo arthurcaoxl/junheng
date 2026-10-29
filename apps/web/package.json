@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
+    "postbuild": "node -e \"require('node:fs').mkdirSync('dist/check-in',{recursive:true});require('node:fs').copyFileSync('dist/index.html','dist/check-in/index.html')\"",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run"

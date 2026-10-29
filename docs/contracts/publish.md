@@ -8,6 +8,15 @@
 - 线上地址：`https://rtrzqrxly4mlo.ok.kimi.link`
 - CI、本地构建和预览均不具有发布权限。
 
+## 静态托管特性（v1.7.2 验证）
+
+托管平台为**精确文件路径**静态服务：无 SPA fallback、无目录索引（`/h5/` 与 `/h5` 均 404，仅 `/h5/index.html` 200）。因此：
+
+- 站点 `base` 必须为绝对路径 `/`（`vite.config.ts`），相对路径在子目录入口会断；
+- 每个客户端路由需在构建产物中有对应静态入口：`postbuild` 会将 `index.html` 复制为 `dist/check-in/index.html`；
+- 打卡页公开深链形式为 `https://rtrzqrxly4mlo.ok.kimi.link/check-in/index.html`，站内链接仍用客户端路由 `/check-in`；
+- 未来新增顶层路由时，必须同步 `postbuild` 复制规则并在发布后验证深链。
+
 ## 版本号
 
 采用语义化版本 `MAJOR.MINOR.PATCH`，Git 标记使用 `vX.Y.Z`。

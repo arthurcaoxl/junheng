@@ -5,7 +5,9 @@ import { inspectAttr } from 'kimi-plugin-inspect-react'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: './',
+  // 托管平台（kimix）无 SPA fallback：base 必须为绝对路径，
+  // 配合 postbuild 生成 dist/check-in/index.html 静态副本，深链才能直接访问。
+  base: '/',
   plugins: [inspectAttr(), react()],
   server: {
     port: 3000,
