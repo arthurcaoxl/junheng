@@ -1,3 +1,34 @@
+import { useState } from "react";
+
+const PANEL_PREFS_KEY = "junheng-water-info-v1";
+
+type PanelPrefs = {
+  timeline: boolean;
+  science: boolean;
+};
+
+function isPanelPrefs(value: unknown): value is PanelPrefs {
+  return typeof value === "object" && value !== null
+    && typeof (value as PanelPrefs).timeline === "boolean"
+    && typeof (value as PanelPrefs).science === "boolean";
+}
+
+function loadPanelPrefs(): PanelPrefs | null {
+  try {
+    const raw = window.localStorage.getItem(PANEL_PREFS_KEY);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    return isPanelPrefs(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function defaultPanelPrefs(): PanelPrefs {
+  const narrow = typeof window.matchMedia === "function" && window.matchMedia("(max-width: 760px)").matches;
+  return narrow ? { timeline: false, science: false } : { timeline: true, science: true };
+}
+
 const waterFacts = [
   {
     value: "约 2 kg",
@@ -59,6 +90,18 @@ const waterSwitches = [
 ] as const;
 
 export function WaterFluctuation() {
+  const [panels, setPanels] = useState<PanelPrefs>(() => loadPanelPrefs() ?? defaultPanelPrefs());
+
+  const togglePanel = (key: keyof PanelPrefs) => {
+    const next = { ...panels, [key]: !panels[key] };
+    setPanels(next);
+    try {
+      window.localStorage.setItem(PANEL_PREFS_KEY, JSON.stringify(next));
+    } catch {
+      // 与打卡存储一致：本地存储不可用时静默降级，仅本次会话有效
+    }
+  };
+
   return (
     <section className="water-fluctuation" aria-labelledby="water-fluctuation-title">
       <div className="water-fluctuation-heading"><span>WATER & WEIGHT</span><h3 id="water-fluctuation-title">水分是体重波动的关键</h3><p>先理解体重为什么起伏，再决定如何记录。不必因一次上下波动，极端节食或过量饮水。</p></div>
@@ -67,14 +110,24 @@ export function WaterFluctuation() {
       </div>
       <div className="weight-timeline">
         <div className="water-subheading"><span>24-HOUR TIMELINE</span><h4>一天 24 小时：体重的“真实时间轴”</h4><p>体重在一天之内不是一条直线，而是一条波浪线。早晚相差约 2 kg，甚至 2.5 kg 的情况也可能出现；先区分水分、胃肠内容物和脂肪变化，不必被单次读数制造焦虑。</p></div>
-        <ol>
-          {timeline.map((item, index) => <li key={item.period}><span>{String(index + 1).padStart(2, "0")}</span><div><h5>{item.period} {item.time}</h5><strong>{item.label}</strong><p>{item.text}</p></div></li>)}
-        </ol>
+        <button type="button" className="water-panel-toggle" aria-expanded={panels.timeline} aria-controls="water-timeline-body" onClick={() => togglePanel("timeline")}>
+          {panels.timeline ? "收起 24 小时时间轴" : "展开 24 小时时间轴"}
+        </button>
+        <div id="water-timeline-body" hidden={!panels.timeline}>
+          <ol>
+            {timeline.map((item, index) => <li key={item.period}><span>{String(index + 1).padStart(2, "0")}</span><div><h5>{item.period} {item.time}</h5><strong>{item.label}</strong><p>{item.text}</p></div></li>)}
+          </ol>
+        </div>
       </div>
       <div className="water-science">
         <div className="water-subheading"><span>FAT OR WATER?</span><h4>为什么短期体重波动，常常先想到水分？</h4><p>常用估算中，1 kg 体脂对应约 7700 kcal 能量。脂肪变化是逐步发生的，短期体重大幅起伏不能简单理解为当天增加或减少了等量脂肪。</p></div>
-        <div className="water-switch-grid">
-          {waterSwitches.map((item, index) => <article key={item.title}><span>0{index + 1}</span><h5>{item.title}</h5><p>{item.text}</p></article>)}
+        <button type="button" className="water-panel-toggle" aria-expanded={panels.science} aria-controls="water-science-body" onClick={() => togglePanel("science")}>
+          {panels.science ? "收起波动原因" : "展开波动原因"}
+        </button>
+        <div id="water-science-body" hidden={!panels.science}>
+          <div className="water-switch-grid">
+            {waterSwitches.map((item, index) => <article key={item.title}><span>0{index + 1}</span><h5>{item.title}</h5><p>{item.text}</p></article>)}
+          </div>
         </div>
       </div>
       <p className="water-note">以上为一般健康科普与常见估算，不用于诊断，个体波动范围不同；如持续明显水肿、体重短期快速变化或伴随不适，请及时咨询医生。</p>
