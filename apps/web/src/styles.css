@@ -854,3 +854,20 @@ section { scroll-margin-top: 78px; }
   .poster-export-copy > button.csv-export { margin-left: 0; margin-top: 14px; display: block; }
   .camp-complete { padding: 18px; }
 }
+
+/* v1.7.2 · 独立打卡页 /check-in */
+.check-in-entry { background: var(--forest); color: var(--paper); }
+.check-in-entry-heading { max-width: 1100px; margin: 66px 0 0; }
+.check-in-entry-heading h2 { margin-top: 24px; font-family: var(--display); font-size: clamp(38px, 4.6vw, 76px); font-weight: 900; letter-spacing: -.06em; line-height: 1.08; }
+.check-in-entry-heading > p:not(.eyebrow) { max-width: 680px; margin-top: 26px; font-size: 14px; line-height: 1.9; opacity: .68; }
+.check-in-entry-heading > .check-in-persistence { margin-top: 14px; color: var(--acid); font-weight: 750; opacity: 1; }
+.check-in-entry-link { display: inline-flex; align-items: center; margin-top: 34px; padding: 16px 30px; background: var(--acid); color: var(--forest); font-size: 15px; font-weight: 800; letter-spacing: .04em; transition: transform 250ms ease; }
+.check-in-entry-link:hover { transform: translateY(-2px); }
+.check-in-page-nav { padding: calc(96px + env(safe-area-inset-top, 0px)) 4vw 0; background: var(--forest); }
+.check-in-page-nav a { display: inline-flex; padding: 10px 0; color: var(--paper); font-size: 12px; font-weight: 700; letter-spacing: .08em; opacity: .75; }
+.check-in-page-nav a:hover { color: var(--acid); opacity: 1; }
+@media (max-width: 760px) {
+  .check-in-entry-heading { margin-top: 44px; }
+  .check-in-entry-link { width: 100%; justify-content: center; }
+  .check-in-page-nav { padding-top: calc(88px + env(safe-area-inset-top, 0px)); }
+}

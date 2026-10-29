@@ -44,5 +44,6 @@ describe("brand page", () => {
     expect(screen.queryByRole("link", { name: "立即购买" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "咨询与留资" })).not.toBeInTheDocument();
     expect(screen.queryByText(/微信打卡/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("tablist", { name: "21 天打卡日期" })).not.toBeInTheDocument();
   });
 });

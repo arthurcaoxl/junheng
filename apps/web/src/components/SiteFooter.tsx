@@ -1,6 +1,8 @@
+import { Link, useLocation } from "react-router";
 import { siteConfig } from "../config/site";
 
 export function SiteFooter() {
+  const { pathname } = useLocation();
   return (
     <footer className="site-footer" data-theme="forest">
       <p className="eyebrow">JUNHENG PLAN · 21 DAYS</p>
@@ -9,7 +11,7 @@ export function SiteFooter() {
       <div className="footer-bottom">
         <div><strong>{siteConfig.brand}</strong><span>{siteConfig.category}</span><span className="site-version">网站版本 v{siteConfig.version}</span></div>
         <p>本页面为品牌展示，内容依据品牌提供素材整理，不构成医疗建议。产品信息以实物包装与正式文件为准。</p>
-        <a href="#hero">回到顶部 ↑</a>
+        {pathname === "/" ? <a href="#hero">回到顶部 ↑</a> : <Link to="/">返回首页 ↑</Link>}
       </div>
     </footer>
   );

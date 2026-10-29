@@ -1,26 +1,11 @@
 import { useEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { Navigate, Route, Routes, useLocation } from "react-router";
 import { SiteHeader } from "./components/SiteHeader";
-import { Hero } from "./components/Hero";
-import { BrandPerspective } from "./components/BrandPerspective";
-import { MetabolismSignals } from "./components/MetabolismSignals";
-import { CategoryDifference } from "./components/CategoryDifference";
-import { MetricsWall } from "./components/MetricsWall";
-import { NutritionStory } from "./components/NutritionStory";
-import { FormulaStrength } from "./components/FormulaStrength";
-import { MushroomBenefits } from "./components/MushroomBenefits";
-import { MushroomKnowledge } from "./components/MushroomKnowledge";
-import { ProcessStory } from "./components/ProcessStory";
-import { MetabolismMechanism } from "./components/MetabolismMechanism";
-import { Ritual } from "./components/Ritual";
-import { PlateGuide } from "./components/PlateGuide";
-import { SceneGuide } from "./components/SceneGuide";
-import { MovementGuide } from "./components/MovementGuide";
-import { BodyStandards } from "./components/BodyStandards";
-import { Research } from "./components/Research";
-import { SevenDayCheckIn } from "./components/SevenDayCheckIn";
 import { SiteFooter } from "./components/SiteFooter";
+import Home from "./pages/Home";
+import CheckInPage from "./pages/CheckInPage";
 import { useReducedMotion } from "./hooks/useReducedMotion";
 import "./styles.css";
 
@@ -29,8 +14,11 @@ gsap.registerPlugin(ScrollTrigger);
 export default function App() {
   const rootRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
+  const { pathname } = useLocation();
+  const isHome = pathname === "/";
 
   useEffect(() => {
+    if (!isHome) return;
     const root = rootRef.current;
     if (!root) return;
     const context = gsap.context(() => {
@@ -71,30 +59,17 @@ export default function App() {
       }
     }, root);
     return () => context.revert();
-  }, [reducedMotion]);
+  }, [isHome, reducedMotion]);
 
   return (
     <div className="site-shell" data-active-theme="forest" ref={rootRef}>
       <SiteHeader />
       <main>
-        <Hero />
-        <BrandPerspective />
-        <MetabolismSignals />
-        <CategoryDifference />
-        <BodyStandards />
-        <MetricsWall />
-        <NutritionStory />
-        <FormulaStrength />
-        <MushroomBenefits />
-        <MushroomKnowledge />
-        <ProcessStory />
-        <MetabolismMechanism />
-        <Research />
-        <Ritual />
-        <PlateGuide />
-        <SceneGuide />
-        <MovementGuide />
-        <SevenDayCheckIn />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/check-in" element={<CheckInPage />} />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
       <SiteFooter />
     </div>

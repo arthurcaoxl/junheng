@@ -1,20 +1,43 @@
-import { useState } from 'react'
-import '../App.css'
+import { Hero } from "../components/Hero";
+import { BrandPerspective } from "../components/BrandPerspective";
+import { MetabolismSignals } from "../components/MetabolismSignals";
+import { CategoryDifference } from "../components/CategoryDifference";
+import { MetricsWall } from "../components/MetricsWall";
+import { NutritionStory } from "../components/NutritionStory";
+import { FormulaStrength } from "../components/FormulaStrength";
+import { MushroomBenefits } from "../components/MushroomBenefits";
+import { MushroomKnowledge } from "../components/MushroomKnowledge";
+import { ProcessStory } from "../components/ProcessStory";
+import { MetabolismMechanism } from "../components/MetabolismMechanism";
+import { Ritual } from "../components/Ritual";
+import { PlateGuide } from "../components/PlateGuide";
+import { SceneGuide } from "../components/SceneGuide";
+import { MovementGuide } from "../components/MovementGuide";
+import { BodyStandards } from "../components/BodyStandards";
+import { Research } from "../components/Research";
+import { CheckInEntry } from "../components/CheckInEntry";
 
 export default function Home() {
-  const [count, setCount] = useState(0)
-
   return (
     <>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
+      <Hero />
+      <BrandPerspective />
+      <MetabolismSignals />
+      <CategoryDifference />
+      <BodyStandards />
+      <MetricsWall />
+      <NutritionStory />
+      <FormulaStrength />
+      <MushroomBenefits />
+      <MushroomKnowledge />
+      <ProcessStory />
+      <MetabolismMechanism />
+      <Research />
+      <Ritual />
+      <PlateGuide />
+      <SceneGuide />
+      <MovementGuide />
+      <CheckInEntry />
     </>
-  )
+  );
 }

@@ -4,8 +4,8 @@ import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 
-function renderApp() {
-  return render(<MemoryRouter><App /></MemoryRouter>);
+function renderApp(route = "/") {
+  return render(<MemoryRouter initialEntries={[route]}><App /></MemoryRouter>);
 }
 
 describe("v1.4 science, plate and personal records", () => {
@@ -13,7 +13,7 @@ describe("v1.4 science, plate and personal records", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("explains the 24-hour weight timeline and three water switches without absolute claims", () => {
-    renderApp();
+    renderApp("/check-in");
     const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
     expect(within(checkIn).getByRole("heading", { name: "一天 24 小时：体重的“真实时间轴”" })).toBeInTheDocument();
     expect(within(checkIn).getByRole("heading", { name: "早晨 7:00–8:00" })).toBeInTheDocument();
@@ -49,11 +49,11 @@ describe("v1.4 science, plate and personal records", () => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context as unknown as CanvasRenderingContext2D);
     vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/png;base64,named-poster");
     const user = userEvent.setup();
-    const first = renderApp();
+    const first = renderApp("/check-in");
     await user.type(screen.getByLabelText("姓名或网名"), "小菌");
     expect(window.localStorage.getItem("junheng-checkin-name-v1")).toBe("小菌");
     first.unmount();
-    renderApp();
+    renderApp("/check-in");
     expect(screen.getByLabelText("姓名或网名")).toHaveValue("小菌");
     await user.click(screen.getByRole("button", { name: "导出记录海报" }));
     expect(context.fillText).toHaveBeenCalledWith("记录人：小菌", 70, 318);
@@ -61,7 +61,7 @@ describe("v1.4 science, plate and personal records", () => {
 
   it("clears the saved name together with local check-in records", async () => {
     const user = userEvent.setup();
-    renderApp();
+    renderApp("/check-in");
     await user.type(screen.getByLabelText("姓名或网名"), "小菌");
     await user.click(screen.getByRole("button", { name: "清空本机记录" }));
     expect(screen.getByLabelText("姓名或网名")).toHaveValue("");
