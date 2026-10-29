@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://junheng.local/contracts/error-v1.schema.json",
+  "title": "ErrorV1",
+  "type": "object",
+  "required": ["code", "message", "retryable", "details", "correlationId"],
+  "additionalProperties": false,
+  "properties": {
+    "code": { "type": "string", "pattern": "^[A-Z][A-Z0-9_]*$" },
+    "message": { "type": "string", "minLength": 1 },
+    "retryable": { "type": "boolean" },
+    "details": { "type": "object" },
+    "correlationId": { "type": "string", "minLength": 20 }
+  },
+  "examples": [
+    {
+      "code": "STATE_CONFLICT",
+      "message": "Entity version does not match",
+      "retryable": false,
+      "details": {},
+      "correlationId": "cor_01JYC8M4F6N2Q0A7R3T5V9XBDE"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://junheng.local/contracts/enrollment-v1.schema.json",
+  "title": "EnrollmentV1",
+  "type": "object",
+  "required": ["enrollmentId", "campaignId", "applicantRef", "formPayloadRef", "state", "version", "createdAt", "updatedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "enrollmentId": { "type": "string", "pattern": "^enr_[A-Za-z0-9]{16,64}$" },
+    "campaignId": { "type": "string", "pattern": "^cmp_[A-Za-z0-9]{16,64}$" },
+    "applicantRef": { "type": "string", "minLength": 3 },
+    "formPayloadRef": { "type": "string", "minLength": 3 },
+    "state": { "type": "string", "enum": ["submitted", "reviewing", "needs_info", "payment_pending", "confirmed", "rejected", "cancelled", "expired"] },
+    "version": { "type": "integer", "minimum": 1 },
+    "createdAt": { "type": "string" },
+    "updatedAt": { "type": "string" }
+  },
+  "examples": [
+    {
+      "enrollmentId": "enr_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+      "campaignId": "cmp_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+      "applicantRef": "restricted_applicant_example",
+      "formPayloadRef": "restricted_form_example",
+      "state": "submitted",
+      "version": 1,
+      "createdAt": "2026-10-29T08:10:00.000Z",
+      "updatedAt": "2026-10-29T08:10:00.000Z"
+    }
+  ]
+}

@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://junheng.local/contracts/payment-v1.schema.json",
+  "title": "PaymentV1",
+  "type": "object",
+  "required": ["paymentId", "enrollmentId", "campaignId", "amount", "state", "providerKey", "requestedAt", "expiresAt", "lateSuccess", "version", "createdAt", "updatedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "paymentId": { "type": "string", "pattern": "^pay_[A-Za-z0-9]{16,64}$" },
+    "enrollmentId": { "type": "string", "pattern": "^enr_[A-Za-z0-9]{16,64}$" },
+    "campaignId": { "type": "string", "pattern": "^cmp_[A-Za-z0-9]{16,64}$" },
+    "amount": {
+      "type": "object",
+      "required": ["amountMinor", "currency"],
+      "additionalProperties": false,
+      "properties": {
+        "amountMinor": { "type": "integer", "minimum": 1 },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" }
+      }
+    },
+    "state": { "type": "string", "enum": ["created", "pending", "succeeded", "failed", "expired", "refund_pending", "refunded"] },
+    "providerKey": { "type": "string", "minLength": 1 },
+    "providerTransactionRef": { "type": "string", "minLength": 3 },
+    "requestedAt": { "type": "string" },
+    "expiresAt": { "type": "string" },
+    "succeededAt": { "type": "string" },
+    "lateSuccess": { "type": "boolean" },
+    "version": { "type": "integer", "minimum": 1 },
+    "createdAt": { "type": "string" },
+    "updatedAt": { "type": "string" }
+  },
+  "examples": [
+    {
+      "paymentId": "pay_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+      "enrollmentId": "enr_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+      "campaignId": "cmp_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+      "amount": { "amountMinor": 19900, "currency": "CNY" },
+      "state": "pending",
+      "providerKey": "example_provider",
+      "requestedAt": "2026-10-29T08:20:00.000Z",
+      "expiresAt": "2026-10-29T08:50:00.000Z",
+      "lateSuccess": false,
+      "version": 1,
+      "createdAt": "2026-10-29T08:20:00.000Z",
+      "updatedAt": "2026-10-29T08:20:00.000Z"
+    }
+  ]
+}

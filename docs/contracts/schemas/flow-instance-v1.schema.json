@@ -1,0 +1,40 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://junheng.local/contracts/flow-instance-v1.schema.json",
+  "title": "FlowInstanceV1",
+  "type": "object",
+  "required": ["flowId", "campaignId", "enrollmentId", "state", "policySnapshot", "currentStep", "version", "createdAt", "updatedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "flowId": { "type": "string", "pattern": "^flw_[A-Za-z0-9]{16,64}$" },
+    "campaignId": { "type": "string", "pattern": "^cmp_[A-Za-z0-9]{16,64}$" },
+    "enrollmentId": { "type": "string", "pattern": "^enr_[A-Za-z0-9]{16,64}$" },
+    "state": { "type": "string", "enum": ["running", "waiting_review", "waiting_payment", "completed", "cancelled", "failed"] },
+    "policySnapshot": {
+      "type": "object",
+      "required": ["requiresReview", "requiresPayment"],
+      "additionalProperties": false,
+      "properties": {
+        "requiresReview": { "type": "boolean" },
+        "requiresPayment": { "type": "boolean" }
+      }
+    },
+    "currentStep": { "type": "string", "minLength": 1 },
+    "version": { "type": "integer", "minimum": 1 },
+    "createdAt": { "type": "string" },
+    "updatedAt": { "type": "string" }
+  },
+  "examples": [
+    {
+      "flowId": "flw_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+      "campaignId": "cmp_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+      "enrollmentId": "enr_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+      "state": "waiting_review",
+      "policySnapshot": { "requiresReview": true, "requiresPayment": true },
+      "currentStep": "review",
+      "version": 1,
+      "createdAt": "2026-10-29T08:11:00.000Z",
+      "updatedAt": "2026-10-29T08:11:00.000Z"
+    }
+  ]
+}

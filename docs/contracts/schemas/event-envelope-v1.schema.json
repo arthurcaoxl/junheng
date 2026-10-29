@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://junheng.local/contracts/event-envelope-v1.schema.json",
+  "title": "EventEnvelopeV1",
+  "type": "object",
+  "required": ["eventId", "eventType", "schemaVersion", "occurredAt", "aggregateType", "aggregateId", "correlationId", "actor", "payload"],
+  "additionalProperties": false,
+  "properties": {
+    "eventId": { "type": "string", "pattern": "^evt_[A-Za-z0-9]{16,64}$" },
+    "eventType": { "type": "string", "pattern": "^[A-Z][A-Za-z0-9]*$" },
+    "schemaVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+$" },
+    "occurredAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$" },
+    "aggregateType": { "type": "string", "enum": ["campaign", "enrollment", "review", "payment", "identity", "flow"] },
+    "aggregateId": { "type": "string", "minLength": 20 },
+    "correlationId": { "type": "string", "minLength": 20 },
+    "causationId": { "type": "string", "minLength": 20 },
+    "actor": {
+      "type": "object",
+      "required": ["type", "id"],
+      "additionalProperties": false,
+      "properties": {
+        "type": { "type": "string", "enum": ["applicant", "reviewer", "admin", "system", "provider"] },
+        "id": { "type": "string", "minLength": 3 }
+      }
+    },
+    "payload": { "type": "object" }
+  },
+  "examples": [
+    {
+      "eventId": "evt_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+      "eventType": "PaymentSucceeded",
+      "schemaVersion": "1.0",
+      "occurredAt": "2026-10-29T08:38:00.000Z",
+      "aggregateType": "payment",
+      "aggregateId": "pay_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+      "correlationId": "cor_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+      "causationId": "cmd_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+      "actor": { "type": "provider", "id": "provider_example" },
+      "payload": {
+        "paymentId": "pay_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+        "enrollmentId": "enr_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+        "amount": { "amountMinor": 19900, "currency": "CNY" },
+        "succeededAt": "2026-10-29T08:38:00.000Z",
+        "lateSuccess": false
+      }
+    }
+  ]
+}

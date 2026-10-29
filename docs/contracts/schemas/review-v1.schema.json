@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://junheng.local/contracts/review-v1.schema.json",
+  "title": "ReviewV1",
+  "type": "object",
+  "required": ["reviewId", "enrollmentId", "campaignId", "state", "version", "createdAt", "updatedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "reviewId": { "type": "string", "pattern": "^rev_[A-Za-z0-9]{16,64}$" },
+    "enrollmentId": { "type": "string", "pattern": "^enr_[A-Za-z0-9]{16,64}$" },
+    "campaignId": { "type": "string", "pattern": "^cmp_[A-Za-z0-9]{16,64}$" },
+    "state": { "type": "string", "enum": ["pending", "approved", "rejected", "needs_info"] },
+    "reasonCode": { "type": "string", "minLength": 1 },
+    "noteRef": { "type": "string", "minLength": 3 },
+    "decidedBy": { "type": "string", "minLength": 3 },
+    "version": { "type": "integer", "minimum": 1 },
+    "createdAt": { "type": "string" },
+    "updatedAt": { "type": "string" }
+  },
+  "examples": [
+    {
+      "reviewId": "rev_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+      "enrollmentId": "enr_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+      "campaignId": "cmp_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+      "state": "pending",
+      "version": 1,
+      "createdAt": "2026-10-29T08:12:00.000Z",
+      "updatedAt": "2026-10-29T08:12:00.000Z"
+    }
+  ]
+}

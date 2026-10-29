@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "machines": {
+    "campaign": {
+      "initial": "draft",
+      "states": ["draft", "open", "paused", "closed", "archived"],
+      "terminals": ["archived"],
+      "transitions": [
+        { "from": "draft", "command": "OpenCampaign", "to": "open" },
+        { "from": "open", "command": "PauseCampaign", "to": "paused" },
+        { "from": "paused", "command": "ResumeCampaign", "to": "open" },
+        { "from": "open", "command": "CloseCampaign", "to": "closed" },
+        { "from": "paused", "command": "CloseCampaign", "to": "closed" },
+        { "from": "closed", "command": "ArchiveCampaign", "to": "archived" }
+      ]
+    },
+    "enrollment": {
+      "initial": "submitted",
+      "states": ["submitted", "reviewing", "needs_info", "payment_pending", "confirmed", "rejected", "cancelled", "expired"],
+      "terminals": ["confirmed", "rejected", "cancelled", "expired"],
+      "transitions": [
+        { "from": "submitted", "command": "StartReview", "to": "reviewing" },
+        { "from": "submitted", "command": "MarkPaymentPending", "to": "payment_pending" },
+        { "from": "submitted", "command": "ConfirmEnrollment", "to": "confirmed" },
+        { "from": "reviewing", "command": "RequestEnrollmentInfo", "to": "needs_info" },
+        { "from": "needs_info", "command": "SubmitEnrollmentInfo", "to": "reviewing" },
+        { "from": "reviewing", "command": "MarkPaymentPending", "to": "payment_pending" },
+        { "from": "reviewing", "command": "ConfirmEnrollment", "to": "confirmed" },
+        { "from": "payment_pending", "command": "ConfirmEnrollment", "to": "confirmed" },
+        { "from": "payment_pending", "command": "ExpireEnrollment", "to": "expired" },
+        { "from": "submitted", "command": "RejectEnrollment", "to": "rejected" },
+        { "from": "reviewing", "command": "RejectEnrollment", "to": "rejected" },
+        { "from": "needs_info", "command": "RejectEnrollment", "to": "rejected" },
+        { "from": "submitted", "command": "CancelEnrollment", "to": "cancelled" },
+        { "from": "reviewing", "command": "CancelEnrollment", "to": "cancelled" },
+        { "from": "needs_info", "command": "CancelEnrollment", "to": "cancelled" },
+        { "from": "payment_pending", "command": "CancelEnrollment", "to": "cancelled" }
+      ]
+    },
+    "review": {
+      "initial": "pending",
+      "states": ["pending", "approved", "rejected", "needs_info"],
+      "terminals": ["approved", "rejected"],
+      "transitions": [
+        { "from": "pending", "command": "ApproveReview", "to": "approved" },
+        { "from": "pending", "command": "RejectReview", "to": "rejected" },
+        { "from": "pending", "command": "RequestReviewInfo", "to": "needs_info" },
+        { "from": "needs_info", "command": "SubmitReviewInfo", "to": "pending" }
+      ]
+    },
+    "payment": {
+      "initial": "created",
+      "states": ["created", "pending", "succeeded", "failed", "expired", "refund_pending", "refunded"],
+      "terminals": ["failed", "refunded"],
+      "transitions": [
+        { "from": "created", "command": "MarkPaymentPending", "to": "pending" },
+        { "from": "created", "command": "FailPayment", "to": "failed" },
+        { "from": "pending", "command": "FailPayment", "to": "failed" },
+        { "from": "created", "command": "ExpirePayment", "to": "expired" },
+        { "from": "pending", "command": "ExpirePayment", "to": "expired" },
+        { "from": "pending", "command": "ConfirmPaymentSuccess", "to": "succeeded" },
+        { "from": "expired", "command": "RecordLatePaymentSuccess", "to": "succeeded" },
+        { "from": "succeeded", "command": "RequestRefund", "to": "refund_pending" },
+        { "from": "refund_pending", "command": "CompleteRefund", "to": "refunded" }
+      ]
+    },
+    "flow": {
+      "initial": "running",
+      "states": ["running", "waiting_review", "waiting_payment", "completed", "cancelled", "failed"],
+      "terminals": ["completed", "cancelled", "failed"],
+      "transitions": [
+        { "from": "running", "command": "RequestReview", "to": "waiting_review" },
+        { "from": "running", "command": "RequestPayment", "to": "waiting_payment" },
+        { "from": "waiting_review", "command": "RequestPayment", "to": "waiting_payment" },
+        { "from": "running", "command": "CompleteFlow", "to": "completed" },
+        { "from": "waiting_review", "command": "CompleteFlow", "to": "completed" },
+        { "from": "waiting_payment", "command": "CompleteFlow", "to": "completed" },
+        { "from": "running", "command": "CancelFlow", "to": "cancelled" },
+        { "from": "waiting_review", "command": "CancelFlow", "to": "cancelled" },
+        { "from": "waiting_payment", "command": "CancelFlow", "to": "cancelled" },
+        { "from": "running", "command": "FailFlow", "to": "failed" },
+        { "from": "waiting_review", "command": "FailFlow", "to": "failed" },
+        { "from": "waiting_payment", "command": "FailFlow", "to": "failed" }
+      ]
+    },
+    "identity": {
+      "initial": "active",
+      "states": ["active", "suspended", "archived"],
+      "terminals": ["archived"],
+      "transitions": [
+        { "from": "active", "command": "SuspendCamper", "to": "suspended" },
+        { "from": "suspended", "command": "RestoreCamper", "to": "active" },
+        { "from": "active", "command": "ArchiveCamper", "to": "archived" },
+        { "from": "suspended", "command": "ArchiveCamper", "to": "archived" }
+      ]
+    }
+  }
+}

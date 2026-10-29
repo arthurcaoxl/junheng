@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://junheng.local/contracts/campaign-v1.schema.json",
+  "title": "CampaignV1",
+  "type": "object",
+  "required": ["campaignId", "name", "state", "opensAt", "closesAt", "requiresReview", "requiresPayment", "version", "createdAt", "updatedAt"],
+  "additionalProperties": false,
+  "properties": {
+    "campaignId": { "type": "string", "pattern": "^cmp_[A-Za-z0-9]{16,64}$" },
+    "name": { "type": "string", "minLength": 1 },
+    "state": { "type": "string", "enum": ["draft", "open", "paused", "closed", "archived"] },
+    "opensAt": { "type": "string" },
+    "closesAt": { "type": "string" },
+    "capacity": { "type": "integer", "minimum": 1 },
+    "price": {
+      "type": "object",
+      "required": ["amountMinor", "currency"],
+      "additionalProperties": false,
+      "properties": {
+        "amountMinor": { "type": "integer", "minimum": 1 },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" }
+      }
+    },
+    "requiresReview": { "type": "boolean" },
+    "requiresPayment": { "type": "boolean" },
+    "version": { "type": "integer", "minimum": 1 },
+    "createdAt": { "type": "string" },
+    "updatedAt": { "type": "string" }
+  },
+  "examples": [
+    {
+      "campaignId": "cmp_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+      "name": "2027 春季减脂营",
+      "state": "open",
+      "opensAt": "2026-10-29T00:00:00.000Z",
+      "closesAt": "2026-11-30T23:59:59.999Z",
+      "capacity": 100,
+      "price": { "amountMinor": 19900, "currency": "CNY" },
+      "requiresReview": true,
+      "requiresPayment": true,
+      "version": 1,
+      "createdAt": "2026-10-29T08:00:00.000Z",
+      "updatedAt": "2026-10-29T08:00:00.000Z"
+    }
+  ]
+}
