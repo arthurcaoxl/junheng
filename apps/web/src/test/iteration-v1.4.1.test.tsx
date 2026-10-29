@@ -35,7 +35,7 @@ describe("v1.4.1 interface refinement", () => {
     expect(within(plate).getByRole("tab", { name: /1 拳主食/ })).toHaveAttribute("aria-selected", "true");
   });
 
-  it("uses two wide stacked charts with sparse day labels", () => {
+  it("uses two wide stacked charts with three-week day labels", () => {
     seedRecords();
     renderApp();
     const trends = screen.getByRole("region", { name: "21 天身体记录趋势" });
@@ -45,10 +45,12 @@ describe("v1.4.1 interface refinement", () => {
       expect(chart).toHaveAttribute("viewBox", "0 0 1000 290");
       expect(chart.querySelector(".trend-chart-scroll")).not.toBeInTheDocument();
       expect(within(chart).getByText("D1")).toBeInTheDocument();
-      expect(within(chart).getByText("D5")).toBeInTheDocument();
-      expect(within(chart).getByText("D10")).toBeInTheDocument();
-      expect(within(chart).getByText("D15")).toBeInTheDocument();
+      expect(within(chart).getByText("D7")).toBeInTheDocument();
+      expect(within(chart).getByText("D14")).toBeInTheDocument();
       expect(within(chart).getByText("D21")).toBeInTheDocument();
+      expect(within(chart).queryByText("D5")).not.toBeInTheDocument();
+      expect(within(chart).queryByText("D10")).not.toBeInTheDocument();
+      expect(within(chart).queryByText("D15")).not.toBeInTheDocument();
       expect(within(chart).queryByText("D2")).not.toBeInTheDocument();
     }
     expect(trends.querySelectorAll(".trend-chart-scroll")).toHaveLength(2);
@@ -83,6 +85,7 @@ describe("v1.4.1 interface refinement", () => {
       return "data:image/png;base64,phase-a-poster";
     });
     const user = userEvent.setup();
+    seedRecords();
     renderApp();
     await user.type(screen.getByLabelText("姓名或网名"), "小菌");
     expect(screen.getByText("海报署名：小菌")).toBeInTheDocument();
@@ -93,6 +96,9 @@ describe("v1.4.1 interface refinement", () => {
     expect(context.fillText).toHaveBeenCalledWith("体重趋势 / kg", 70, 430);
     expect(context.fillText).toHaveBeenCalledWith("腰围趋势 / cm", 70, 870);
     expect(context.fillText).toHaveBeenCalledWith("本海报由本人主动生成，仅供个人健康管理参考。", 70, 1835);
+    const posterText = context.fillText.mock.calls.map(([text]) => String(text));
+    expect(posterText).toEqual(expect.arrayContaining(["D1", "D7", "D14", "D21"]));
+    expect(posterText.filter((text) => ["D5", "D10", "D15"].includes(text))).toEqual([]);
     const footerCalls = context.fillText.mock.calls.map(([text]) => String(text));
     expect(footerCalls.some((text) => text.includes("记录保存在当前设备"))).toBe(false);
   });

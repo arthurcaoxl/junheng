@@ -59,7 +59,7 @@ function drawTrend(context: CanvasRenderingContext2D, records: DayRecord[], metr
   context.fillStyle = "#93A299";
   context.font = "20px sans-serif";
   context.textAlign = "center";
-  [1, 5, 10, 15, 21].forEach((day) => context.fillText(`D${day}`, x(day), top + 340));
+  [1, 7, 14, 21].forEach((day) => context.fillText(`D${day}`, x(day), top + 340));
   context.textAlign = "left";
 }
 

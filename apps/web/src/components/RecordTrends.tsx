@@ -28,7 +28,7 @@ function TrendChart({ records, metric }: TrendChartProps) {
   });
   const latest = points[points.length - 1];
   const labelDays = selectTrendLabelDays(points);
-  const axisDays = [1, 5, 10, 15, 21];
+  const axisDays = [1, 7, 14, 21];
 
   return (
     <article className="trend-card">
