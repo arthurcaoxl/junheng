@@ -19,3 +19,9 @@ if (typeof window.matchMedia !== "function") {
     })),
   });
 }
+
+// jsdom 的 scrollTo 会打印 Not implemented 噪音，统一替换为可断言的空实现
+Object.defineProperty(window, "scrollTo", {
+  writable: true,
+  value: vi.fn(),
+});

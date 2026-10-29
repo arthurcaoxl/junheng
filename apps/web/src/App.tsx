@@ -11,6 +11,14 @@ import "./styles.css";
 
 gsap.registerPlugin(ScrollTrigger);
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
+}
+
 export default function App() {
   const rootRef = useRef<HTMLDivElement>(null);
   const reducedMotion = useReducedMotion();
@@ -63,6 +71,7 @@ export default function App() {
 
   return (
     <div className="site-shell" data-active-theme="forest" ref={rootRef}>
+      <ScrollToTop />
       <SiteHeader />
       <main>
         <Routes>

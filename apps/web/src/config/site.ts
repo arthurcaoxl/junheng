@@ -5,7 +5,7 @@ export const siteConfig = {
   healthStatement: "健康体重管理",
   subtitle: "——23种菌菇精华 × 优质蛋白 × 复合维生素——",
   category: "特殊膳食食品·运动营养食品",
-  version: "1.7.2",
+  version: "1.7.3",
 } as const;
 
 export const actionConfig = {
