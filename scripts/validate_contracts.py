@@ -19,12 +19,23 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 SCHEMA_DIR = ROOT / "docs/contracts/schemas"
 STATE_FILE = ROOT / "docs/contracts/state-machines.json"
+COMMAND_FILE = ROOT / "docs/contracts/command-catalog.json"
+ARCHITECTURE_FILE = ROOT / "ARCHITECTURE.md"
 SUPPORTED = {
     "$schema", "$id", "title", "type", "required", "properties",
     "additionalProperties", "items", "enum", "const", "pattern",
-    "minLength", "minimum", "maximum", "examples",
+    "minLength", "minimum", "maximum", "examples", "if", "then",
 }
 TYPES = {"object", "array", "string", "integer", "boolean"}
+COMMAND_SCOPES = {"domain", "internal", "orchestration"}
+MACHINE_SCHEMAS = {
+    "campaign": "campaign-v1.schema.json",
+    "enrollment": "enrollment-v1.schema.json",
+    "review": "review-v1.schema.json",
+    "payment": "payment-v1.schema.json",
+    "flow": "flow-instance-v1.schema.json",
+    "identity": "identity-v1.schema.json",
+}
 
 
 class ContractError(Exception):
@@ -38,15 +49,17 @@ def load_json(path: Path) -> Any:
         raise ContractError(f"{path.relative_to(ROOT)}: {exc}") from exc
 
 
-def check_schema_shape(schema: dict[str, Any], location: str) -> None:
+def check_schema_shape(schema: dict[str, Any], location: str, allow_untyped: bool = False) -> None:
     unknown = set(schema) - SUPPORTED
     if unknown:
         raise ContractError(f"{location}: unsupported keywords {sorted(unknown)}")
     schema_type = schema.get("type")
-    if schema_type not in TYPES:
-        raise ContractError(f"{location}: missing or unsupported type {schema_type!r}")
+    if schema_type is not None and schema_type not in TYPES:
+        raise ContractError(f"{location}: unsupported type {schema_type!r}")
+    if schema_type is None and not allow_untyped:
+        raise ContractError(f"{location}: missing type")
     if "properties" in schema:
-        if schema_type != "object" or not isinstance(schema["properties"], dict):
+        if schema_type not in {None, "object"} or not isinstance(schema["properties"], dict):
             raise ContractError(f"{location}: properties must be an object schema map")
         for name, child in schema["properties"].items():
             if not isinstance(child, dict):
@@ -58,15 +71,23 @@ def check_schema_shape(schema: dict[str, Any], location: str) -> None:
             raise ContractError(f"{location}: required must be a string array")
         if len(required) != len(set(required)):
             raise ContractError(f"{location}: duplicate required fields")
-        missing = set(required) - set(schema.get("properties", {}))
-        if missing:
-            raise ContractError(f"{location}: required fields lack schemas {sorted(missing)}")
+        if "properties" in schema:
+            missing = set(required) - set(schema["properties"])
+            if missing:
+                raise ContractError(f"{location}: required fields lack schemas {sorted(missing)}")
     if "additionalProperties" in schema and not isinstance(schema["additionalProperties"], bool):
         raise ContractError(f"{location}: additionalProperties must be boolean")
     if "items" in schema:
         if schema_type != "array" or not isinstance(schema["items"], dict):
             raise ContractError(f"{location}: items must be an array item schema")
         check_schema_shape(schema["items"], f"{location}[]")
+    if "then" in schema and "if" not in schema:
+        raise ContractError(f"{location}: then requires if")
+    for keyword in ("if", "then"):
+        if keyword in schema:
+            if not isinstance(schema[keyword], dict):
+                raise ContractError(f"{location}: {keyword} must be a schema object")
+            check_schema_shape(schema[keyword], f"{location}.{keyword}", allow_untyped=True)
     if "enum" in schema:
         if not isinstance(schema["enum"], list) or not schema["enum"]:
             raise ContractError(f"{location}: enum must be a non-empty array")
@@ -81,17 +102,18 @@ def check_schema_shape(schema: dict[str, Any], location: str) -> None:
 
 
 def validate_instance(instance: Any, schema: dict[str, Any], location: str, errors: list[str]) -> None:
-    schema_type = schema["type"]
-    type_ok = {
-        "object": lambda value: isinstance(value, dict),
-        "array": lambda value: isinstance(value, list),
-        "string": lambda value: isinstance(value, str),
-        "integer": lambda value: type(value) is int,
-        "boolean": lambda value: type(value) is bool,
-    }[schema_type](instance)
-    if not type_ok:
-        errors.append(f"{location}: expected {schema_type}")
-        return
+    schema_type = schema.get("type")
+    if schema_type is not None:
+        type_ok = {
+            "object": lambda value: isinstance(value, dict),
+            "array": lambda value: isinstance(value, list),
+            "string": lambda value: isinstance(value, str),
+            "integer": lambda value: type(value) is int,
+            "boolean": lambda value: type(value) is bool,
+        }[schema_type](instance)
+        if not type_ok:
+            errors.append(f"{location}: expected {schema_type}")
+            return
     if "enum" in schema and instance not in schema["enum"]:
         errors.append(f"{location}: {instance!r} not in enum")
     if "const" in schema and instance != schema["const"]:
@@ -120,6 +142,11 @@ def validate_instance(instance: Any, schema: dict[str, Any], location: str, erro
     if isinstance(instance, list) and "items" in schema:
         for index, value in enumerate(instance):
             validate_instance(value, schema["items"], f"{location}[{index}]", errors)
+    if "if" in schema:
+        condition_errors: list[str] = []
+        validate_instance(instance, schema["if"], f"{location}.if", condition_errors)
+        if not condition_errors and "then" in schema:
+            validate_instance(instance, schema["then"], f"{location}.then", errors)
 
 
 def validate_schemas() -> tuple[int, int, dict[str, list[str]]]:
@@ -154,22 +181,72 @@ def validate_schemas() -> tuple[int, int, dict[str, list[str]]]:
     return len(paths), example_count, states
 
 
-def validate_state_machines(schema_states: dict[str, list[str]]) -> int:
+def validate_command_catalog() -> tuple[dict[str, dict[str, set[str]]], dict[str, str]]:
+    document = load_json(COMMAND_FILE)
+    if document.get("version") != 1 or not isinstance(document.get("modules"), dict):
+        raise ContractError("command-catalog.json: invalid header")
+    modules = document["modules"]
+    if set(modules) != set(MACHINE_SCHEMAS):
+        raise ContractError("command-catalog.json: module set does not match state machines")
+    catalog: dict[str, dict[str, set[str]]] = {}
+    contracts: dict[str, str] = {}
+    business_owners: dict[str, str] = {}
+    command_count = 0
+    for module, config in modules.items():
+        contract = config.get("contract")
+        commands = config.get("commands")
+        if not isinstance(contract, str) or not isinstance(commands, dict):
+            raise ContractError(f"{module}: contract and commands required")
+        if set(commands) != COMMAND_SCOPES:
+            raise ContractError(f"{module}: command scopes must be {sorted(COMMAND_SCOPES)}")
+        contract_path = ROOT / contract
+        if not contract_path.is_file():
+            raise ContractError(f"{module}: missing contract {contract}")
+        text = contract_path.read_text(encoding="utf-8")
+        catalog[module] = {}
+        contracts[module] = contract
+        seen_in_module: set[str] = set()
+        for scope in sorted(COMMAND_SCOPES):
+            entries = commands[scope]
+            if not isinstance(entries, list):
+                raise ContractError(f"{module}.{scope}: commands must be an array")
+            if len(entries) != len(set(entries)):
+                raise ContractError(f"{module}.{scope}: duplicate commands")
+            catalog[module][scope] = set(entries)
+            for command in entries:
+                if not isinstance(command, str) or re.fullmatch(r"[A-Z][A-Za-z0-9]*", command) is None:
+                    raise ContractError(f"{module}.{scope}: invalid command {command!r}")
+                if command in seen_in_module:
+                    raise ContractError(f"{module}: command {command} appears in multiple scopes")
+                seen_in_module.add(command)
+                if f"`{command}`" not in text:
+                    raise ContractError(f"{contract}: missing command declaration {command}")
+                if scope in {"domain", "internal"}:
+                    previous = business_owners.get(command)
+                    if previous is not None:
+                        raise ContractError(
+                            f"business command {command} has multiple owners: {previous}, {module}"
+                        )
+                    business_owners[command] = module
+                command_count += 1
+    print(f"PASS command catalog: {len(modules)} modules, {command_count} scoped commands")
+    return catalog, contracts
+
+
+def validate_state_machines(
+    schema_states: dict[str, list[str]],
+    command_catalog: dict[str, dict[str, set[str]]],
+) -> int:
     document = load_json(STATE_FILE)
     if document.get("version") != 1 or not isinstance(document.get("machines"), dict):
         raise ContractError("state-machines.json: invalid header")
-    schema_by_machine = {
-        "campaign": "campaign-v1.schema.json",
-        "enrollment": "enrollment-v1.schema.json",
-        "review": "review-v1.schema.json",
-        "payment": "payment-v1.schema.json",
-        "flow": "flow-instance-v1.schema.json",
-        "identity": "identity-v1.schema.json",
-    }
     machines = document["machines"]
-    if set(machines) != set(schema_by_machine):
+    if set(machines) != set(MACHINE_SCHEMAS):
         raise ContractError("state-machines.json: machine set does not match entity schemas")
     for name, machine in machines.items():
+        expected_scope = "orchestration" if name == "flow" else "domain"
+        if machine.get("commandScope") != expected_scope:
+            raise ContractError(f"{name}: commandScope must be {expected_scope}")
         states = machine.get("states")
         if not isinstance(states, list) or len(states) != len(set(states)):
             raise ContractError(f"{name}: states must be unique")
@@ -178,7 +255,7 @@ def validate_state_machines(schema_states: dict[str, list[str]]) -> int:
         terminals = machine.get("terminals")
         if initial not in state_set or not isinstance(terminals, list) or not set(terminals) <= state_set:
             raise ContractError(f"{name}: invalid initial or terminals")
-        if schema_states.get(schema_by_machine[name]) != states:
+        if schema_states.get(MACHINE_SCHEMAS[name]) != states:
             raise ContractError(f"{name}: schema state enum differs from state machine")
         transitions = machine.get("transitions")
         if not isinstance(transitions, list) or not transitions:
@@ -193,6 +270,11 @@ def validate_state_machines(schema_states: dict[str, list[str]]) -> int:
                 raise ContractError(f"{name}: transition references unknown state")
             if not isinstance(command, str) or re.fullmatch(r"[A-Z][A-Za-z0-9]*", command) is None:
                 raise ContractError(f"{name}: invalid command {command!r}")
+            allowed = (
+                {"orchestration"} if expected_scope == "orchestration" else {"domain", "internal"}
+            )
+            if not any(command in command_catalog[name][scope] for scope in allowed):
+                raise ContractError(f"{name}: transition command {command} is absent from command catalog")
             if (source, command) in seen:
                 raise ContractError(f"{name}: duplicate transition {source}+{command}")
             seen.add((source, command))
@@ -255,21 +337,58 @@ def validate_required_documents() -> int:
     for state in ("running", "waiting_review", "waiting_payment", "completed", "cancelled", "failed"):
         if state not in flow:
             raise ContractError(f"camp-flow.md: missing flow state {state}")
+    flow_schema = load_json(SCHEMA_DIR / "flow-instance-v1.schema.json")
+    for step in flow_schema["properties"]["currentStep"]["enum"]:
+        if f"`{step}" not in flow:
+            raise ContractError(f"camp-flow.md: missing currentStep {step}")
     print(f"PASS documentation: {len(documents)} required files and ownership tokens")
     return len(documents)
+
+
+def validate_architecture_commands(command_catalog: dict[str, dict[str, set[str]]]) -> int:
+    text = ARCHITECTURE_FILE.read_text(encoding="utf-8")
+    marker = "## 命令与事件归属"
+    if marker not in text:
+        raise ContractError("ARCHITECTURE.md: missing command ownership section")
+    section = text.split(marker, 1)[1].split("\n## ", 1)[0]
+    row_count = 0
+    for line in section.splitlines():
+        if not line.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in line.strip().strip("|").split("|")]
+        if len(cells) != 5 or cells[0] in {"触发方", "---"}:
+            continue
+        command = cells[1].removeprefix("`").removesuffix("`")
+        owner = cells[2]
+        if re.fullmatch(r"[A-Z][A-Za-z0-9]*", command) is None:
+            raise ContractError(f"ARCHITECTURE.md: invalid command table entry {command!r}")
+        if owner not in command_catalog or not any(
+            command in command_catalog[owner][scope] for scope in ("domain", "internal")
+        ):
+            raise ContractError(
+                f"ARCHITECTURE.md: command {command} is not owned by {owner} in command catalog"
+            )
+        row_count += 1
+    if row_count == 0:
+        raise ContractError("ARCHITECTURE.md: command ownership table is empty")
+    print(f"PASS architecture command ownership: {row_count} rows")
+    return row_count
 
 
 def main() -> int:
     try:
         schema_count, example_count, schema_states = validate_schemas()
-        machine_count = validate_state_machines(schema_states)
+        command_catalog, _ = validate_command_catalog()
+        machine_count = validate_state_machines(schema_states, command_catalog)
         document_count = validate_required_documents()
+        ownership_rows = validate_architecture_commands(command_catalog)
     except ContractError as exc:
         print(f"FAIL: {exc}", file=sys.stderr)
         return 1
     print(
         f"PASS: {schema_count} schemas, {example_count} examples, "
-        f"{machine_count} state machines, {document_count} required documents"
+        f"{machine_count} state machines, {document_count} required documents, "
+        f"{ownership_rows} architecture ownership rows"
     )
     return 0
 

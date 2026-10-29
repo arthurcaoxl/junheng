@@ -9,7 +9,7 @@ payment 拥有服务端支付单、规范支付事实和退款状态，不拥有
 | 字段 | 类型 / 规则 |
 | --- | --- |
 | `paymentId` / `enrollmentId` / `campaignId` | 支付及关联 ID。 |
-| `amount` | Money；由服务端 campaign 价格快照生成。 |
+| `amount` | Money；只能复制 enrollment.priceSnapshot，不读取 campaign 当前价。 |
 | `state` | `created / pending / succeeded / failed / expired / refund_pending / refunded`。 |
 | `providerKey` | 适配器标识，不是渠道专属 payload。 |
 | `providerTransactionRef` | 可选不透明交易引用，受限保存。 |
@@ -17,10 +17,24 @@ payment 拥有服务端支付单、规范支付事实和退款状态，不拥有
 | `lateSuccess` | 过期或取消后收到成功事实时为 true。 |
 | `version` / `createdAt` / `updatedAt` | 通用并发与审计字段。 |
 
+## 命令与内部输入
+
+| 名称 | 范围 | 状态跃迁与副作用 |
+| --- | --- | --- |
+| `RequestPayment` | 公开领域命令 | 以 idempotencyKey 创建支付单，使用 enrollment.priceSnapshot 校验金额、归属和有效期；调用 PaymentProvider.createOrder，成功后 created → pending 并发布 PaymentRequested。 |
+| `FailPayment` | 内部 / 适配器输入 | created/pending → failed；记录规范失败原因，不触发报名确认。 |
+| `ExpirePayment` | 内部 / 定时输入 | created/pending → expired；发布 PaymentExpired。 |
+| `ConfirmPaymentSuccess` | 仅验签回调 | pending → succeeded；完成全部校验后发布 PaymentSucceeded。 |
+| `RecordLatePaymentSuccess` | 仅验签回调 | expired → succeeded 且 lateSuccess=true；不自动确认报名，进入退款或人工对账。 |
+| `RequestRefund` | 公开领域命令 | succeeded → refund_pending；v1 仅全额、幂等退款。 |
+| `CompleteRefund` | 验签回调 / 可信对账 | refund_pending → refunded；发布 RefundCompleted。 |
+
+payment 不使用 enrollment 专用的 `MarkEnrollmentPaymentPending`。所有命令和内部输入均以状态机为唯一跃迁定义。
+
 ## 创建与回调
 
-1. `RequestPayment` 必须带 idempotencyKey；服务端重新计算并校验金额、币种、报名归属和有效期。
-2. 支付单先在服务端创建，再调用 PaymentProvider；成功后产生 `PaymentRequested`。
+1. `RequestPayment` 必须带 idempotencyKey；金额来自 enrollment.priceSnapshot，客户端金额和 campaign 当前价均不是支付依据。
+2. 支付单先在服务端创建，再调用 PaymentProvider；只有 created → pending 成功后才产生 `PaymentRequested`。
 3. 回调只在适配器验签后进入 payment；还要校验商户、paymentId、渠道交易号、金额和币种。
 4. 满足全部条件才产生 `PaymentSucceeded`；前端跳转、客户端截图和客户端金额均不能确认支付。
 5. 重复回调按渠道事件 ID、支付单和交易号去重；重复事件不重复通知 camp-flow。

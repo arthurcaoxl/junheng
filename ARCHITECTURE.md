@@ -101,7 +101,9 @@
 - 每个模块拥有自己的表、迁移和仓储；跨模块只保存关联 ID，不允许直接更新对方表。
 - 单次业务命令只使用本模块本地事务。跨模块流程通过 camp-flow、事件和补偿动作完成，不使用分布式事务。
 - 业务状态变更与 Outbox 事件在同一本地事务提交；Worker 至少一次投递，消费者以 Inbox/eventId 去重。
-- 流程实例只保存策略快照、等待步骤和编排日志；支付保存金额快照；不复制其他模块的可变状态。
+- enrollment 在提交时拥有 `priceSnapshot`；payment 创建支付单时复制该金额，均不得读取 campaign 当前价改变在途交易。
+- campaign 通过 `ReserveSeat / ReleaseSeat / CommitSeat` 原子管理名额；禁止“查询 capacity 后无锁写入”。
+- 流程实例只保存策略快照、等待步骤和编排日志，不保存价格快照，也不复制其他模块的可变状态。
 - 受限表单、附件和认证主体使用受限引用与对象存储；公共事件只包含规范 ID、状态和原因码。
 - 每个模块迁移可独立审查和回滚，但不得假设跨模块同时回滚；数据保留与删除期限在实现前另立隐私契约。
 
@@ -183,15 +185,16 @@
 
 | 触发方 | 命令 / 输入 | 状态所有者 | 产出事件 | camp-flow 后续动作 |
 | --- | --- | --- | --- | --- |
-| 报名入口 | `SubmitEnrollment` | enrollment | `EnrollmentSubmitted` | 按策略推进报名并请求审核或支付 |
+| 报名入口 | `SubmitEnrollment` | enrollment | `EnrollmentSubmitted` | 以 enrollmentId 幂等创建流程，按策略推进 |
 | camp-flow | `StartReview` | enrollment | `EnrollmentReviewStarted` | 发 `RequestReview` |
 | camp-flow | `RequestReview` | review | `ReviewRequested` | 流程进入 `waiting_review` |
-| 审核人 | `ApproveReview` | review | `ReviewApproved` | 需要支付时先发 `MarkPaymentPending`，否则发 `ConfirmEnrollment` |
-| camp-flow | `MarkPaymentPending` | enrollment | `EnrollmentPaymentPending` | 发 `RequestPayment` |
+| 审核人 | `ApproveReview` | review | `ReviewApproved` | 需要支付时先发 `MarkEnrollmentPaymentPending`，否则发 `ConfirmEnrollment` |
+| camp-flow | `MarkEnrollmentPaymentPending` | enrollment | `EnrollmentPaymentPending` | 发 `RequestPayment` |
 | camp-flow | `RequestPayment` | payment | `PaymentRequested` | 流程进入 `waiting_payment` |
-| 支付适配器 → payment | 验签后的支付成功输入 | payment | `PaymentSucceeded` | 发 `ConfirmEnrollment`；不得由 payment 修改 enrollment |
-| camp-flow | `ConfirmEnrollment` | enrollment | `EnrollmentConfirmed` | 发 `ProvisionCamper` |
-| camp-flow | `ProvisionCamper` | identity | `CamperProvisioned` | 流程进入 `completed` |
+| 支付适配器 → payment | `ConfirmPaymentSuccess` | payment | `PaymentSucceeded` | 发 `ConfirmEnrollment`；不得由 payment 修改 enrollment |
+| camp-flow | `ConfirmEnrollment` | enrollment | `EnrollmentConfirmed` | 有预留时先发 `CommitSeat`，否则发 `ProvisionCamper` |
+| camp-flow | `CommitSeat` | campaign | `SeatCommitted` | 发 `ProvisionCamper` |
+| camp-flow | `ProvisionCamper` | identity | `CamperProvisioned` | 执行 `CompleteFlow` |
 
 事件至少一次投递；每个命令和事件处理器必须幂等。完整规则见 `docs/architecture/camp-flow.md`。
 
@@ -216,7 +219,7 @@
 
 ## 支付硬约束
 
-- 支付单在服务端创建，金额由服务端依据招募期次计算，客户端金额不是依据。
+- 支付单在服务端创建，金额只能复制 `enrollment.priceSnapshot`；客户端金额和 campaign 当前价都不是在途支付依据。
 - 金额使用最小货币单位整数与币种；验签、商户号、订单号、金额和币种全部校验。
 - 只有验签成功的服务端回调可以产生 `PaymentSucceeded`，前端返回页不能确认支付。
 - 创建支付、回调、退款均幂等；原始敏感报文不进入公共事件或普通日志。
@@ -246,7 +249,7 @@
 - 状态机与编排：`docs/architecture/camp-flow.md`
 - 通用契约：`docs/contracts/shared/`
 - 模块契约：`docs/contracts/{campaign,enrollment,review,payment,identity}-v1.md`
-- 机器可读契约：`docs/contracts/schemas/`、`docs/contracts/state-machines.json`
+- 机器可读契约：`docs/contracts/schemas/`、`docs/contracts/state-machines.json`、`docs/contracts/command-catalog.json`
 
 ```bash
 python scripts/validate_contracts.py

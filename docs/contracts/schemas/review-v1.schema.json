@@ -14,8 +14,8 @@
     "noteRef": { "type": "string", "minLength": 3 },
     "decidedBy": { "type": "string", "minLength": 3 },
     "version": { "type": "integer", "minimum": 1 },
-    "createdAt": { "type": "string" },
-    "updatedAt": { "type": "string" }
+    "createdAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$" },
+    "updatedAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$" }
   },
   "examples": [
     {

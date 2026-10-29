@@ -21,13 +21,13 @@
     "state": { "type": "string", "enum": ["created", "pending", "succeeded", "failed", "expired", "refund_pending", "refunded"] },
     "providerKey": { "type": "string", "minLength": 1 },
     "providerTransactionRef": { "type": "string", "minLength": 3 },
-    "requestedAt": { "type": "string" },
-    "expiresAt": { "type": "string" },
-    "succeededAt": { "type": "string" },
+    "requestedAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$" },
+    "expiresAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$" },
+    "succeededAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$" },
     "lateSuccess": { "type": "boolean" },
     "version": { "type": "integer", "minimum": 1 },
-    "createdAt": { "type": "string" },
-    "updatedAt": { "type": "string" }
+    "createdAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$" },
+    "updatedAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$" }
   },
   "examples": [
     {

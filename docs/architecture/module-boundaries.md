@@ -12,19 +12,22 @@
 
 | 模块 | 权威数据 | 可接收命令 | 可发布事件 | 明确禁止 |
 | --- | --- | --- | --- | --- |
-| campaign | 期次、开放时间、名额、价格、流程策略 | `CreateCampaign`、`OpenCampaign`、`PauseCampaign`、`CloseCampaign` | `CampaignOpened`、`CampaignClosed` | 修改报名或支付状态 |
-| enrollment | 报名单、申请资料引用、报名生命周期 | `SubmitEnrollment`、`StartReview`、`MarkPaymentPending`、`ConfirmEnrollment`、`CancelEnrollment` | `EnrollmentSubmitted`、`EnrollmentReviewStarted`、`EnrollmentPaymentPending`、`EnrollmentConfirmed` | 自行解释支付回调或审核决定 |
+| campaign | 期次、开放时间、名额及原子预留、当前价格、流程策略 | `CreateCampaign`、`OpenCampaign`、`PauseCampaign`、`CloseCampaign`、`ReserveSeat`、`ReleaseSeat`、`CommitSeat` | `CampaignOpened`、`CampaignClosed`、`SeatReserved`、`SeatReleased`、`SeatCommitted` | 修改报名或支付状态 |
+| enrollment | 报名单、申请资料引用、价格快照、报名生命周期 | `SubmitEnrollment`、`StartReview`、`MarkEnrollmentPaymentPending`、`ConfirmEnrollment`、`CancelEnrollment` | `EnrollmentSubmitted`、`EnrollmentReviewStarted`、`EnrollmentPaymentPending`、`EnrollmentConfirmed` | 自行解释支付回调或审核决定 |
 | review | 审核单、决定、原因码、审核人 | `RequestReview`、`ApproveReview`、`RejectReview`、`RequestReviewInfo` | `ReviewRequested`、`ReviewApproved`、`ReviewRejected` | 直接创建支付或确认报名 |
 | payment | 服务端支付单、规范回调事实、退款状态 | `RequestPayment`、`ExpirePayment`、`RequestRefund` | `PaymentRequested`、`PaymentSucceeded`、`PaymentExpired`、`RefundCompleted` | 直接修改 enrollment；保存渠道字段到业务层 |
 | identity | 服务端营员、认证主体引用、权限状态 | `ProvisionCamper`、`SuspendCamper` | `CamperProvisioned`、`CamperSuspended` | 把 storage-v3 userCode 当登录账号 |
 | camp-flow | 流程实例、策略快照、编排日志 | `StartFlow`、`CancelFlow`、`RetryFlowStep` | `FlowCompleted`、`FlowFailed` | 拥有或直接写业务实体状态 |
 
+完整命令及 `domain / internal / orchestration` 作用域以 `docs/contracts/command-catalog.json` 为准。
+
 ## 查询与数据引用
 
 - 报名资料、审核意见和认证主体以受限引用保存；公共事件只传实体 ID 和必要原因码。
-- campaign 的价格与流程策略在关键步骤保存快照，避免期次后续编辑改变在途订单含义。
-- payment 可以保存 enrollmentId 和金额快照，但不能据此直接更新 enrollment。
-- flow instance 保存 campaignId、enrollmentId、当前等待步骤和策略快照，不复制 review/payment 状态。
+- enrollment 在 `SubmitEnrollment` 时保存 `priceSnapshot`；campaign 后续改价只影响新报名。
+- payment 从 enrollment 的公开交易上下文复制金额快照，不得实时读取 campaign 当前价，也不能据此直接更新 enrollment。
+- campaign 通过 `ReserveSeat / ReleaseSeat / CommitSeat` 原子管理名额，禁止查询 capacity 后无锁写入。
+- flow instance 保存 campaignId、enrollmentId、当前等待步骤和策略快照，不复制 review/payment 状态或价格快照。
 
 ## 新增或移除模块
 

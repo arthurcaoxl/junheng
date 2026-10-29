@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "modules": {
+    "campaign": {
+      "contract": "docs/contracts/campaign-v1.md",
+      "commands": {
+        "domain": ["CreateCampaign", "OpenCampaign", "PauseCampaign", "ResumeCampaign", "CloseCampaign", "ArchiveCampaign", "ReserveSeat", "ReleaseSeat", "CommitSeat"],
+        "internal": [],
+        "orchestration": []
+      }
+    },
+    "enrollment": {
+      "contract": "docs/contracts/enrollment-v1.md",
+      "commands": {
+        "domain": ["SubmitEnrollment", "StartReview", "RequestEnrollmentInfo", "SubmitEnrollmentInfo", "MarkEnrollmentPaymentPending", "ConfirmEnrollment", "RejectEnrollment", "CancelEnrollment", "ExpireEnrollment"],
+        "internal": [],
+        "orchestration": []
+      }
+    },
+    "review": {
+      "contract": "docs/contracts/review-v1.md",
+      "commands": {
+        "domain": ["RequestReview", "ApproveReview", "RejectReview", "RequestReviewInfo", "SubmitReviewInfo"],
+        "internal": [],
+        "orchestration": []
+      }
+    },
+    "payment": {
+      "contract": "docs/contracts/payment-v1.md",
+      "commands": {
+        "domain": ["RequestPayment", "RequestRefund"],
+        "internal": ["FailPayment", "ExpirePayment", "ConfirmPaymentSuccess", "RecordLatePaymentSuccess", "CompleteRefund"],
+        "orchestration": []
+      }
+    },
+    "identity": {
+      "contract": "docs/contracts/identity-v1.md",
+      "commands": {
+        "domain": ["ProvisionCamper", "SuspendCamper", "RestoreCamper", "ArchiveCamper"],
+        "internal": [],
+        "orchestration": []
+      }
+    },
+    "flow": {
+      "contract": "docs/architecture/camp-flow.md",
+      "commands": {
+        "domain": [],
+        "internal": [],
+        "orchestration": ["StartFlow", "RequestReview", "RequestPayment", "CompleteFlow", "CancelFlow", "FailFlow", "RetryFlowStep"]
+      }
+    }
+  }
+}

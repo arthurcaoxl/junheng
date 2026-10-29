@@ -10,10 +10,20 @@
     "campaignId": { "type": "string", "pattern": "^cmp_[A-Za-z0-9]{16,64}$" },
     "applicantRef": { "type": "string", "minLength": 3 },
     "formPayloadRef": { "type": "string", "minLength": 3 },
+    "seatReservationId": { "type": "string", "pattern": "^sea_[A-Za-z0-9]{16,64}$" },
+    "priceSnapshot": {
+      "type": "object",
+      "required": ["amountMinor", "currency"],
+      "additionalProperties": false,
+      "properties": {
+        "amountMinor": { "type": "integer", "minimum": 1 },
+        "currency": { "type": "string", "pattern": "^[A-Z]{3}$" }
+      }
+    },
     "state": { "type": "string", "enum": ["submitted", "reviewing", "needs_info", "payment_pending", "confirmed", "rejected", "cancelled", "expired"] },
     "version": { "type": "integer", "minimum": 1 },
-    "createdAt": { "type": "string" },
-    "updatedAt": { "type": "string" }
+    "createdAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$" },
+    "updatedAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$" }
   },
   "examples": [
     {
@@ -21,6 +31,8 @@
       "campaignId": "cmp_01JYC8M4F6N2Q0A7R3T5V9XBDE",
       "applicantRef": "restricted_applicant_example",
       "formPayloadRef": "restricted_form_example",
+      "seatReservationId": "sea_01JYC8M4F6N2Q0A7R3T5V9XBDE",
+      "priceSnapshot": { "amountMinor": 19900, "currency": "CNY" },
       "state": "submitted",
       "version": 1,
       "createdAt": "2026-10-29T08:10:00.000Z",

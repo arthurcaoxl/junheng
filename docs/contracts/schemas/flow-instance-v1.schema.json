@@ -19,10 +19,13 @@
         "requiresPayment": { "type": "boolean" }
       }
     },
-    "currentStep": { "type": "string", "minLength": 1 },
+    "currentStep": {
+      "type": "string",
+      "enum": ["initialize", "start_review", "request_review", "await_review", "mark_enrollment_payment_pending", "request_payment", "await_payment", "confirm_enrollment", "provision_camper", "finalize", "compensate", "finished"]
+    },
     "version": { "type": "integer", "minimum": 1 },
-    "createdAt": { "type": "string" },
-    "updatedAt": { "type": "string" }
+    "createdAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$" },
+    "updatedAt": { "type": "string", "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{3}Z$" }
   },
   "examples": [
     {
@@ -31,7 +34,7 @@
       "enrollmentId": "enr_01JYC8M4F6N2Q0A7R3T5V9XBDE",
       "state": "waiting_review",
       "policySnapshot": { "requiresReview": true, "requiresPayment": true },
-      "currentStep": "review",
+      "currentStep": "await_review",
       "version": 1,
       "createdAt": "2026-10-29T08:11:00.000Z",
       "updatedAt": "2026-10-29T08:11:00.000Z"

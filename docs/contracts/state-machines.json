@@ -2,6 +2,7 @@
   "version": 1,
   "machines": {
     "campaign": {
+      "commandScope": "domain",
       "initial": "draft",
       "states": ["draft", "open", "paused", "closed", "archived"],
       "terminals": ["archived"],
@@ -15,16 +16,17 @@
       ]
     },
     "enrollment": {
+      "commandScope": "domain",
       "initial": "submitted",
       "states": ["submitted", "reviewing", "needs_info", "payment_pending", "confirmed", "rejected", "cancelled", "expired"],
       "terminals": ["confirmed", "rejected", "cancelled", "expired"],
       "transitions": [
         { "from": "submitted", "command": "StartReview", "to": "reviewing" },
-        { "from": "submitted", "command": "MarkPaymentPending", "to": "payment_pending" },
+        { "from": "submitted", "command": "MarkEnrollmentPaymentPending", "to": "payment_pending" },
         { "from": "submitted", "command": "ConfirmEnrollment", "to": "confirmed" },
         { "from": "reviewing", "command": "RequestEnrollmentInfo", "to": "needs_info" },
         { "from": "needs_info", "command": "SubmitEnrollmentInfo", "to": "reviewing" },
-        { "from": "reviewing", "command": "MarkPaymentPending", "to": "payment_pending" },
+        { "from": "reviewing", "command": "MarkEnrollmentPaymentPending", "to": "payment_pending" },
         { "from": "reviewing", "command": "ConfirmEnrollment", "to": "confirmed" },
         { "from": "payment_pending", "command": "ConfirmEnrollment", "to": "confirmed" },
         { "from": "payment_pending", "command": "ExpireEnrollment", "to": "expired" },
@@ -38,6 +40,7 @@
       ]
     },
     "review": {
+      "commandScope": "domain",
       "initial": "pending",
       "states": ["pending", "approved", "rejected", "needs_info"],
       "terminals": ["approved", "rejected"],
@@ -49,11 +52,12 @@
       ]
     },
     "payment": {
+      "commandScope": "domain",
       "initial": "created",
       "states": ["created", "pending", "succeeded", "failed", "expired", "refund_pending", "refunded"],
       "terminals": ["failed", "refunded"],
       "transitions": [
-        { "from": "created", "command": "MarkPaymentPending", "to": "pending" },
+        { "from": "created", "command": "RequestPayment", "to": "pending" },
         { "from": "created", "command": "FailPayment", "to": "failed" },
         { "from": "pending", "command": "FailPayment", "to": "failed" },
         { "from": "created", "command": "ExpirePayment", "to": "expired" },
@@ -65,6 +69,7 @@
       ]
     },
     "flow": {
+      "commandScope": "orchestration",
       "initial": "running",
       "states": ["running", "waiting_review", "waiting_payment", "completed", "cancelled", "failed"],
       "terminals": ["completed", "cancelled", "failed"],
@@ -84,6 +89,7 @@
       ]
     },
     "identity": {
+      "commandScope": "domain",
       "initial": "active",
       "states": ["active", "suspended", "archived"],
       "terminals": ["archived"],
