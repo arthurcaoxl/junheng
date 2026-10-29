@@ -12,8 +12,8 @@ function setCampStart(offsetDays: number) {
   return checkIn;
 }
 
-function renderApp() {
-  return render(<MemoryRouter><App /></MemoryRouter>);
+function renderApp(route = "/") {
+  return render(<MemoryRouter initialEntries={[route]}><App /></MemoryRouter>);
 }
 
 describe("priority lifestyle sections", () => {
@@ -43,8 +43,15 @@ describe("priority lifestyle sections", () => {
     expect(navigation.find((item) => item.id === "check-in")?.label).toBe("21 天打卡");
   });
 
-  it("explains water-related weight fluctuation near the check-in", () => {
+  it("links the home check-in entry to the dedicated check-in page", () => {
     renderApp();
+    const entry = screen.getByRole("region", { name: "21 天打卡入口" });
+    expect(within(entry).getByRole("link", { name: "进入 21 天打卡 →" })).toHaveAttribute("href", "/check-in");
+    expect(screen.queryByRole("tablist", { name: "21 天打卡日期" })).not.toBeInTheDocument();
+  });
+
+  it("explains water-related weight fluctuation on the dedicated check-in page", () => {
+    renderApp("/check-in");
     const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
     expect(within(checkIn).getByRole("heading", { name: "水分是体重波动的关键" })).toBeInTheDocument();
     expect(within(checkIn).getByText(/早晚.*约 2 kg/)).toBeInTheDocument();
@@ -103,7 +110,7 @@ describe("priority lifestyle sections", () => {
 
   it("stores 21-day check-ins locally and restores them after rerender", async () => {
     const user = userEvent.setup();
-    const first = renderApp();
+    const first = renderApp("/check-in");
     const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
     expect(within(checkIn).getAllByRole("tab")).toHaveLength(21);
     await user.type(within(checkIn).getByLabelText("体重（kg）"), "65.4");
@@ -117,7 +124,7 @@ describe("priority lifestyle sections", () => {
     expect(saved.records[todayKey()].weight).toBe("65.4");
     expect(saved.records[todayKey()].waist).toBe("82");
     first.unmount();
-    renderApp();
+    renderApp("/check-in");
     const restored = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
     expect(within(restored).getByLabelText("体重（kg）")).toHaveValue(65.4);
     expect(within(restored).getByLabelText("腰围（cm）")).toHaveValue(82);
@@ -130,7 +137,7 @@ describe("priority lifestyle sections", () => {
     const oldDay = { weight: "65.4", waist: "82", meals: [true, false, false], water: true, movement: false, sleep: true };
     window.localStorage.setItem("junheng-seven-day-checkin-v1", JSON.stringify(Array.from({ length: 7 }, () => oldDay)));
     const user = userEvent.setup();
-    renderApp();
+    renderApp("/check-in");
     const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
     expect(within(checkIn).getByLabelText("体重（kg）")).toHaveValue(65.4);
     await user.type(within(checkIn).getByLabelText("体重（kg）"), "0");
@@ -144,7 +151,7 @@ describe("priority lifestyle sections", () => {
 
   it("renders weight and waist trends from real records and restores both", async () => {
     const user = userEvent.setup();
-    const first = renderApp();
+    const first = renderApp("/check-in");
     let checkIn = setCampStart(-20);
     await user.click(within(checkIn).getByRole("tab", { name: /第 1 天/ }));
     await user.type(within(checkIn).getByLabelText("体重（kg）"), "65.4");
@@ -159,7 +166,7 @@ describe("priority lifestyle sections", () => {
     expect(within(checkIn).getByText("82 cm")).toBeInTheDocument();
     expect(within(checkIn).getByText("80.5 cm")).toBeInTheDocument();
     first.unmount();
-    renderApp();
+    renderApp("/check-in");
     checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
     expect(within(checkIn).getByRole("img", { name: "体重趋势图" })).toBeInTheDocument();
     expect(within(checkIn).getByRole("img", { name: "腰围趋势图" })).toBeInTheDocument();
@@ -174,7 +181,7 @@ describe("priority lifestyle sections", () => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context as unknown as CanvasRenderingContext2D);
     vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/png;base64,poster");
     const user = userEvent.setup();
-    renderApp();
+    renderApp("/check-in");
     const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
     await user.type(within(checkIn).getByLabelText("体重（kg）"), "65.4");
     await user.click(within(checkIn).getByRole("button", { name: "导出记录海报" }));
@@ -189,7 +196,7 @@ describe("priority lifestyle sections", () => {
 
   it("switches to day 21 and resets only local check-in records", async () => {
     const user = userEvent.setup();
-    renderApp();
+    renderApp("/check-in");
     const checkIn = setCampStart(-20);
     await user.click(within(checkIn).getByRole("tab", { name: /第 21 天/ }));
     expect(within(checkIn).getByText(/第 21 天 · 回看趋势/)).toBeInTheDocument();
@@ -202,7 +209,7 @@ describe("priority lifestyle sections", () => {
   it("keeps the page usable when local storage is unavailable", async () => {
     const user = userEvent.setup();
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("blocked"); });
-    renderApp();
+    renderApp("/check-in");
     const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
     await user.click(within(checkIn).getByRole("checkbox", { name: "完成适量饮水" }));
     expect(within(checkIn).getByRole("checkbox", { name: "完成适量饮水" })).toBeChecked();
@@ -211,14 +218,14 @@ describe("priority lifestyle sections", () => {
 
   it("exposes the website version without enabling conversion actions", () => {
     renderApp();
-    expect(siteConfig.version).toBe("1.7.0");
-    expect(screen.getByText("网站版本 v1.7.0")).toBeInTheDocument();
+    expect(siteConfig.version).toBe("1.7.2");
+    expect(screen.getByText("网站版本 v1.7.2")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "立即购买" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "咨询与留资" })).not.toBeInTheDocument();
   });
 
   it("defaults to today inside the camp window and disables future days", async () => {
-    renderApp();
+    renderApp("/check-in");
     const checkIn = setCampStart(-5);
     expect(within(checkIn).getByText(/第 6 天 · 保持记录/)).toBeInTheDocument();
     expect(within(checkIn).getByRole("tab", { name: /第 21 天/ })).toBeDisabled();
@@ -229,7 +236,7 @@ describe("priority lifestyle sections", () => {
 
   it("shows camp completion stats after day 21 and supports code regeneration", async () => {
     const user = userEvent.setup();
-    renderApp();
+    renderApp("/check-in");
     const checkIn = setCampStart(-25);
     expect(within(checkIn).getByText(/本期 21 天已结营/)).toBeInTheDocument();
     expect(within(checkIn).getByText(/坚持记录 0 天/)).toBeInTheDocument();
@@ -241,7 +248,7 @@ describe("priority lifestyle sections", () => {
   it("exports CSV with user code, real dates and eight daily fields", async () => {
     const createObjectURL = vi.spyOn(URL, "createObjectURL");
     const user = userEvent.setup();
-    renderApp();
+    renderApp("/check-in");
     const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
     await user.type(within(checkIn).getByLabelText("体重（kg）"), "65.4");
     await user.click(within(checkIn).getByRole("checkbox", { name: "早餐前已饮用" }));

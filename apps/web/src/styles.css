@@ -593,9 +593,11 @@ section { scroll-margin-top: 78px; }
 .weight-timeline { margin-top: 48px; padding-top: 42px; border-top: 1px solid var(--line-light); }
 .water-subheading > span, .water-science > span { color: var(--acid); font-size: 9px; font-weight: 750; letter-spacing: .16em; }
 .water-subheading h4, .water-science h4 { margin-top: 14px; font-size: clamp(24px, 2.4vw, 36px); line-height: 1.3; letter-spacing: -.035em; }
-.weight-timeline > ol { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 30px; }
-.weight-timeline > ol > li { min-width: 0; padding: 24px 24px 24px 0; border-top: 2px solid var(--acid); }
-.weight-timeline > ol > li + li { padding-left: 24px; border-left: 1px solid var(--line-light); }
+.weight-timeline ol { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin-top: 30px; }
+.weight-timeline ol > li { min-width: 0; padding: 24px 24px 24px 0; border-top: 2px solid var(--acid); }
+.weight-timeline ol > li + li { padding-left: 24px; border-left: 1px solid var(--line-light); }
+.water-panel-toggle { margin-top: 24px; padding: 10px 18px; border: 1px solid var(--line-light); background: transparent; color: var(--paper); font-size: 12px; font-weight: 700; letter-spacing: .08em; cursor: pointer; opacity: .85; transition: border-color 250ms ease, color 250ms ease, opacity 250ms ease; }
+.water-panel-toggle:hover { border-color: var(--acid); color: var(--acid); opacity: 1; }
 .weight-timeline li > span { display: block; color: var(--acid); font-size: 10px; font-weight: 750; letter-spacing: .12em; }
 .weight-timeline li h5 { margin: 12px 0 0; font-size: 16px; line-height: 1.45; }
 .weight-timeline li strong { display: block; margin-top: 12px; color: var(--acid); font-size: 13px; line-height: 1.6; }
@@ -853,4 +855,21 @@ section { scroll-margin-top: 78px; }
   .record-code strong { font-size: 20px; }
   .poster-export-copy > button.csv-export { margin-left: 0; margin-top: 14px; display: block; }
   .camp-complete { padding: 18px; }
+}
+
+/* v1.7.2 · 独立打卡页 /check-in */
+.check-in-entry { background: var(--forest); color: var(--paper); }
+.check-in-entry-heading { max-width: 1100px; margin: 66px 0 0; }
+.check-in-entry-heading h2 { margin-top: 24px; font-family: var(--display); font-size: clamp(38px, 4.6vw, 76px); font-weight: 900; letter-spacing: -.06em; line-height: 1.08; }
+.check-in-entry-heading > p:not(.eyebrow) { max-width: 680px; margin-top: 26px; font-size: 14px; line-height: 1.9; opacity: .68; }
+.check-in-entry-heading > .check-in-persistence { margin-top: 14px; color: var(--acid); font-weight: 750; opacity: 1; }
+.check-in-entry-link { display: inline-flex; align-items: center; margin-top: 34px; padding: 16px 30px; background: var(--acid); color: var(--forest); font-size: 15px; font-weight: 800; letter-spacing: .04em; transition: transform 250ms ease; }
+.check-in-entry-link:hover { transform: translateY(-2px); }
+.check-in-page-nav { padding: calc(96px + env(safe-area-inset-top, 0px)) 4vw 0; background: var(--forest); }
+.check-in-page-nav a { display: inline-flex; padding: 10px 0; color: var(--paper); font-size: 12px; font-weight: 700; letter-spacing: .08em; opacity: .75; }
+.check-in-page-nav a:hover { color: var(--acid); opacity: 1; }
+@media (max-width: 760px) {
+  .check-in-entry-heading { margin-top: 44px; }
+  .check-in-entry-link { width: 100%; justify-content: center; }
+  .check-in-page-nav { padding-top: calc(88px + env(safe-area-inset-top, 0px)); }
 }
