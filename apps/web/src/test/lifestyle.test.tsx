@@ -24,7 +24,7 @@ describe("priority lifestyle sections", () => {
     renderApp();
     const ids = Array.from(document.querySelectorAll("main > section")).map((section) => section.id);
     expect(ids).toEqual([
-      "hero", "perspective", "metabolism-signals", "difference", "body-standards", "metrics", "nutrition",
+      "hero", "perspective", "metabolism-signals", "difference", "science", "body-standards", "metrics", "nutrition",
       "formula", "benefits", "knowledge", "process", "mechanism", "research", "ritual",
       "plate-guide", "scene-guide", "movement", "check-in",
     ]);
@@ -63,7 +63,7 @@ describe("priority lifestyle sections", () => {
   it("keeps navigation concise and every anchor valid", () => {
     renderApp();
     expect(navigation.map((item) => item.id)).toEqual([
-      "perspective", "difference", "body-standards", "metrics", "formula", "research", "ritual", "check-in",
+      "perspective", "difference", "science", "body-standards", "metrics", "formula", "research", "ritual", "check-in",
     ]);
     for (const item of navigation) {
       expect(document.getElementById(item.id)).toBeInTheDocument();
@@ -218,8 +218,8 @@ describe("priority lifestyle sections", () => {
 
   it("exposes the website version without enabling conversion actions", () => {
     renderApp();
-    expect(siteConfig.version).toBe("1.7.3");
-    expect(screen.getByText("网站版本 v1.7.3")).toBeInTheDocument();
+    expect(siteConfig.version).toBe("1.8.0");
+    expect(screen.getByText("网站版本 v1.8.0")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "立即购买" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "咨询与留资" })).not.toBeInTheDocument();
   });

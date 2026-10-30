@@ -5,7 +5,7 @@ export const siteConfig = {
   healthStatement: "健康体重管理",
   subtitle: "——23种菌菇精华 × 优质蛋白 × 复合维生素——",
   category: "特殊膳食食品·运动营养食品",
-  version: "1.7.3",
+  version: "1.8.0",
 } as const;
 
 export const actionConfig = {
@@ -16,6 +16,7 @@ export const actionConfig = {
 export const navigation = [
   { id: "perspective", label: "品牌立场" },
   { id: "difference", label: "品类差异" },
+  { id: "science", label: "科学体质" },
   { id: "body-standards", label: "自测标准" },
   { id: "metrics", label: "核心数字" },
   { id: "formula", label: "菌菇配方" },

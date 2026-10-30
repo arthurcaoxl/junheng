@@ -54,7 +54,7 @@ export default function App() {
           ease: "none",
           scrollTrigger: { trigger: ".hero", start: "top top", end: "bottom top", scrub: true },
         });
-        gsap.utils.toArray<HTMLElement>(".metric-card, .nutrition-card, .active-nutrition-card, .benefit-mushroom-card, .nutrition-explainer, .process-step, .mechanism-card, .difference-column, .movement-card, .signal-item, .standard-card, .research-fact-card, .research-recruit-card").forEach((item, index) => {
+        gsap.utils.toArray<HTMLElement>(".metric-card, .nutrition-card, .active-nutrition-card, .benefit-mushroom-card, .nutrition-explainer, .process-step, .mechanism-card, .difference-column, .movement-card, .signal-item, .standard-card, .research-fact-card, .research-recruit-card, .science-card").forEach((item, index) => {
           gsap.from(item, {
             opacity: 0,
             y: 56,

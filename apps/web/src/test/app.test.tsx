@@ -24,7 +24,7 @@ describe("brand page", () => {
     expect(screen.getByText("孙光荣")).toBeInTheDocument();
     expect(screen.getAllByText("国医大师、中国工程院院士")).toHaveLength(2);
     expect(document.querySelector(".expert-order")).not.toBeInTheDocument();
-    expect(screen.getByText(/仅作组方背景展示，不构成专家代言/)).toBeInTheDocument();
+    expect(screen.getAllByText(/仅作组方背景展示，不构成专家代言/).length).toBeGreaterThan(0);
     expect(screen.getByRole("heading", { name: "一荤一素一菌菇" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "阅读新华网公开报道 ↗" })).toHaveAttribute("href", expect.stringContaining("news.cn"));
     expect(screen.getByText("真菌多糖肽")).toBeInTheDocument();
