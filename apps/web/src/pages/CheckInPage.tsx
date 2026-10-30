@@ -1,5 +1,6 @@
 import { Link } from "react-router";
 import { SevenDayCheckIn } from "../components/SevenDayCheckIn";
+import { SyncPanel } from "../components/SyncPanel";
 
 export default function CheckInPage() {
   return (
@@ -8,6 +9,7 @@ export default function CheckInPage() {
         <Link to="/">← 返回首页</Link>
       </nav>
       <SevenDayCheckIn />
+      <SyncPanel />
     </>
   );
 }
