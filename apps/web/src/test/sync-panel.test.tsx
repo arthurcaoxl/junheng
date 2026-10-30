@@ -40,17 +40,18 @@ describe("sync panel", () => {
       expect(screen.getAllByText(/记录目前仅保存在本机/)).toHaveLength(2);
 
       await user.click(screen.getByRole("button", { name: "立即绑定" }));
-      expect(screen.getByRole("dialog", { name: "绑定邮箱，永久保存" })).toBeInTheDocument();
+      expect(screen.getByRole("dialog", { name: "绑定邮箱，换手机/电脑接着打卡" })).toBeInTheDocument();
       await user.keyboard("{Escape}");
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
 
-    it("binds an email via OTP and refreshes all status surfaces", async () => {
+    it("binds an email, immediately backs up existing records, and refreshes all status surfaces", async () => {
       const user = userEvent.setup();
       renderCheckIn();
-      await user.click(screen.getByRole("button", { name: "绑定邮箱，永久保存" }));
+      await user.click(screen.getByRole("button", { name: "绑定邮箱，换手机/电脑接着打卡" }));
+      expect(screen.getByText(/输入邮箱接收 6–8 位数字验证码/)).toBeInTheDocument();
       await user.type(screen.getByLabelText("邮箱地址"), "bind@example.com");
-      await user.click(screen.getByRole("button", { name: "发送绑定验证码" }));
+      await user.click(screen.getByRole("button", { name: "获取邮箱验证码" }));
       expect(await screen.findByText(/验证码已发送/)).toBeInTheDocument();
 
       const client = getSupabase();
@@ -60,12 +61,18 @@ describe("sync panel", () => {
       await user.click(screen.getByRole("button", { name: "完成绑定" }));
       expect(client.auth.verifyOtp).toHaveBeenCalledWith({ email: "bind@example.com", token: "12345678", type: "email_change" });
 
-      expect(await screen.findByText(/已绑定邮箱：bind@example.com。数据自动同步至云端。/)).toBeInTheDocument();
+      expect(await screen.findByText(/已绑定邮箱：bind@example.com。打卡记录会自动备份到云端。/)).toBeInTheDocument();
       expect(screen.getByRole("button", { name: "已同步，查看跨设备同步" })).toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "绑定邮箱，永久保存" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "绑定邮箱，换手机/电脑接着打卡" })).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "立即绑定" })).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "在新设备恢复数据" })).toBeInTheDocument();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+      const query = client.from("checkin_sync") as unknown as { upsert: ReturnType<typeof vi.fn> };
+      expect(query.upsert).toHaveBeenCalledTimes(1);
+      await user.click(screen.getByRole("button", { name: "立即备份到云端" }));
+      expect(await screen.findByText("本机打卡记录已备份到云端。")).toBeInTheDocument();
+      expect(query.upsert).toHaveBeenCalledTimes(2);
     });
 
     it("seeds local data to the cloud when restoring on a new device with no cloud row", async () => {

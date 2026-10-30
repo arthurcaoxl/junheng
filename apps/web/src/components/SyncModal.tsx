@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { confirmEmailUpgrade, upgradeToPermanentAccount } from "../services/authUpgrade";
-import { loginWithEmail, resendRemainingSeconds, sendLoginCode } from "../services/checkinSync";
+import { loginWithEmail, resendRemainingSeconds, sendLoginCode, syncToCloud } from "../services/checkinSync";
 import { OTP_INPUT_HINT, OTP_INPUT_PROPS } from "../services/otp";
 import type { SyncMode } from "../services/syncUi";
 
@@ -62,6 +62,8 @@ export function SyncModal({ open, mode, onClose }: { open: boolean; mode: SyncMo
   const submitCode = () => run(async () => {
     if (mode === "bind") {
       await confirmEmailUpgrade(email, code);
+      // 绑定前已有的记录也要立即上传；此前只有再次修改打卡才会触发备份。
+      await syncToCloud();
       window.dispatchEvent(new CustomEvent("junheng-sync-changed", { detail: { email } }));
       onClose();
       return;
@@ -88,11 +90,11 @@ export function SyncModal({ open, mode, onClose }: { open: boolean; mode: SyncMo
         onClick={(event) => event.stopPropagation()}
       >
         <button type="button" className="sync-modal-close" aria-label="关闭" onClick={onClose}>×</button>
-        <h2 id="sync-modal-title">{mode === "bind" ? "绑定邮箱，永久保存" : "在新设备恢复数据"}</h2>
+        <h2 id="sync-modal-title">{mode === "bind" ? "绑定邮箱，换手机/电脑接着打卡" : "在新设备恢复数据"}</h2>
         <p className="sync-modal-sub">
           {mode === "bind"
-            ? "用邮箱接收验证码完成绑定，之后换手机/电脑也能接着打卡。"
-            : "用已绑定的邮箱登录，云端记录会覆盖本机（本机原记录会自动备份）。"}
+            ? "输入邮箱接收 6–8 位数字验证码。绑定后，您的打卡记录会自动备份到云端，换手机或电脑登录即可恢复。"
+            : "输入已绑定的邮箱接收验证码。登录后，云端记录会恢复到本机；本机原记录会自动备份。"}
         </p>
 
         {phase === "email" ? (
@@ -108,7 +110,7 @@ export function SyncModal({ open, mode, onClose }: { open: boolean; mode: SyncMo
               autoFocus
             />
             <button type="button" className="sync-modal-primary" disabled={busy || cooldown > 0 || !email.includes("@")} onClick={sendCode}>
-              {busy ? "发送中…" : cooldown > 0 ? `重发（${cooldown}s）` : mode === "bind" ? "发送绑定验证码" : "发送登录验证码"}
+              {busy ? "发送中…" : cooldown > 0 ? `重发（${cooldown}s）` : mode === "bind" ? "获取邮箱验证码" : "发送登录验证码"}
             </button>
           </>
         ) : (

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useSyncStatus } from "../hooks/useSyncStatus";
+import { syncToCloud } from "../services/checkinSync";
 import type { SyncMode } from "../services/syncUi";
 import { SyncModal } from "./SyncModal";
 
@@ -8,6 +9,7 @@ export function SyncPanel() {
   const { configured, email } = useSyncStatus();
   const [modalOpen, setModalOpen] = useState(false);
   const [mode, setMode] = useState<SyncMode>("bind");
+  const [backupState, setBackupState] = useState<"idle" | "saving" | "synced" | "offline">("idle");
 
   useEffect(() => {
     if (!configured) return;
@@ -27,23 +29,33 @@ export function SyncPanel() {
     setModalOpen(true);
   };
 
+  const backupNow = async () => {
+    setBackupState("saving");
+    setBackupState(await syncToCloud());
+  };
+
   return (
     <section className="sync-panel" id="sync-panel" aria-labelledby="sync-panel-title">
       <h2 id="sync-panel-title">跨设备同步</h2>
       {email ? (
         <>
-          <p className="sync-panel-status sync-panel-bound">✅ 已绑定邮箱：{email}。数据自动同步至云端。</p>
+          <p className="sync-panel-status sync-panel-bound">✅ 已绑定邮箱：{email}。打卡记录会自动备份到云端。</p>
           <div className="sync-panel-actions">
+            <button type="button" className="sync-panel-secondary" disabled={backupState === "saving"} onClick={backupNow}>
+              {backupState === "saving" ? "正在备份…" : "立即备份到云端"}
+            </button>
             <button type="button" className="sync-panel-secondary" onClick={() => open("restore")}>
               在新设备恢复数据
             </button>
           </div>
+          {backupState === "synced" && <p className="sync-panel-notice" role="status">本机打卡记录已备份到云端。</p>}
+          {backupState === "offline" && <p className="sync-panel-error" role="alert">本次备份未完成，记录仍保存在本机。请检查网络后重试。</p>}
         </>
       ) : (
         <>
           <p className="sync-panel-status">☁️ 记录目前仅保存在本机。绑定邮箱，换手机/电脑也能接着打卡。</p>
           <div className="sync-panel-actions">
-            <button type="button" className="sync-panel-bind" onClick={() => open("bind")}>绑定邮箱，永久保存</button>
+            <button type="button" className="sync-panel-bind" onClick={() => open("bind")}>绑定邮箱，换手机/电脑接着打卡</button>
             <button type="button" className="sync-panel-secondary" onClick={() => open("restore")}>在新设备恢复数据</button>
           </div>
         </>
