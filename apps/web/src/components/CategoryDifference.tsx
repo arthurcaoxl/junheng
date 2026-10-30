@@ -1,11 +1,12 @@
 const comparison = [
   {
-    label: "常见代餐思路",
+    label: "常见路径",
     title: "围绕“替代一餐”设计",
     points: ["只见热量，难见均衡", "生命需要均衡"],
   },
   {
     label: "菌衡计划 · 餐前营养伴侣",
+    badge: "✓ 推荐路径",
     title: "围绕“每一餐之前”设计",
     points: ["餐前 30–60 分钟，融入原有三餐", "23 种菌菇 × 双蛋白 × 6 种 B 族维生素", "5 重工艺与特殊膳食食品身份，重视营养边界"],
   },
@@ -21,11 +22,21 @@ export function CategoryDifference() {
         <p>不替代正常三餐，而是把营养补充放到餐前。差异来自配方逻辑、工艺积累与使用场景，而不是一句更响亮的承诺。</p>
       </header>
       <div className="difference-comparison">
-        {comparison.map((item) => (
+        {comparison.map((item, columnIndex) => (
           <article className="difference-column" key={item.label}>
-            <span>{item.label}</span>
+            <div className="difference-col-head">
+              <span className="difference-col-label">{item.label}</span>
+              {"badge" in item && <span className="difference-col-badge">{item.badge}</span>}
+            </div>
             <h3>{item.title}</h3>
-            <ul>{item.points.map((point) => <li key={point}>{point}</li>)}</ul>
+            <ul>
+              {item.points.map((point) => (
+                <li key={point}>
+                  <span className="difference-marker" aria-hidden="true">{columnIndex === 0 ? "—" : "✓"}</span>
+                  {point}
+                </li>
+              ))}
+            </ul>
           </article>
         ))}
       </div>
