@@ -29,7 +29,7 @@ export function SiteHeader() {
 
   return (
     <header className="site-header">
-      <Link className="brand-mark" to="/" aria-label="菌衡有道，返回首页" onClick={() => setOpen(false)}>
+      <Link className="brand-mark" to="/" aria-label="菌衡计划，返回首页" onClick={() => setOpen(false)}>
         <span className="brand-symbol" aria-hidden="true">菌</span>
         <span>
           <strong>{siteConfig.brand}</strong>

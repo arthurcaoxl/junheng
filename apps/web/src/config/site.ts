@@ -1,5 +1,5 @@
 export const siteConfig = {
-  brand: "菌衡有道",
+  brand: "菌衡计划",
   product: "菌衡膳食粉",
   slogan: "餐前伴侣助力脂代谢",
   healthStatement: "健康体重管理",

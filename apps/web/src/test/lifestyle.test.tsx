@@ -186,8 +186,8 @@ describe("priority lifestyle sections", () => {
     await user.type(within(checkIn).getByLabelText("体重（kg）"), "65.4");
     await user.click(within(checkIn).getByRole("button", { name: "导出记录海报" }));
     expect(within(checkIn).getByRole("img", { name: "21 天健康记录海报预览" })).toHaveAttribute("src", "data:image/png;base64,poster");
-    expect(within(checkIn).getByRole("link", { name: "下载 PNG 海报" })).toHaveAttribute("download", "菌衡有道-21天健康记录.png");
-    expect(context.fillText).toHaveBeenCalledWith("菌衡有道×心脑健康减脂营", 70, 100);
+    expect(within(checkIn).getByRole("link", { name: "下载 PNG 海报" })).toHaveAttribute("download", "菌衡计划-21天健康记录.png");
+    expect(context.fillText).toHaveBeenCalledWith("菌衡计划×心脑健康减脂营", 70, 100);
     expect(context.fillText).toHaveBeenCalledWith("我的 21 天健康记录", 70, 210);
     expect(context.fillText).toHaveBeenCalledWith("0 / 63 次", 70, 1405);
     expect(within(checkIn).getAllByText(/微信内可长按图片保存/)).toHaveLength(2);
