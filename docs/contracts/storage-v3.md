@@ -62,8 +62,25 @@
 - 格式：`JH-XXXXX`，共 5 个随机字符。
 - 字符表：`ABCDEFGHJKMNPQRSTUVWXYZ23456789`。
 - 新代码优先使用 `crypto.getRandomValues`；不可用时回退到 `Math.random`。
-- 代码仅用于本机记录、海报和 CSV 汇总，不代表登录身份，不上传服务器。
+- 代码仅用于本机记录、海报和 CSV 汇总，不代表登录身份；云端备份时作为 `checkin_sync.user_code` 业务字段随行，仍不是认证凭证。
 - 海报署名另存于 `junheng-checkin-name-v1`，不属于 v3 顶层结构。
+
+## 云端同步（v1.9.0 新增，不改本机契约）
+
+本机 v3 仍是唯一权威存储。绑定邮箱后，前端把 v3 的 `records` 按 `user_code`、`start_date` 快照覆盖式备份到 Supabase `checkin_sync` 表（迁移见 `services/supabase/migrations/`）：
+
+| v3 字段 | `checkin_sync` 列 | 说明 |
+| --- | --- | --- |
+| `userCode` | `user_code` | 业务码随行，非身份。 |
+| `startDate` | `start_date` | `date`，与 v3 日期键同源。 |
+| `records` | `records` | `jsonb`，键仍为 `YYYY-MM-DD` 本地日期键，结构与 `DayRecord` 一致。 |
+
+规则：
+
+1. 种子期同步为**云端覆盖本地/本地覆盖云端**的单向快照，不做逐日合并；本地留存始终保留。
+2. 服务端认证身份（Supabase uid）与本机 `userCode` 是两套标识；未来服务端营员身份另立 `identity-v1` 契约，不得把 `userCode` 当登录账号。
+3. 服务端时间戳使用 UTC ISO 8601，与本机 `YYYY-MM-DD` 日期键不冲突；未来服务端打卡必须另立契约，不得修改本 v3。
+4. RLS：营员只能读写自己 uid 的行；管理员经 `camp_admins` 白名单获得只读权限，走 `admin_checkin_overview()` RPC。
 
 ## CSV 导出
 

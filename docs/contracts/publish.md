@@ -15,6 +15,7 @@
 - 站点 `base` 必须为绝对路径 `/`（`vite.config.ts`），相对路径在子目录入口会断；
 - 每个客户端路由需在构建产物中有对应静态入口：`postbuild` 会将 `index.html` 复制为 `dist/check-in/index.html`；
 - 打卡页公开深链形式为 `https://rtrzqrxly4mlo.ok.kimi.link/check-in/index.html`，站内链接仍用客户端路由 `/check-in`；
+- 管理后台深链 `/admin/check-in/index.html` 同理由 `postbuild` 生成（v1.9.0 起）；
 - 未来新增顶层路由时，必须同步 `postbuild` 复制规则并在发布后验证深链。
 
 ## 版本号
@@ -31,13 +32,20 @@
 
 - [ ] 变更已在独立分支审查，所有者明确批准本次发布。
 - [ ] 目标网站 ID 和线上地址与本文一致，未切换目标。
-- [ ] `npm ci`、`npm run lint`、`npm test` 全过；当前基线为 65 项测试。
+- [ ] `npm ci`、`npm run lint`、`npm test` 全过；当前基线为 98 项测试。
 - [ ] `npm run build` 成功，重建产物与已验证基线完成文件级比对。
 - [ ] 存储迁移、CSV、分享页和关键交互已按变更范围验证。
 - [ ] 无 `.env`、凭据、验证截图或原始大素材进入发布产物。
 - [ ] 版本号、变更说明、回滚版本和 `ops/logs/` 文本记录已准备。
 - [ ] 仅由获授权的 Kimi 会话执行 `kimix website publish`。
 - [ ] 发布后检查首页、`/h5/index.html`、分享图与关键打卡流程，并记录结果。
+
+## 发布记录
+
+| 版本 | 日期 | 内容 | 线上验证 |
+| --- | --- | --- | --- |
+| v1.9.0 | 2026-10-30 | 跨设备云同步（Supabase 匿名+邮箱 OTP）+ 管理员统计后台 | 首页/打卡页/后台深链均 200，JS 哈希一致（`ops/logs/2026-10-30-v1.9.0-release.md`） |
+| v1.8.1 | 2026-10-30 | 对比板块辨识度优化 | 见 `ops/logs/2026-10-30-v1.8.1-release.md` |
 
 ## 回滚规则
 

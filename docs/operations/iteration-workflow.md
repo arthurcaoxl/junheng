@@ -6,7 +6,8 @@
 2. 先读 `AGENTS.md` 和相关契约；数据结构变化先改契约与 ADR。
 3. 小步修改并补测试，其他模型只提交分支提议，不直接改 `main`。
 4. 在 `apps/web` 执行 `npm ci`、`npm run lint`、`npm test`、`npm run build`。
-5. 审查差异后合并；需要发布时另走 `docs/contracts/publish.md`，迭代不等于发布。
+5. 涉及 Supabase 表结构 / RLS / RPC 的变更，以幂等迁移写入 `services/supabase/migrations/` 并同步其 `README.md`；先在 SQL Editor 验证再到发布流程核对。
+6. 审查差异后合并；需要发布时另走 `docs/contracts/publish.md`，迭代不等于发布。
 
 ## 干净重建与基线比对
 
