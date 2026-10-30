@@ -22,7 +22,9 @@ describe("science core section", () => {
     expect(within(section).getByText("≈80%")).toBeInTheDocument();
     expect(within(section).getByText("优质蛋白")).toBeInTheDocument();
     expect(within(section).getByText("左旋肉碱")).toBeInTheDocument();
-    expect(within(section).getByText("PDCAAS")).toBeInTheDocument();
+    expect(within(section).getByText("接近满分")).toBeInTheDocument();
+    expect(within(section).getAllByText(/PDCAAS/).length).toBeGreaterThan(0);
+    expect(within(section).getByText(/满分为 1.0/)).toBeInTheDocument();
     expect(within(section).getByText(/黑松露、赤芝、红菇/)).toBeInTheDocument();
     expect(within(section).getByText(/数据摘自产品包装营养成分表/)).toBeInTheDocument();
     expect(within(section).getByText(/以产品实际检测为准/)).toBeInTheDocument();

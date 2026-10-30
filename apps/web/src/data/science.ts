@@ -31,10 +31,10 @@ export const scienceFacts = [
     text: "含黑松露、赤芝、红菇等名贵菌菇。麦角硫因等菌物活性在日常膳食中稀缺，烹饪损耗也大。",
   },
   {
-    value: "PDCAAS",
-    unit: "接近 1.0",
-    title: "双蛋白 · 质量分",
-    text: "大豆 + 乳清双来源，蛋白质氨基酸评分接近满分，数量与质量兼得。*",
+    value: "接近满分",
+    unit: "蛋白质质量分",
+    title: "双蛋白 · PDCAAS*",
+    text: "大豆 + 乳清双来源，氨基酸组成接近人体需求，吃进去的蛋白更能被利用。数量与质量兼得。*",
   },
 ] as const;
 
@@ -94,17 +94,17 @@ export const scienceMeals = [
       {
         dimension: "餐后波动",
         without: "馒头、粥为主的早餐，餐后血糖冲高快降，上午容易犯困。",
-        withDrink: "蛋白与纤维先入胃，有助于延缓胃排空，餐后波动更平缓。",
+        withDrink: "蛋白与纤维先入胃，有助于延缓胃排空，餐后血糖波动更平缓。",
       },
       {
         dimension: "蛋白利用",
         without: "早餐蛋白常不足 10 g。",
-        withDrink: "补约 10.7 g 优质蛋白，填补早餐蛋白缺口。",
+        withDrink: "补约 10.7 g 优质蛋白，填补早餐蛋白缺口，赶上早晨的肌肉合成窗口。",
       },
       {
         dimension: "代谢启动",
         without: "基础代谢缓慢爬升。",
-        withDrink: "B 族作为能量代谢辅酶随早餐进场。",
+        withDrink: "B 族作为能量代谢辅酶随早餐进场，碳水、脂肪、蛋白的转化反应全天不缺工具。",
       },
     ],
   },
@@ -115,12 +115,12 @@ export const scienceMeals = [
       {
         dimension: "进食节奏",
         without: "饿了半天，容易吃快吃多。",
-        withDrink: "液体先行，饱腹感提前，有助于正餐不过量。",
+        withDrink: "一杯垫胃，饱腹感提前，正餐更不容易吃过量。",
       },
       {
         dimension: "午后状态",
-        without: "外食油脂高峰，餐后血液涌向胃肠，容易犯困。",
-        withDrink: "餐后波动更小，下午精力更稳。",
+        without: "外食油脂高峰，餐后容易犯困。",
+        withDrink: "餐后波动更小，下午不容易犯困。",
       },
     ],
   },
@@ -130,13 +130,13 @@ export const scienceMeals = [
     rows: [
       {
         dimension: "晚餐热量",
-        without: "一天中最大的社交餐，失控高发。",
-        withDrink: "先垫一杯，正餐更容易刹住。",
+        without: "国人最重晚餐，也是一天中最大的社交餐，失控高发。",
+        withDrink: "先垫一杯，正餐“刹车”效应最明显的一餐。",
       },
       {
         dimension: "夜间修复",
         without: "蛋白往往集中在一餐摄入。",
-        withDrink: "全天蛋白分布更均匀，夜间修复有原料。",
+        withDrink: "大豆 + 乳清双蛋白互补，全天蛋白分布更均匀，夜间修复期也有原料。",
       },
     ],
   },

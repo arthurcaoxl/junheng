@@ -38,7 +38,7 @@ export function ScienceCore() {
           </article>
         ))}
       </div>
-      <p className="science-source">数据摘自产品包装营养成分表（每 100 g），按每袋 25 g 换算，日需占比为估算，具体以营养标签为准。*蛋白质氨基酸评分以产品实际检测为准。</p>
+      <p className="science-source">数据摘自产品包装营养成分表（每 100 g），按每袋 25 g 换算，日需占比为估算，具体以营养标签为准。*PDCAAS：国际通用的蛋白质质量评分，满分为 1.0，越高代表氨基酸组成越接近人体需求；具体以产品实际检测为准。</p>
 
       <div className="science-advantages" aria-label="产品独特优势">
         {scienceAdvantages.map((item, index) => (
