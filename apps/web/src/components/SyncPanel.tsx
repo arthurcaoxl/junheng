@@ -155,3 +155,22 @@ export function SyncPanel() {
     </section>
   );
 }
+
+/** 打卡页顶部的一行同步提示：信息前置，点击平滑滚动到底部面板。未配置 env 时隐藏。 */
+export function SyncBanner() {
+  const [configured] = useState(() => {
+    try {
+      getSupabase();
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  if (!configured) return null;
+  return (
+    <div className="sync-banner">
+      <p>打卡记录会自动备份到云端，绑定邮箱后可在其他设备恢复。</p>
+      <a href="#sync-panel">绑定邮箱 →</a>
+    </div>
+  );
+}

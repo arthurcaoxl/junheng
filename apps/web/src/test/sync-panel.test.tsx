@@ -13,8 +13,11 @@ describe("sync panel", () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it("stays hidden when supabase env is not configured", () => {
+    vi.stubEnv("VITE_SUPABASE_URL", "");
+    vi.stubEnv("VITE_SUPABASE_ANON_KEY", "");
     renderCheckIn();
     expect(screen.queryByText("跨设备同步")).not.toBeInTheDocument();
+    expect(screen.queryByText(/打卡记录会自动备份到云端/)).not.toBeInTheDocument();
   });
 
   describe("with supabase configured (mocked)", () => {
@@ -23,6 +26,14 @@ describe("sync panel", () => {
       vi.clearAllMocks();
       vi.stubEnv("VITE_SUPABASE_URL", "https://test.supabase.co");
       vi.stubEnv("VITE_SUPABASE_ANON_KEY", "test-anon-key");
+    });
+
+    it("shows a top banner that links to the sync panel", async () => {
+      renderCheckIn();
+      const banner = await screen.findByText(/打卡记录会自动备份到云端/);
+      expect(banner).toBeInTheDocument();
+      const link = screen.getByRole("link", { name: /绑定邮箱/ });
+      expect(link).toHaveAttribute("href", "#sync-panel");
     });
 
     it("binds an email via OTP without changing the uid", async () => {
