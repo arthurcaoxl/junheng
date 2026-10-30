@@ -513,13 +513,17 @@ section { scroll-margin-top: 78px; }
 .difference-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border: 1px solid var(--line-light); }
 .difference-column { min-height: 410px; padding: 36px; }
 .difference-column + .difference-column { border-left: 1px solid var(--line-light); }
-.difference-column > span { color: var(--acid); font-size: 10px; font-weight: 750; letter-spacing: .1em; }
+.difference-col-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.difference-col-label { color: var(--acid); font-size: 13px; font-weight: 750; letter-spacing: .1em; }
+.difference-col-badge { padding: 5px 12px; border: 1.5px solid var(--forest); border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: .08em; }
 .difference-column h3 { max-width: 500px; margin-top: 70px; font-size: clamp(27px, 2.8vw, 44px); line-height: 1.25; letter-spacing: -.045em; }
 .difference-column ul { margin: 32px 0 0; padding: 0; list-style: none; }
-.difference-column li { padding: 13px 0; border-top: 1px solid var(--line-light); font-size: 13px; line-height: 1.75; opacity: .7; }
+.difference-column li { display: flex; gap: 12px; padding: 15px 0; border-top: 1px solid var(--line-light); font-size: 15px; line-height: 1.75; opacity: .85; }
+.difference-marker { flex: none; font-weight: 800; }
 .difference-column:last-child { background: var(--acid); color: var(--forest); }
-.difference-column:last-child > span { color: var(--forest); }
-.difference-column:last-child li { border-color: var(--line-dark); opacity: .78; }
+.difference-column:last-child .difference-col-label { color: var(--forest); }
+.difference-column:last-child li { border-color: var(--line-dark); opacity: .92; }
+.difference-column:last-child .difference-marker { font-weight: 900; }
 .difference-metrics { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 56px; border-top: 1px solid var(--line-light); border-bottom: 1px solid var(--line-light); }
 .difference-metrics > div { min-height: 160px; padding: 28px 20px; display: flex; flex-direction: column; justify-content: space-between; }
 .difference-metrics > div + div { border-left: 1px solid var(--line-light); }

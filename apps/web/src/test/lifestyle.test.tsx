@@ -33,6 +33,11 @@ describe("priority lifestyle sections", () => {
     expect(screen.getByText("围绕“替代一餐”设计")).toBeInTheDocument();
     expect(screen.getByText("只见热量，难见均衡")).toBeInTheDocument();
     expect(screen.getByText("生命需要均衡")).toBeInTheDocument();
+    const comparison = screen.getByRole("heading", { name: /不是“更好的代餐”/ }).closest("section")!;
+    const recommended = within(comparison as HTMLElement).getByText("菌衡计划 · 餐前营养伴侣").closest("article")!;
+    expect(within(recommended as HTMLElement).getByText("✓ 推荐路径")).toBeInTheDocument();
+    expect(within(recommended as HTMLElement).getByText(/餐前 30–60 分钟，融入原有三餐/)).toBeInTheDocument();
+    expect(screen.getByText("常见路径")).toBeInTheDocument();
     expect(screen.getByText("品类对比仅科学分析，不构成对任何品牌的贬损或功效承诺")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "代谢营养 × 活性菌物，专属协同优势" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /211 饮食法/ })).toBeInTheDocument();
@@ -218,8 +223,8 @@ describe("priority lifestyle sections", () => {
 
   it("exposes the website version without enabling conversion actions", () => {
     renderApp();
-    expect(siteConfig.version).toBe("1.8.0");
-    expect(screen.getByText("网站版本 v1.8.0")).toBeInTheDocument();
+    expect(siteConfig.version).toBe("1.8.1");
+    expect(screen.getByText("网站版本 v1.8.1")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "立即购买" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "咨询与留资" })).not.toBeInTheDocument();
   });
