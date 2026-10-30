@@ -43,7 +43,9 @@ vi.mock("@supabase/supabase-js", () => {
       signInWithOtp: vi.fn().mockResolvedValue({ error: null }),
       verifyOtp: vi.fn().mockResolvedValue({ error: null }),
       updateUser: vi.fn().mockResolvedValue({ error: null }),
+      signOut: vi.fn().mockResolvedValue({ error: null }),
     },
+    rpc: vi.fn().mockResolvedValue({ data: [], error: null }),
     from: vi.fn(() => query),
   };
   return { createClient: vi.fn(() => client) };

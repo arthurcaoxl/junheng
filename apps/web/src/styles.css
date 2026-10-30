@@ -1034,3 +1034,46 @@ section { scroll-margin-top: 78px; }
   .science-card:nth-child(n + 2) { border-top: 1px solid var(--line-dark); }
   .science-tabs button { min-height: 88px; padding: 16px; flex-direction: column; }
 }
+
+/* v1.9.1 · 管理员统计（暗黑荧光绿，无第三方图表库） */
+.admin-page { min-height: 100vh; padding: calc(110px + env(safe-area-inset-top, 0px)) 4vw 80px; background: var(--forest); color: var(--paper); }
+.admin-shell { width: min(1100px, 100%); margin: 0 auto; }
+.admin-login-card { max-width: 560px; padding: 34px 30px; border: 1px solid var(--line-light); background: rgb(243 241 232 / 3%); }
+.admin-eyebrow { color: var(--acid); font-size: 9px; font-weight: 800; letter-spacing: .18em; }
+.admin-page h1 { margin-top: 12px; font-size: clamp(34px, 5vw, 58px); line-height: 1.08; letter-spacing: -.04em; }
+.admin-intro { margin-top: 14px; font-size: 13px; line-height: 1.9; opacity: .7; }
+.admin-page label { display: block; margin: 24px 0 10px; font-size: 12px; font-weight: 700; letter-spacing: .06em; opacity: .8; }
+.admin-page input { width: 100%; padding: 14px 12px; background: rgb(243 241 232 / 6%); border: 1px solid var(--line-light); color: var(--paper); font: inherit; font-size: 16px; }
+.admin-page input::placeholder { color: rgb(243 241 232 / 35%); }
+.admin-hint { margin-top: 12px; font-size: 12px; line-height: 1.8; opacity: .6; }
+.admin-primary { width: 100%; margin-top: 20px; padding: 15px 20px; background: var(--acid); border: 0; color: var(--forest); font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; }
+.admin-primary:disabled { opacity: .45; cursor: not-allowed; }
+.admin-secondary { padding: 10px 15px; background: none; border: 1px solid var(--line-light); border-radius: 999px; color: var(--paper); font: inherit; font-size: 12px; font-weight: 750; cursor: pointer; }
+.admin-secondary:disabled { opacity: .45; cursor: not-allowed; }
+.admin-error { margin-top: 16px; font-size: 13px; line-height: 1.7; color: #ff9d8a; }
+.admin-notice { margin-top: 16px; font-size: 13px; line-height: 1.7; color: var(--acid); }
+.admin-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+.admin-heading-actions { display: flex; align-items: center; justify-content: flex-end; gap: 10px; flex-wrap: wrap; }
+.admin-email-pill { padding: 8px 12px; border: 1px solid var(--line-light); border-radius: 999px; font-size: 11px; opacity: .7; }
+.admin-block { margin-top: 46px; padding-top: 28px; border-top: 1px solid var(--line-light); }
+.admin-block-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+.admin-block-heading h2 { font-size: 22px; letter-spacing: -.02em; }
+.admin-block-heading span { font-size: 11px; opacity: .55; }
+.admin-table-wrap { overflow-x: auto; border: 1px solid var(--line-light); }
+.admin-table { width: 100%; min-width: 720px; border-collapse: collapse; font-size: 12px; }
+.admin-table th, .admin-table td { padding: 12px 14px; border-bottom: 1px solid var(--line-light); text-align: left; white-space: nowrap; }
+.admin-table th { color: var(--acid); font-size: 10px; font-weight: 800; letter-spacing: .08em; }
+.admin-table tbody tr:last-child td { border-bottom: 0; }
+.admin-table tbody tr:hover { background: rgb(163 230 53 / 6%); }
+.admin-trend-table { min-width: 920px; }
+.admin-trend-track { display: inline-block; width: 72px; height: 5px; margin-right: 8px; background: rgb(243 241 232 / 12%); vertical-align: middle; }
+.admin-trend-track > span { display: block; height: 100%; background: var(--acid); }
+.admin-empty { padding: 24px; border: 1px dashed var(--line-light); font-size: 13px; opacity: .65; }
+@media (max-width: 760px) {
+  .admin-page { padding: calc(94px + env(safe-area-inset-top, 0px)) 20px 64px; }
+  .admin-login-card { padding: 28px 22px; }
+  .admin-heading { display: block; }
+  .admin-heading-actions { justify-content: flex-start; margin-top: 22px; }
+  .admin-block-heading { display: block; }
+  .admin-block-heading span { display: block; margin-top: 8px; }
+}
