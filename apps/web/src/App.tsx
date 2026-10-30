@@ -6,6 +6,7 @@ import { SiteHeader } from "./components/SiteHeader";
 import { SiteFooter } from "./components/SiteFooter";
 import Home from "./pages/Home";
 import CheckInPage from "./pages/CheckInPage";
+import AdminCheckInPage from "./pages/AdminCheckIn";
 import { useReducedMotion } from "./hooks/useReducedMotion";
 import { installSyncLifecycle } from "./services/checkinSync";
 import "./styles.css";
@@ -83,6 +84,9 @@ export default function App() {
           {/* 托管平台只按精确文件路径提供静态服务（无 SPA fallback），
               打卡深链公开形式为 /check-in/index.html */}
           <Route path="/check-in/index.html" element={<CheckInPage />} />
+          {/* 管理入口不进入公开导航；RLS 负责数据权限。 */}
+          <Route path="/admin/check-in" element={<AdminCheckInPage />} />
+          <Route path="/admin/check-in/index.html" element={<AdminCheckInPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
