@@ -156,7 +156,7 @@ export function SyncPanel() {
   );
 }
 
-/** 打卡页顶部的一行同步提示：信息前置，点击平滑滚动到底部面板。未配置 env 时隐藏。 */
+/** 打卡页顶部的一行同步提示：信息前置，点击平滑滚动到底部面板并闪烁定位。未配置 env 时隐藏。 */
 export function SyncBanner() {
   const [configured] = useState(() => {
     try {
@@ -167,10 +167,25 @@ export function SyncBanner() {
     }
   });
   if (!configured) return null;
+
+  const jumpToPanel = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.preventDefault();
+    const panel = document.getElementById("sync-panel");
+    if (!panel) return;
+    panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    window.setTimeout(() => {
+      panel.classList.remove("sync-panel-flash");
+      // 强制重排以重启动画
+      void panel.offsetWidth;
+      panel.classList.add("sync-panel-flash");
+    }, 500);
+    window.history.replaceState(null, "", "#sync-panel");
+  };
+
   return (
     <div className="sync-banner">
       <p>打卡记录会自动备份到云端，绑定邮箱后可在其他设备恢复。</p>
-      <a href="#sync-panel">绑定邮箱 →</a>
+      <a href="#sync-panel" onClick={jumpToPanel}>绑定邮箱 →</a>
     </div>
   );
 }
