@@ -2,6 +2,7 @@ import { Hero } from "../components/Hero";
 import { BrandPerspective } from "../components/BrandPerspective";
 import { MetabolismSignals } from "../components/MetabolismSignals";
 import { CategoryDifference } from "../components/CategoryDifference";
+import { ScienceCore } from "../components/ScienceCore";
 import { MetricsWall } from "../components/MetricsWall";
 import { NutritionStory } from "../components/NutritionStory";
 import { FormulaStrength } from "../components/FormulaStrength";
@@ -24,6 +25,7 @@ export default function Home() {
       <BrandPerspective />
       <MetabolismSignals />
       <CategoryDifference />
+      <ScienceCore />
       <BodyStandards />
       <MetricsWall />
       <NutritionStory />

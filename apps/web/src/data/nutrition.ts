@@ -50,6 +50,29 @@ export const processSteps = [
 export const vitaminNotes = ["维生素 B1", "维生素 B2", "维生素 B6", "叶酸", "生物素", "维生素 B12"] as const;
 export const proteinSourceNote = "数据依据品牌提供素材，具体以产品包装及正式检测资料为准";
 
+// 完整营养成分表，逐字转录自产品包装标签实拍（ops/label-reference/pailiang.jpg，2026-10-30 核对）。
+// 每袋按 25 g 换算（÷ 4，四舍五入）。包装改版时只改这里。
+export type NutritionLabelRow = { name: string; per100g: string; perBag: string };
+
+export const nutritionLabel: NutritionLabelRow[] = [
+  { name: "能量", per100g: "1665 千焦", perBag: "416 千焦" },
+  { name: "蛋白质", per100g: "42.6 克", perBag: "10.7 克" },
+  { name: "脂肪", per100g: "4.2 克", perBag: "1.1 克" },
+  { name: "碳水化合物", per100g: "46.2 克", perBag: "11.6 克" },
+  { name: "钠", per100g: "608 毫克", perBag: "152 毫克" },
+  { name: "维生素 B1", per100g: "4.58 毫克", perBag: "1.15 毫克" },
+  { name: "维生素 B2", per100g: "2.00 毫克", perBag: "0.50 毫克" },
+  { name: "维生素 B6", per100g: "1.72 毫克", perBag: "0.43 毫克" },
+  { name: "维生素 B12", per100g: "4.30 微克", perBag: "1.08 微克" },
+  { name: "烟酸", per100g: "13.00 毫克", perBag: "3.25 毫克" },
+  { name: "叶酸", per100g: "218 微克", perBag: "54.5 微克" },
+  { name: "泛酸", per100g: "6.24 毫克", perBag: "1.56 毫克" },
+  { name: "生物素", per100g: "49.0 微克", perBag: "12.3 微克" },
+  { name: "左旋肉碱", per100g: "2.6 克", perBag: "0.65 克（650 毫克）" },
+];
+
+export const nutritionLabelNote = "数据来源于产品包装营养成分表，每袋按 25 g 换算，以实际包装标示为准。";
+
 export const researchInstitute = "北京千菌方菌物科学研究院";
 export const researchInstituteSource = "https://qianjunfang.com/hzjg";
 

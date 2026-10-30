@@ -76,7 +76,7 @@ export function createRecordPoster(records: DayRecord[], recordName = "", camp?:
   context.fillStyle = "#C6FF36";
   context.fillRect(0, 0, WIDTH, 20);
   context.font = "600 28px sans-serif";
-  context.fillText("菌衡有道×心脑健康减脂营", 70, 100);
+  context.fillText("菌衡计划×心脑健康减脂营", 70, 100);
   context.fillStyle = "#F3F1E8";
   context.font = "700 72px sans-serif";
   context.fillText("我的 21 天健康记录", 70, 210);

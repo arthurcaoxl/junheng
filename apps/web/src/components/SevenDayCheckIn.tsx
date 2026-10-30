@@ -138,7 +138,7 @@ export function SevenDayCheckIn() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `菌衡有道-21天打卡-${state.userCode}.csv`;
+    anchor.download = `菌衡计划-21天打卡-${state.userCode}.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
   };
@@ -235,7 +235,7 @@ export function SevenDayCheckIn() {
       <RecordTrends records={buildWindowRecords(state)} />
       <section className="poster-export" aria-labelledby="poster-export-title">
         <div className="poster-export-copy"><span>PERSONAL RECORD POSTER</span><h3 id="poster-export-title">把 21 天坚持，留成一张海报。</h3><p>只导出你的真实记录，不生成固定减重目标。微信内可长按图片保存，其他浏览器可下载 PNG。CSV 含营员代码与真实日期，可直接用 Excel 汇总统计。</p><button type="button" onClick={exportPoster}>导出记录海报</button><button type="button" className="csv-export" onClick={exportCsv}>导出打卡 CSV</button>{posterError && <p role="alert">当前浏览器无法生成海报，请更换浏览器后重试。</p>}</div>
-        {posterUrl && <div className="poster-preview"><img src={posterUrl} alt="21 天健康记录海报预览" /><p>微信内可长按图片保存；也可以<a href={posterUrl} download="菌衡有道-21天健康记录.png">下载 PNG 海报</a>。</p><small>仅为个人健康记录，不代表固定减重目标或产品功效</small></div>}
+        {posterUrl && <div className="poster-preview"><img src={posterUrl} alt="21 天健康记录海报预览" /><p>微信内可长按图片保存；也可以<a href={posterUrl} download="菌衡计划-21天健康记录.png">下载 PNG 海报</a>。</p><small>仅为个人健康记录，不代表固定减重目标或产品功效</small></div>}
       </section>
       <p className="check-in-note">21 天用于建立观察习惯，不设定固定减重目标。体重管理应结合合理饮食、适量运动与良好作息，个体结果存在差异。</p>
     </section>
