@@ -1,5 +1,6 @@
 import type { AdminCamper, AdminDayRecord } from "../services/adminCheckin";
-import { addDays, diffDays, isDateKey, TOTAL_DAYS } from "./checkin";
+import type { DayRecord } from "../components/SevenDayCheckIn";
+import { addDays, diffDays, emptyDay, getWindowDates, isDateKey, TOTAL_DAYS } from "./checkin";
 
 /** 后台可视化专用纯计算：不接触 Supabase，不改动 storage-v3 契约。 */
 
@@ -107,4 +108,9 @@ export function lastCheckInDate(camper: AdminCamper): string | null {
 export function daysSinceLastCheckIn(camper: AdminCamper, today: string): number | null {
   const last = lastCheckInDate(camper);
   return last && isDateKey(today) ? diffDays(last, today) : null;
+}
+
+/** 将后台日期键 records 适配为前台组件需要的 21 天窗口数组（AdminDayRecord 与 DayRecord 同构）。 */
+export function toWindowRecords(camper: AdminCamper): DayRecord[] {
+  return getWindowDates(camper.startDate).map((key) => camper.records[key] ?? emptyDay());
 }

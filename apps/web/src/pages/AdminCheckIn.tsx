@@ -16,7 +16,7 @@ import { todayKey } from "../utils/checkin";
 import KpiCards from "../components/admin/KpiCards";
 import CampTrendCharts from "../components/admin/CampTrendCharts";
 import CamperTable from "../components/admin/CamperTable";
-import CamperDrawer from "../components/admin/CamperDrawer";
+import CamperDrawer, { type CamperDrawerTab } from "../components/admin/CamperDrawer";
 
 function percent(value: number | null): string {
   return value === null ? "—" : `${value}%`;
@@ -42,6 +42,7 @@ export default function AdminCheckInPage() {
   const [campers, setCampers] = useState<AdminCamper[]>([]);
   const [filter, setFilter] = useState<CamperFilter>("all");
   const [selected, setSelected] = useState<AdminCamper | null>(null);
+  const [drawerTab, setDrawerTab] = useState<CamperDrawerTab>("detail");
   const today = todayKey();
   const campMetrics = useMemo(() => buildCampDayMetrics(campers), [campers]);
   const kpis = useMemo(() => buildCampKpis(campers, today), [campers, today]);
@@ -202,7 +203,14 @@ export default function AdminCheckInPage() {
             <h2 id="admin-campers-title">已备份营员</h2>
             <span>点击任意一行查看个人每日明细</span>
           </div>
-          <CamperTable campers={campers} filter={filter} today={today} onFilterChange={setFilter} onSelect={setSelected} />
+          <CamperTable
+            campers={campers}
+            filter={filter}
+            today={today}
+            onFilterChange={setFilter}
+            onSelect={(camper) => { setDrawerTab("detail"); setSelected(camper); }}
+            onPoster={(camper) => { setDrawerTab("poster"); setSelected(camper); }}
+          />
         </section>
 
         <section className="admin-block" aria-labelledby="admin-trend-title">
@@ -252,7 +260,7 @@ export default function AdminCheckInPage() {
         {error && <p className="admin-error" role="alert">{error}</p>}
         {notice && <p className="admin-notice" role="status">{notice}</p>}
       </section>
-      <CamperDrawer camper={selected} onClose={closeDrawer} />
+      <CamperDrawer key={`${selected?.authUserId ?? "none"}-${drawerTab}`} camper={selected} initialTab={drawerTab} onClose={closeDrawer} />
     </div>
   );
 }

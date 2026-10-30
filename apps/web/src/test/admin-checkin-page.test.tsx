@@ -18,6 +18,11 @@ vi.mock("recharts", () => ({
   Tooltip: () => null,
 }));
 
+// jsdom 无 Canvas 2D，海报绘制本身由 recordPoster 专项测试覆盖
+vi.mock("../utils/recordPoster", () => ({
+  createRecordPoster: vi.fn(() => "data:image/png;base64,poster"),
+}));
+
 function renderAdmin() {
   return render(<MemoryRouter initialEntries={["/admin/check-in"]}><App /></MemoryRouter>);
 }
@@ -136,7 +141,27 @@ describe("admin check-in page", () => {
     expect(within(drawer).getByText(/camper@example.com · 开营 2026-10-01/)).toBeInTheDocument();
     expect(within(drawer).getByText("D21")).toBeInTheDocument();
     expect(screen.queryByText(/private-uid/)).not.toBeInTheDocument();
+
+    // Tab 2：复用前台个人趋势组件
+    await user.click(within(drawer).getByRole("tab", { name: "个人趋势" }));
+    expect(within(drawer).getByText("体重趋势")).toBeInTheDocument();
+    expect(within(drawer).getByText("腰围趋势")).toBeInTheDocument();
     await user.click(within(drawer).getByRole("button", { name: "关闭" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+    // 列表快捷操作：一键生成海报，直接落在海报 Tab
+    await user.click(screen.getByRole("button", { name: "为营员 JH-ADMIN1 生成海报" }));
+    const posterDrawer = await screen.findByRole("dialog");
+    expect(within(posterDrawer).getByRole("tab", { name: "打卡海报" })).toHaveAttribute("aria-selected", "true");
+    expect(within(posterDrawer).getByAltText("营员 JH-ADMIN1 的 21 天打卡海报预览")).toHaveAttribute("src", "data:image/png;base64,poster");
+    expect(within(posterDrawer).getByRole("button", { name: "下载 PNG 海报" })).toBeEnabled();
+    const { createRecordPoster } = await import("../utils/recordPoster");
+    expect(createRecordPoster).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.objectContaining({ weight: "80" })]),
+      "",
+      { userCode: "JH-ADMIN1", startDate: "2026-10-01", endDate: "2026-10-21" },
+    );
+    await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

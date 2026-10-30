@@ -18,9 +18,10 @@ type Props = {
   today: string;
   onFilterChange: (filter: CamperFilter) => void;
   onSelect: (camper: AdminCamper) => void;
+  onPoster: (camper: AdminCamper) => void;
 };
 
-export default function CamperTable({ campers, filter, today, onFilterChange, onSelect }: Props) {
+export default function CamperTable({ campers, filter, today, onFilterChange, onSelect, onPoster }: Props) {
   const visible = filterCampers(campers, filter, today);
   return (
     <>
@@ -48,6 +49,7 @@ export default function CamperTable({ campers, filter, today, onFilterChange, on
                 <th>开营日期</th>
                 <th>累计打卡</th>
                 <th>最近备份</th>
+                <th>操作</th>
                 <th><span className="sr-only">查看明细</span></th>
               </tr>
             </thead>
@@ -72,6 +74,20 @@ export default function CamperTable({ campers, filter, today, onFilterChange, on
                   <td>{camper.startDate}</td>
                   <td>{camper.recordedDays} 天</td>
                   <td>{formatDateTime(camper.updatedAt)}</td>
+                  <td>
+                    <button
+                      type="button"
+                      className="admin-poster-shortcut"
+                      aria-label={`为营员 ${camper.userCode} 生成海报`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        onPoster(camper);
+                      }}
+                      onKeyDown={(event) => event.stopPropagation()}
+                    >
+                      生成海报
+                    </button>
+                  </td>
                   <td className="admin-row-arrow" aria-hidden="true">›</td>
                 </tr>
               ))}
