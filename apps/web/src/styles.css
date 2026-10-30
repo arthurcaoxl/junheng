@@ -120,6 +120,19 @@ section { scroll-margin-top: 78px; }
 .metric-card p { margin-top: 12px; font-size: 13px; line-height: 1.7; opacity: .65; }
 .metric-card small { margin-top: 18px; font-size: 10px; line-height: 1.65; opacity: .55; }
 
+.metrics-label { margin-top: 56px; }
+.metrics-label-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 20px 2px; background: none; border: 0; border-top: 1px solid var(--line-dark); color: var(--forest); font: inherit; font-weight: 600; letter-spacing: .04em; cursor: pointer; }
+.metrics-label-chevron { transition: transform .25s ease; }
+.metrics-label-toggle[aria-expanded="true"] .metrics-label-chevron { transform: rotate(180deg); }
+.metrics-label-panel { border-top: 1px solid var(--line-dark); padding-top: 26px; }
+.metrics-label-table { width: 100%; max-width: 720px; border-collapse: collapse; font-size: 14px; }
+.metrics-label-table caption { text-align: left; padding-bottom: 14px; font-size: 12px; font-weight: 700; letter-spacing: .12em; opacity: .55; }
+.metrics-label-table th, .metrics-label-table td { padding: 11px 10px 11px 0; border-bottom: 1px solid var(--line-dark); text-align: left; font-weight: 400; }
+.metrics-label-table thead th { font-size: 12px; font-weight: 700; letter-spacing: .06em; opacity: .65; }
+.metrics-label-table tbody th { font-weight: 600; }
+.metrics-label-table td:last-child, .metrics-label-table thead th:last-child { text-align: right; padding-right: 0; }
+.metrics-label-note { margin-top: 18px; max-width: 720px; font-size: 12px; line-height: 1.7; opacity: .6; }
+
 .nutrition { background: var(--forest); color: var(--paper); }
 .nutrition-header { margin: 72px 0 86px 16%; }
 .nutrition-header .eyebrow, .process-heading .eyebrow { color: var(--acid); }
@@ -391,6 +404,9 @@ section { scroll-margin-top: 78px; }
   .metric-card + .metric-card { border-left: 0; border-top: 1px solid var(--line-dark); }
   .metric-value { margin-top: 70px; font-size: 29vw; }
   .metric-card h3 { font-size: 21px; }
+  .metrics-label { margin-top: 42px; }
+  .metrics-label-table { font-size: 13px; }
+  .metrics-label-table th, .metrics-label-table td { padding: 10px 4px 10px 0; }
   .nutrition-header, .process-heading { margin: 0 0 54px; }
   .nutrition-grid, .process-list { grid-template-columns: 1fr; }
   .nutrition-card-mushroom, .nutrition-card-protein, .nutrition-card-vitamin { grid-column: 1; grid-row: auto; min-height: auto; margin-top: 0; padding: 24px 20px; }

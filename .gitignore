@@ -29,3 +29,8 @@ ops/logs/*
 # Archive: provenance only, never raw assets
 assets-archive/*
 !assets-archive/SOURCES.md
+
+# Label reference: transcription is committed, raw photos stay local
+ops/label-reference/*.jpg
+ops/label-reference/*.png
+ops/label-reference/*.webp
