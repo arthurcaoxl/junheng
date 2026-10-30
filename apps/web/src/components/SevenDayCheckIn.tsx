@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { RecordTrends } from "./RecordTrends";
 import { WaterFluctuation } from "./WaterFluctuation";
 import { createRecordPoster } from "../utils/recordPoster";
+import { useSyncStatus } from "../hooks/useSyncStatus";
+import { openSyncModal } from "../services/syncUi";
 import {
   TOTAL_DAYS,
   STORAGE_KEY,
@@ -22,8 +24,19 @@ import {
   todayKey,
 } from "../utils/checkin";
 import type { CheckInState } from "../utils/checkin";
+import { scheduleSyncToCloud } from "../services/checkinSync";
 
 const NAME_STORAGE_KEY = "junheng-checkin-name-v1";
+const TOAST_SNOOZE_KEY = "junheng-sync-toast-snooze"; // 独立键，与 v3 无关
+
+function isToastSnoozed(): boolean {
+  try {
+    const at = Number(window.localStorage.getItem(TOAST_SNOOZE_KEY) ?? 0);
+    return Date.now() - at < 7 * 24 * 3600 * 1000; // 点"稍后再说"后 7 天内不再弹
+  } catch {
+    return false;
+  }
+}
 
 export type DayRecord = {
   weight: string;
@@ -49,6 +62,9 @@ export function SevenDayCheckIn() {
   const [storageError, setStorageError] = useState(false);
   const [posterUrl, setPosterUrl] = useState("");
   const [posterError, setPosterError] = useState(false);
+  const { configured: syncConfigured, email: syncEmail } = useSyncStatus();
+  const [toastDays, setToastDays] = useState<number | null>(null);
+  const toastShownRef = useRef(false);
   const today = todayKey();
   const windowDates = getWindowDates(state.startDate);
   const enabledDates = windowDates.filter((key) => key <= today);
@@ -63,6 +79,16 @@ export function SevenDayCheckIn() {
       setStorageError(false);
     } catch {
       setStorageError(true);
+    }
+    scheduleSyncToCloud(); // 只调度防抖上传，不改 v3 写入逻辑本身
+
+    // 软引导：未绑定且打卡超过 3 天，提交 1.5 秒后克制弹一次（会话内仅一次，可 snooze 7 天）
+    if (syncConfigured && !syncEmail && !toastShownRef.current && !isToastSnoozed()) {
+      const days = getCampStats(next).recordedDays;
+      if (days > 3) {
+        toastShownRef.current = true;
+        window.setTimeout(() => setToastDays(days), 1500);
+      }
     }
   };
 
@@ -227,10 +253,16 @@ export function SevenDayCheckIn() {
           <fieldset><legend>生活习惯</legend><label><input type="checkbox" checked={current.water} onChange={(event) => updateDay({ water: event.target.checked })} /><span>完成适量饮水</span></label><label><input type="checkbox" checked={current.movement} onChange={(event) => updateDay({ movement: event.target.checked })} /><span>完成适量运动</span></label><label><input type="checkbox" checked={current.sleep} onChange={(event) => updateDay({ sleep: event.target.checked })} /><span>保持规律作息</span></label></fieldset>
         </div>
         <div className="check-in-actions">
-          <p>记录仅保存在当前设备，不上传服务器。清理浏览器数据后可能无法恢复。</p>
+          <p>{syncConfigured ? "记录不仅保存在当前设备，还会自动备份到云端；绑定邮箱后可在其他设备恢复。" : "记录仅保存在当前设备，不上传服务器。清理浏览器数据后可能无法恢复。"}</p>
           <button type="button" onClick={clearRecords}>清空本机记录</button>
         </div>
         <p className="storage-status" role="status">{storageError ? "当前浏览器无法保存，本次记录仅在页面打开期间有效。" : "修改后自动保存，无需注册。"}</p>
+        {syncConfigured && !syncEmail && (
+          <div className="sync-inline-hint">
+            <p>☁️ 记录目前仅保存在本机。绑定邮箱，换手机/电脑也能接着打卡。</p>
+            <button type="button" onClick={() => openSyncModal("bind")}>立即绑定</button>
+          </div>
+        )}
       </div>
       <RecordTrends records={buildWindowRecords(state)} />
       <section className="poster-export" aria-labelledby="poster-export-title">
@@ -238,6 +270,18 @@ export function SevenDayCheckIn() {
         {posterUrl && <div className="poster-preview"><img src={posterUrl} alt="21 天健康记录海报预览" /><p>微信内可长按图片保存；也可以<a href={posterUrl} download="菌衡计划-21天健康记录.png">下载 PNG 海报</a>。</p><small>仅为个人健康记录，不代表固定减重目标或产品功效</small></div>}
       </section>
       <p className="check-in-note">21 天用于建立观察习惯，不设定固定减重目标。体重管理应结合合理饮食、适量运动与良好作息，个体结果存在差异。</p>
+      {toastDays !== null && (
+        <div className="sync-toast" role="status">
+          <p>🎉 您已坚持打卡 {toastDays} 天！建议绑定邮箱，防止清理浏览器导致记录丢失。</p>
+          <div className="sync-toast-actions">
+            <button type="button" className="sync-toast-bind" onClick={() => { setToastDays(null); openSyncModal("bind"); }}>立即绑定</button>
+            <button type="button" className="sync-toast-dismiss" onClick={() => {
+              try { window.localStorage.setItem(TOAST_SNOOZE_KEY, String(Date.now())); } catch { /* 忽略 */ }
+              setToastDays(null);
+            }}>稍后再说</button>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

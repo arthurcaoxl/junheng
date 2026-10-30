@@ -1,11 +1,14 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router";
+import { Link, useLocation, useNavigate } from "react-router";
 import { navigation, siteConfig } from "../config/site";
+import { useSyncStatus } from "../hooks/useSyncStatus";
 
 export function SiteHeader() {
   const [open, setOpen] = useState(false);
   const { pathname } = useLocation();
+  const navigate = useNavigate();
   const onHome = pathname === "/";
+  const { configured, email } = useSyncStatus();
 
   useEffect(() => {
     const closeOnEscape = (event: KeyboardEvent) => {
@@ -39,6 +42,28 @@ export function SiteHeader() {
       <nav className="desktop-nav" aria-label="页面导航">
         {desktopItems}
       </nav>
+      {configured && (
+        <button
+          type="button"
+          className={`sync-status-pill${email ? " is-synced" : ""}`}
+          aria-label={email ? "已同步，查看跨设备同步" : "未同步，绑定邮箱"}
+          onClick={() => {
+            if (pathname.startsWith("/check-in")) {
+              const panel = document.getElementById("sync-panel");
+              panel?.scrollIntoView({ behavior: "smooth", block: "start" });
+              window.setTimeout(() => {
+                panel?.classList.remove("sync-panel-flash");
+                if (panel) void panel.offsetWidth;
+                panel?.classList.add("sync-panel-flash");
+              }, 500);
+            } else {
+              navigate("/check-in#sync-panel");
+            }
+          }}
+        >
+          {email ? "已同步" : "绑定邮箱"}
+        </button>
+      )}
       <span className="header-note">餐前营养伴侣</span>
       <button
         type="button"
