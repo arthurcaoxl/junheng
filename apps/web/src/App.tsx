@@ -7,6 +7,7 @@ import { SiteFooter } from "./components/SiteFooter";
 import Home from "./pages/Home";
 import CheckInPage from "./pages/CheckInPage";
 import { useReducedMotion } from "./hooks/useReducedMotion";
+import { installSyncLifecycle } from "./services/checkinSync";
 import "./styles.css";
 
 gsap.registerPlugin(ScrollTrigger);
@@ -24,6 +25,8 @@ export default function App() {
   const reducedMotion = useReducedMotion();
   const { pathname } = useLocation();
   const isHome = pathname === "/";
+
+  useEffect(() => installSyncLifecycle(), []); // pagehide/隐藏时冲刷待上传数据
 
   useEffect(() => {
     if (!isHome) return;

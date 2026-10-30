@@ -223,8 +223,8 @@ describe("priority lifestyle sections", () => {
 
   it("exposes the website version without enabling conversion actions", () => {
     renderApp();
-    expect(siteConfig.version).toBe("1.8.1");
-    expect(screen.getByText("网站版本 v1.8.1")).toBeInTheDocument();
+    expect(siteConfig.version).toBe("1.9.0");
+    expect(screen.getByText("网站版本 v1.9.0")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "立即购买" })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "咨询与留资" })).not.toBeInTheDocument();
   });

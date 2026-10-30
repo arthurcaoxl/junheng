@@ -22,6 +22,7 @@ import {
   todayKey,
 } from "../utils/checkin";
 import type { CheckInState } from "../utils/checkin";
+import { scheduleSyncToCloud } from "../services/checkinSync";
 
 const NAME_STORAGE_KEY = "junheng-checkin-name-v1";
 
@@ -64,6 +65,7 @@ export function SevenDayCheckIn() {
     } catch {
       setStorageError(true);
     }
+    scheduleSyncToCloud(); // 只调度防抖上传，不改 v3 写入逻辑本身
   };
 
   const updateName = (value: string) => {

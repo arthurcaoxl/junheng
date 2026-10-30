@@ -2,7 +2,7 @@
 
 ## 固定目标
 
-- 当前版本：`v1.8.1`
+- 当前版本：`v1.9.0`
 - 发布方式：在获所有者明确授权的 Kimi 会话中使用 `kimix website publish`
 - 网站 ID：`1a170fd8-b362-873e-8000-0000c5bec604`
 - 线上地址：`https://rtrzqrxly4mlo.ok.kimi.link`
