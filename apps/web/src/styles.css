@@ -1069,6 +1069,41 @@ section { scroll-margin-top: 78px; }
 .admin-trend-track { display: inline-block; width: 72px; height: 5px; margin-right: 8px; background: rgb(243 241 232 / 12%); vertical-align: middle; }
 .admin-trend-track > span { display: block; height: 100%; background: var(--acid); }
 .admin-empty { padding: 24px; border: 1px dashed var(--line-light); font-size: 13px; opacity: .65; }
+
+/* v1.9.0 后台数据可视化：KPI 卡 / recharts 图表 / 筛选 / 下钻 Drawer */
+.admin-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 34px; }
+.admin-kpi-card { padding: 20px 18px; border: 1px solid var(--line-light); background: rgb(243 241 232 / 3%); }
+.admin-kpi-label { font-size: 11px; font-weight: 700; letter-spacing: .06em; opacity: .6; }
+.admin-kpi-value { margin-top: 10px; color: var(--acid); font-size: clamp(26px, 3vw, 36px); font-weight: 800; letter-spacing: -.02em; }
+.admin-kpi-note { margin-top: 8px; font-size: 11px; opacity: .5; }
+.admin-charts { display: grid; grid-template-columns: 1fr; gap: 26px; }
+.admin-chart { margin: 0; padding: 18px 16px 12px; border: 1px solid var(--line-light); background: rgb(243 241 232 / 2%); }
+.admin-chart figcaption { font-size: 12px; font-weight: 700; letter-spacing: .04em; opacity: .75; }
+.admin-chart-canvas { margin-top: 12px; }
+.admin-chart-legend { display: flex; gap: 20px; margin-top: 6px; font-size: 11px; }
+.admin-trend-details { margin-top: 18px; }
+.admin-trend-details summary { cursor: pointer; padding: 10px 0; font-size: 12px; font-weight: 700; color: var(--acid); }
+.admin-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.admin-filter { padding: 8px 14px; background: none; border: 1px solid var(--line-light); border-radius: 999px; color: var(--paper); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; opacity: .65; }
+.admin-filter.is-active { background: var(--acid); border-color: var(--acid); color: var(--forest); opacity: 1; }
+.admin-filter-count { margin-left: auto; font-size: 11px; opacity: .55; }
+.admin-camper-row { cursor: pointer; }
+.admin-camper-row:focus-visible { outline: 2px solid var(--acid); outline-offset: -2px; }
+.admin-row-arrow { color: var(--acid); font-size: 16px; }
+.admin-drawer-layer { position: fixed; inset: 0; z-index: 80; display: flex; justify-content: flex-end; background: rgb(4 12 8 / 62%); }
+.admin-drawer { width: min(860px, 100%); height: 100%; overflow-y: auto; padding: 28px 24px 40px; background: var(--forest); border-left: 1px solid var(--line-light); }
+.admin-drawer-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 20px; }
+.admin-drawer-heading h2 { margin-top: 8px; font-size: 30px; letter-spacing: -.02em; }
+.admin-drawer-sub { margin-top: 8px; font-size: 12px; opacity: .65; }
+.admin-drawer-table-wrap { max-height: 62vh; overflow-y: auto; }
+.admin-drawer-table { min-width: 780px; }
+.admin-drawer-table thead th { position: sticky; top: 0; background: var(--forest); }
+.admin-day-empty td { opacity: .45; }
+.admin-check { color: rgb(243 241 232 / 35%); }
+.admin-check.on { color: var(--acid); font-weight: 800; }
+@media (max-width: 960px) {
+  .admin-kpis { grid-template-columns: repeat(2, 1fr); }
+}
 @media (max-width: 760px) {
   .admin-page { padding: calc(94px + env(safe-area-inset-top, 0px)) 20px 64px; }
   .admin-login-card { padding: 28px 22px; }
