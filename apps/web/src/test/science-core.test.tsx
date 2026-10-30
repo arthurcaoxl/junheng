@@ -22,7 +22,10 @@ describe("science core section", () => {
     expect(within(section).getByText("≈80%")).toBeInTheDocument();
     expect(within(section).getByText("优质蛋白")).toBeInTheDocument();
     expect(within(section).getByText("左旋肉碱")).toBeInTheDocument();
+    expect(within(section).getByText("PDCAAS")).toBeInTheDocument();
+    expect(within(section).getByText(/黑松露、赤芝、红菇/)).toBeInTheDocument();
     expect(within(section).getByText(/数据摘自产品包装营养成分表/)).toBeInTheDocument();
+    expect(within(section).getByText(/以产品实际检测为准/)).toBeInTheDocument();
   });
 
   it("sets the correct expectation: not a meal replacement and no unlimited weight loss", () => {
@@ -44,12 +47,14 @@ describe("science core section", () => {
     renderHome();
     const section = scienceSection();
     const tablist = within(section).getByRole("tablist", { name: "人群用法" });
-    await user.click(within(tablist).getByRole("tab", { name: /运动人群/ }));
-    const panel = within(section).getByRole("tabpanel", { name: /运动人群/ });
+    await user.click(within(tablist).getByRole("tab", { name: /运动期/ }));
+    const panel = within(section).getByRole("tabpanel", { name: /运动期/ });
     expect(panel).toHaveTextContent("运动后 30 分钟内 1 袋");
     expect(panel).toHaveTextContent("运动营养食品（耐力类）");
-    await user.click(within(tablist).getByRole("tab", { name: /正常体质·维持期/ }));
-    expect(within(section).getByRole("tabpanel", { name: /正常体质·维持期/ })).toHaveTextContent("平衡器，不是燃烧剂");
+    await user.click(within(tablist).getByRole("tab", { name: /维持期/ }));
+    expect(within(section).getByRole("tabpanel", { name: /维持期/ })).toHaveTextContent("平衡器，不是燃烧剂");
+    await user.click(within(tablist).getByRole("tab", { name: /减脂期/ }));
+    expect(within(section).getByRole("tabpanel", { name: /减脂期/ })).toHaveTextContent("温和热量缺口");
   });
 
   it("switches meal timeline tabs and compares before and after drinking", async () => {

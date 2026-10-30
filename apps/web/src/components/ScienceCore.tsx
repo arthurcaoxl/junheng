@@ -38,7 +38,7 @@ export function ScienceCore() {
           </article>
         ))}
       </div>
-      <p className="science-source">数据摘自产品包装营养成分表（每 100 g），按每袋 25 g 换算，日需占比为估算，具体以营养标签为准。</p>
+      <p className="science-source">数据摘自产品包装营养成分表（每 100 g），按每袋 25 g 换算，日需占比为估算，具体以营养标签为准。*蛋白质氨基酸评分以产品实际检测为准。</p>
 
       <div className="science-advantages" aria-label="产品独特优势">
         {scienceAdvantages.map((item, index) => (
@@ -74,8 +74,11 @@ export function ScienceCore() {
           {meal.rows.map((row) => (
             <div className="science-meal-row" key={row.dimension}>
               <h4>{row.dimension}</h4>
-              <div><span>不服用</span><p>{row.without}</p></div>
-              <div><span>餐前一杯</span><p>{row.withDrink}</p></div>
+              <div className="science-meal-cols">
+                <div className="science-meal-col science-meal-before"><span>未补充</span><p>{row.without}</p></div>
+                <div className="science-meal-arrow" aria-hidden="true">→</div>
+                <div className="science-meal-col science-meal-after"><span>餐前一杯</span><p>{row.withDrink}</p></div>
+              </div>
             </div>
           ))}
         </div>

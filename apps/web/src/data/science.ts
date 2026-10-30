@@ -28,13 +28,13 @@ export const scienceFacts = [
     value: "23",
     unit: "种菌菇",
     title: "定向酶解",
-    text: "麦角硫因等菌物活性在日常膳食中稀缺，烹饪损耗也大。",
+    text: "含黑松露、赤芝、红菇等名贵菌菇。麦角硫因等菌物活性在日常膳食中稀缺，烹饪损耗也大。",
   },
   {
-    value: "魔芋+黑茶",
-    unit: "",
-    title: "餐前组合",
-    text: "魔芋粉提供膳食纤维，速溶黑茶粉融入餐前场景，先垫一杯再开饭。",
+    value: "PDCAAS",
+    unit: "接近 1.0",
+    title: "双蛋白 · 质量分",
+    text: "大豆 + 乳清双来源，蛋白质氨基酸评分接近满分，数量与质量兼得。*",
   },
 ] as const;
 
@@ -55,7 +55,7 @@ export const scienceAdvantages = [
 
 export const sciencePeople = [
   {
-    name: "体重管理期",
+    name: "减脂期",
     kicker: "WEIGHT MANAGEMENT",
     title: "餐前 30–60 分钟 1 袋",
     points: [
@@ -65,9 +65,9 @@ export const sciencePeople = [
     ],
   },
   {
-    name: "正常体质·维持期",
+    name: "维持期",
     kicker: "DAILY BALANCE",
-    title: "把补位当成日常",
+    title: "正常体质，把补位当成日常",
     points: [
       "餐后波动更平缓，全天蛋白分布更均匀。",
       "防的是“悄悄变胖”：正常到超重往往每年只多 1–2 kg，毫无察觉。",
@@ -75,7 +75,7 @@ export const sciencePeople = [
     ],
   },
   {
-    name: "运动人群",
+    name: "运动期",
     kicker: "ACTIVE LIFESTYLE",
     title: "运动后 30 分钟内 1 袋",
     points: [
