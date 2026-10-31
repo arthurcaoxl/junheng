@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { confirmEmailUpgrade, upgradeToPermanentAccount } from "../services/authUpgrade";
+import { confirmEmailUpgrade, confirmOldEmailForChange, upgradeToPermanentAccount } from "../services/authUpgrade";
 import { loginWithEmail, resendRemainingSeconds, sendLoginCode, syncToCloud } from "../services/checkinSync";
 import { OTP_INPUT_HINT, OTP_INPUT_PROPS } from "../services/otp";
 import type { SyncMilestoneKind, SyncMode } from "../services/syncUi";
@@ -16,13 +16,14 @@ type SyncModalProps = {
 
 /** 全站统一的绑定/恢复弹窗：普通入口与 D7 里程碑拦截共用同一套 OTP 逻辑。 */
 export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, milestoneKind = "trend", posterUrl = "" }: SyncModalProps) {
-  const [phase, setPhase] = useState<"email" | "code">("email");
+  const [phase, setPhase] = useState<"email" | "code" | "old-code">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [cooldown, setCooldown] = useState(0);
+  const [pendingOldEmail, setPendingOldEmail] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -31,6 +32,7 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
       setError("");
       setNotice("");
       setCooldown(0);
+      setPendingOldEmail("");
     }
   }, [open, mode]);
 
@@ -69,17 +71,34 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
     setCooldown(resendRemainingSeconds(email) || 60);
   });
 
+  // 原地升级保留 auth.uid；只有服务端邮箱真正更新、且云端同步完成后才广播成功。
+  const finishEmailChange = async () => {
+    const syncResult = await syncToCloud();
+    if (mode === "change-email" && syncResult !== "synced") {
+      throw new Error("邮箱已验证，但云端数据同步未完成，请检查网络后重试。");
+    }
+    window.dispatchEvent(new CustomEvent("junheng-sync-changed", { detail: { email } }));
+    onSuccess?.();
+    onClose();
+  };
+
+  const submitOldCode = () => run(async () => {
+    await confirmOldEmailForChange(pendingOldEmail, email, code);
+    await finishEmailChange();
+  });
+
   const submitCode = () => run(async () => {
     if (mode === "bind" || mode === "change-email") {
-      await confirmEmailUpgrade(email, code);
-      // 原地升级保留 auth.uid；修改邮箱也只有同一账号验证成功后才广播。
-      const syncResult = await syncToCloud();
-      if (mode === "change-email" && syncResult !== "synced") {
-        throw new Error("邮箱已验证，但云端数据同步未完成，请检查网络后重试。");
+      const result = await confirmEmailUpgrade(email, code);
+      if (result.status === "pending") {
+        // 双确认：仅新邮箱验证通过，服务端邮箱未变，绝不提前广播成功
+        setPendingOldEmail(result.currentEmail ?? "");
+        setPhase("old-code");
+        setCode("");
+        setNotice("新邮箱验证码已确认。当前开启了双确认安全设置：请到原邮箱查收第二封确认码并输入，完成最后一步后换绑才会生效。");
+        return;
       }
-      window.dispatchEvent(new CustomEvent("junheng-sync-changed", { detail: { email } }));
-      onSuccess?.();
-      onClose();
+      await finishEmailChange();
       return;
     }
     const source = await loginWithEmail(email, code);
@@ -142,6 +161,22 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
             />
             <button type="button" className="sync-modal-primary" disabled={busy || cooldown > 0 || !email.includes("@")} onClick={sendCode}>
               {busy ? "发送中…" : cooldown > 0 ? `重发（${cooldown}s）` : milestone && milestoneKind === "poster" ? "立即绑定并查看海报" : milestone && milestoneKind === "certificate" ? "立即绑定并查看证书" : mode === "bind" ? "获取邮箱验证码" : mode === "change-email" ? "发送修改验证码" : "发送登录验证码"}
+            </button>
+          </>
+        ) : phase === "old-code" ? (
+          <>
+            <label htmlFor="sync-modal-old-code">原邮箱确认码</label>
+            <input
+              id="sync-modal-old-code"
+              {...OTP_INPUT_PROPS}
+              placeholder="6–8 位数字"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              autoFocus
+            />
+            <p className="sync-modal-hint">{pendingOldEmail ? `请到 ${pendingOldEmail} 查收第二封确认邮件，输入其中的数字码完成换绑。` : "请到原邮箱查收第二封确认邮件，输入数字码完成换绑。"}</p>
+            <button type="button" className="sync-modal-primary" disabled={busy || !code.trim()} onClick={submitOldCode}>
+              {busy ? "验证中…" : "完成换绑"}
             </button>
           </>
         ) : (

@@ -41,6 +41,7 @@ vi.mock("@supabase/supabase-js", () => {
   const client = {
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
+      getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
       signInAnonymously: vi.fn().mockResolvedValue({
         data: { session: { user: { id: "test-uid" } } }, error: null,
       }),
