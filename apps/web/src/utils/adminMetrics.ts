@@ -1,5 +1,5 @@
 import type { AdminCamper, AdminDayRecord } from "../services/adminCheckin";
-import type { DayRecord } from "../components/SevenDayCheckIn";
+import type { DayRecord } from "../types/checkin";
 import { addDays, diffDays, emptyDay, getWindowDates, isDateKey, TOTAL_DAYS } from "./checkin";
 import { getRepresentativeWeight } from "./weight";
 

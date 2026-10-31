@@ -1,4 +1,4 @@
-import type { DayRecord } from "../components/SevenDayCheckIn";
+import type { DayRecord } from "../types/checkin";
 import { getRepresentativeWeight, type NodeWeights } from "./weight";
 
 export const TOTAL_DAYS = 21;

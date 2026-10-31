@@ -1,4 +1,4 @@
-import type { DayRecord } from "../components/SevenDayCheckIn";
+import type { DayRecord } from "../types/checkin";
 import { formatTrendValue, selectTrendLabelDays } from "./trend";
 import { getRepresentativeWeight } from "./weight";
 

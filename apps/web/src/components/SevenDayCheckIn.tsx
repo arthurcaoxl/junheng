@@ -46,16 +46,8 @@ function isToastSnoozed(): boolean {
   }
 }
 
-export type DayRecord = {
-  weight: string;
-  waist: string;
-  meals: boolean[];
-  water: boolean;
-  movement: boolean;
-  sleep: boolean;
-  weights?: NodeWeights; // 多节点原始称重值（未扣衣物），weights 存在时为唯一真相
-  clothes?: string;      // 当天衣物重量快照（kg）
-};
+import type { DayRecord } from "../types/checkin";
+export type { DayRecord } from "../types/checkin";
 
 function loadName() {
   try {
