@@ -9,17 +9,36 @@ export async function syncToCloud(): Promise<SyncResult> {
   try {
     const session = await ensureSession();
     const v3 = readV3Snapshot();
-    const { error } = await getSupabase().from("checkin_sync").upsert(
-      {
+    const client = getSupabase();
+    // 营员代码终身唯一：云端已有记录时以云端 user_code 为准，绝不覆盖
+    const { data: existing, error: lookupError } = await client
+      .from("checkin_sync")
+      .select("user_code")
+      .eq("auth_user_id", session.user.id)
+      .maybeSingle();
+    if (lookupError) throw lookupError;
+
+    if (existing) {
+      const { error } = await client.from("checkin_sync").update({
+        start_date: v3.startDate,
+        records: v3.records,
+        updated_at: new Date().toISOString(),
+      }).eq("auth_user_id", session.user.id);
+      if (error) throw error;
+      // 本地与云端代码不一致时，本地立即对齐云端固定值（营销码以云端为准）
+      if (typeof existing.user_code === "string" && existing.user_code && existing.user_code !== v3.userCode) {
+        writeV3Snapshot({ ...v3, userCode: existing.user_code });
+      }
+    } else {
+      const { error } = await client.from("checkin_sync").insert({
         auth_user_id: session.user.id,
         user_code: v3.userCode,
         start_date: v3.startDate,
         records: v3.records,
         updated_at: new Date().toISOString(),
-      },
-      { onConflict: "auth_user_id" },
-    );
-    if (error) throw error;
+      });
+      if (error) throw error;
+    }
     return "synced";
   } catch {
     return "offline"; // 断网/未配置/RLS 拒绝：本地为准，下次保存自动重试

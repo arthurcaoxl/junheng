@@ -15,7 +15,6 @@ import {
   emptyDay,
   exportCheckInCsv,
   formatShortDate,
-  generateUserCode,
   getCampStats,
   getWindowDates,
   hasContent,
@@ -169,10 +168,6 @@ export function SevenDayCheckIn() {
     setActiveDate(clampActiveDate(next, activeDate <= today ? activeDate : today));
   };
 
-  const regenerateCode = () => {
-    commitState({ ...state, userCode: generateUserCode() });
-  };
-
   const exportPoster = () => {
     try {
       setPosterUrl(createRecordPoster(buildWindowRecords(state), recordName, {
@@ -251,8 +246,8 @@ export function SevenDayCheckIn() {
           <p>穿衣物称重时自动扣除（通常 0.3–1.0 kg）。仅影响之后新填的记录，已保存的当天记录不受影响。</p>
         </details>
         <span className="record-code-label">营员代码</span>
-        <div className="record-code"><strong>{state.userCode}</strong><button type="button" onClick={regenerateCode}>重新生成</button></div>
-        <p>代码随海报与 CSV 一起导出，方便运营方按代码汇总；重新生成后，旧导出文件中的代码作废。仅用于本机记录与个人海报，不上传服务器。</p>
+        <div className="record-code"><strong>{state.userCode}</strong></div>
+        <p>营员代码为您的专属唯一标识，生成后不可更改，用于海报展示与打卡记录。代码随海报与 CSV 一起导出，方便运营方按代码汇总。</p>
       </div>
       {stats.isComplete && (
         <div className="camp-complete" role="status">

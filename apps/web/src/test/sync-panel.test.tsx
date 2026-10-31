@@ -68,11 +68,11 @@ describe("sync panel", () => {
       expect(screen.getByRole("button", { name: "在新设备恢复数据" })).toBeInTheDocument();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
-      const query = client.from("checkin_sync") as unknown as { upsert: ReturnType<typeof vi.fn> };
-      expect(query.upsert).toHaveBeenCalledTimes(1);
+      const query = client.from("checkin_sync") as unknown as { insert: ReturnType<typeof vi.fn> };
+      expect(query.insert).toHaveBeenCalledTimes(1);
       await user.click(screen.getByRole("button", { name: "立即备份到云端" }));
       expect(await screen.findByText("本机打卡记录已备份到云端。")).toBeInTheDocument();
-      expect(query.upsert).toHaveBeenCalledTimes(2);
+      expect(query.insert).toHaveBeenCalledTimes(2);
     });
 
     it("seeds local data to the cloud when restoring on a new device with no cloud row", async () => {

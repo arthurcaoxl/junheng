@@ -83,15 +83,32 @@ describe("checkinSync with mocked supabase", () => {
     vi.useRealTimers();
   });
 
-  it("upserts the v3 snapshot under the anonymous uid", async () => {
+  it("inserts the v3 snapshot when no cloud row exists", async () => {
     writeV3Snapshot(validSnapshot);
     await expect(syncToCloud()).resolves.toBe("synced");
     const client = getSupabase();
     expect(client.from).toHaveBeenCalledWith("checkin_sync");
-    const query = client.from("checkin_sync") as unknown as { upsert: ReturnType<typeof vi.fn> };
-    const [row, options] = query.upsert.mock.calls[0];
+    const query = client.from("checkin_sync") as unknown as { insert: ReturnType<typeof vi.fn> };
+    const [row] = query.insert.mock.calls[0];
     expect(row).toMatchObject({ auth_user_id: "test-uid", user_code: "JH-ABCDE", start_date: "2026-10-01" });
-    expect(options).toEqual({ onConflict: "auth_user_id" });
+  });
+
+  it("never overwrites cloud user_code and aligns local code to the cloud", async () => {
+    writeV3Snapshot(validSnapshot); // 本地 JH-ABCDE
+    const client = getSupabase();
+    const query = client.from("checkin_sync") as unknown as {
+      maybeSingle: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+      insert: ReturnType<typeof vi.fn>;
+    };
+    query.maybeSingle.mockResolvedValueOnce({ data: { user_code: "JH-CLOUD" }, error: null });
+    await expect(syncToCloud()).resolves.toBe("synced");
+    // 更新载荷不含 user_code，营员代码终身以云端为准
+    const [payload] = query.update.mock.calls[0];
+    expect(payload).not.toHaveProperty("user_code");
+    expect(payload).toMatchObject({ start_date: "2026-10-01", records: validSnapshot.records });
+    expect(query.insert).not.toHaveBeenCalled();
+    expect(readV3Snapshot().userCode).toBe("JH-CLOUD"); // 本地立即对齐云端固定值
   });
 
   it("degrades to offline without touching local data on network failure", async () => {
@@ -110,7 +127,8 @@ describe("checkinSync with mocked supabase", () => {
     scheduleSyncToCloud();
     expect(client.from).not.toHaveBeenCalled();
     await vi.advanceTimersByTimeAsync(4000);
-    expect(client.from).toHaveBeenCalledTimes(1);
+    // 一次上传 = select 查已有行 + insert/update 写入，共 2 次 from 调用
+    expect(client.from).toHaveBeenCalledTimes(2);
     await expect(flushSyncToCloud()).resolves.toBe("noop");
   });
 
@@ -121,7 +139,7 @@ describe("checkinSync with mocked supabase", () => {
     scheduleSyncToCloud();
     window.dispatchEvent(new Event("pagehide"));
     await vi.advanceTimersByTimeAsync(0);
-    expect(client.from).toHaveBeenCalledTimes(1);
+    expect(client.from).toHaveBeenCalledTimes(2);
     uninstall();
   });
 

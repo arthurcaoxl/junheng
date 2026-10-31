@@ -239,15 +239,18 @@ describe("priority lifestyle sections", () => {
     expect(missedTabs.length).toBeGreaterThan(0);
   });
 
-  it("shows camp completion stats after day 21 and supports code regeneration", async () => {
+  it("shows camp completion stats after day 21 and keeps the camper code immutable", async () => {
     const user = userEvent.setup();
     renderApp("/check-in");
     const checkIn = setCampStart(-25);
     expect(within(checkIn).getByText(/本期 21 天已结营/)).toBeInTheDocument();
     expect(within(checkIn).getByText(/坚持记录 0 天/)).toBeInTheDocument();
+    // 营员代码终身唯一：不存在任何重新生成入口
     const codeBefore = within(checkIn).getByText(/^JH-/).textContent;
-    await user.click(within(checkIn).getByRole("button", { name: "重新生成" }));
-    expect(within(checkIn).getByText(/^JH-/).textContent).not.toBe(codeBefore);
+    expect(within(checkIn).queryByRole("button", { name: "重新生成" })).not.toBeInTheDocument();
+    expect(within(checkIn).getByText(/营员代码为您的专属唯一标识，生成后不可更改/)).toBeInTheDocument();
+    await user.click(within(checkIn).getByRole("tab", { name: /第 21 天/ }));
+    expect(within(checkIn).getByText(/^JH-/).textContent).toBe(codeBefore);
   });
 
   it("exports CSV with user code, real dates and eight daily fields", async () => {

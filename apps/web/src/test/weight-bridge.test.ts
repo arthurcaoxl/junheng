@@ -44,6 +44,21 @@ describe("storage-v3 多节点桥接", () => {
     expect(state.records["2026-10-01"].clothes).toBeUndefined();
   });
 
+  it("已有 userCode 时 loadState 绝不重新生成（终身唯一营销码）", () => {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      schema: 3,
+      userCode: "JH-FIXED",
+      startDate: "2026-10-01",
+      records: {},
+    }));
+    // 即使存在旧版键，也不走迁移、不换代码
+    window.localStorage.setItem("junheng-checkin-v2", JSON.stringify([{ weight: "60" }]));
+    const first = loadState();
+    const second = loadState();
+    expect(first.userCode).toBe("JH-FIXED");
+    expect(second.userCode).toBe("JH-FIXED");
+  });
+
   it("hasContent 认可仅有多节点体重的记录", () => {
     expect(hasContent({ weight: "", waist: "", meals: [false, false, false], water: false, movement: false, sleep: false, weights: { evening: "63" } })).toBe(true);
     expect(hasContent({ weight: "", waist: "", meals: [false, false, false], water: false, movement: false, sleep: false, weights: {} })).toBe(false);

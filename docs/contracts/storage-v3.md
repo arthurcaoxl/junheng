@@ -81,6 +81,7 @@
 
 - 格式：`JH-XXXXX`，共 5 个随机字符。
 - 字符表：`ABCDEFGHJKMNPQRSTUVWXYZ23456789`。
+- **终身唯一**：仅在无有效 v3 的首次创建或旧版迁移时生成；已存在 `userCode` 时任何读取、编辑、同步路径不得重新生成或覆盖，UI 不提供再生成入口。云端已有 `checkin_sync` 行时以云端 `user_code` 为准，同步仅更新 `start_date` / `records` / `updated_at`，本地不一致时对齐云端。
 - 新代码优先使用 `crypto.getRandomValues`；不可用时回退到 `Math.random`。
 - 代码仅用于本机记录、海报和 CSV 汇总，不代表登录身份；云端备份时作为 `checkin_sync.user_code` 业务字段随行，仍不是认证凭证。
 - 海报署名另存于 `junheng-checkin-name-v1`，不属于 v3 顶层结构。

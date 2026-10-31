@@ -31,8 +31,12 @@ Object.defineProperty(window, "scrollTo", {
 vi.mock("@supabase/supabase-js", () => {
   const query = {
     upsert: vi.fn().mockResolvedValue({ error: null }),
+    insert: vi.fn().mockResolvedValue({ error: null }),
+    update: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue({ data: null, error: { code: "PGRST116" } }),
+    maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
   };
   const client = {
     auth: {
