@@ -167,24 +167,26 @@ describe("priority lifestyle sections", () => {
   it("renders weight and waist trends from real records and restores both", async () => {
     const user = userEvent.setup();
     const first = renderApp("/check-in");
-    let checkIn = setCampStart(-20);
+    const checkIn = setCampStart(-20);
     await user.click(within(checkIn).getByRole("tab", { name: /第 1 天/ }));
     await user.type(within(checkIn).getByLabelText("早晨体重（空腹）"), "65.4");
     await user.type(within(checkIn).getByLabelText("腰围（cm）"), "82");
     await user.click(within(checkIn).getByRole("tab", { name: /第 21 天/ }));
     await user.type(within(checkIn).getByLabelText("早晨体重（空腹）"), "64.8");
     await user.type(within(checkIn).getByLabelText("腰围（cm）"), "80.5");
-    expect(within(checkIn).getByRole("img", { name: "体重趋势图" })).toBeInTheDocument();
-    expect(within(checkIn).getByRole("img", { name: "腰围趋势图" })).toBeInTheDocument();
-    expect(within(checkIn).getByText("64.9 kg")).toBeInTheDocument();
-    expect(within(checkIn).getByText("64.3 kg")).toBeInTheDocument();
-    expect(within(checkIn).getByText("82 cm")).toBeInTheDocument();
-    expect(within(checkIn).getByText("80.5 cm")).toBeInTheDocument();
+    await user.click(within(checkIn).getByRole("link", { name: "前往用户中心查看个人资产" }));
+    let userCenter = screen.getByRole("region", { name: "我的脂代谢追踪档案" });
+    expect(within(userCenter).getByRole("img", { name: "体重趋势图" })).toBeInTheDocument();
+    expect(within(userCenter).getByRole("img", { name: "腰围趋势图" })).toBeInTheDocument();
+    expect(within(userCenter).getByText("64.9 kg")).toBeInTheDocument();
+    expect(within(userCenter).getByText("64.3 kg")).toBeInTheDocument();
+    expect(within(userCenter).getByText("82 cm")).toBeInTheDocument();
+    expect(within(userCenter).getByText("80.5 cm")).toBeInTheDocument();
     first.unmount();
-    renderApp("/check-in");
-    checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
-    expect(within(checkIn).getByRole("img", { name: "体重趋势图" })).toBeInTheDocument();
-    expect(within(checkIn).getByRole("img", { name: "腰围趋势图" })).toBeInTheDocument();
+    renderApp("/user-center");
+    userCenter = screen.getByRole("region", { name: "我的脂代谢追踪档案" });
+    expect(within(userCenter).getByRole("img", { name: "体重趋势图" })).toBeInTheDocument();
+    expect(within(userCenter).getByRole("img", { name: "腰围趋势图" })).toBeInTheDocument();
   });
 
   it("exports a 21-day camp poster with PNG download and WeChat saving guidance", async () => {
@@ -199,14 +201,16 @@ describe("priority lifestyle sections", () => {
     renderApp("/check-in");
     const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
     await user.type(within(checkIn).getByLabelText("早晨体重（空腹）"), "65.4");
-    await user.click(within(checkIn).getByRole("button", { name: "导出记录海报" }));
-    expect(within(checkIn).getByRole("img", { name: "21 天健康记录海报预览" })).toHaveAttribute("src", "data:image/png;base64,poster");
-    expect(within(checkIn).getByRole("link", { name: "下载 PNG 海报" })).toHaveAttribute("download", "菌衡计划-21天健康记录.png");
+    await user.click(within(checkIn).getByRole("link", { name: "前往用户中心查看个人资产" }));
+    const userCenter = screen.getByRole("region", { name: "我的脂代谢追踪档案" });
+    await user.click(within(userCenter).getByRole("button", { name: "导出记录海报" }));
+    expect(within(userCenter).getByRole("img", { name: "21 天健康记录海报预览" })).toHaveAttribute("src", "data:image/png;base64,poster");
+    expect(within(userCenter).getByRole("link", { name: "下载 PNG 海报" })).toHaveAttribute("download", "菌衡计划-21天健康记录.png");
     expect(context.fillText).toHaveBeenCalledWith("菌衡计划×心脑健康减脂营", 70, 100);
     expect(context.fillText).toHaveBeenCalledWith("我的 21 天健康记录", 70, 210);
     expect(context.fillText).toHaveBeenCalledWith("0 / 63 次", 70, 1405);
-    expect(within(checkIn).getAllByText(/微信内可长按图片保存/)).toHaveLength(2);
-    expect(within(checkIn).getByText(/仅为个人健康记录，不代表固定减重目标或产品功效/)).toBeInTheDocument();
+    expect(within(userCenter).getAllByText(/微信内可长按图片保存/)).toHaveLength(2);
+    expect(within(userCenter).getByText(/仅为个人健康记录，不代表固定减重目标或产品功效/)).toBeInTheDocument();
   });
 
   it("switches to day 21 and resets only local check-in records", async () => {
@@ -289,7 +293,8 @@ describe("priority lifestyle sections", () => {
     const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
     await user.type(within(checkIn).getByLabelText("早晨体重（空腹）"), "65.4");
     await user.click(within(checkIn).getByRole("checkbox", { name: "早餐前已饮用" }));
-    await user.click(within(checkIn).getByRole("button", { name: "导出打卡 CSV" }));
+    await user.click(within(checkIn).getByRole("link", { name: "前往用户中心查看个人资产" }));
+    await user.click(screen.getByRole("button", { name: "导出打卡 CSV" }));
     expect(createObjectURL).toHaveBeenCalledTimes(1);
     const blob = createObjectURL.mock.calls[0][0] as Blob;
     const csv = await blob.text();

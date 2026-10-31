@@ -1179,6 +1179,16 @@ section { scroll-margin-top: 78px; }
 .user-center-account > span { font-size: 34px; }
 .user-center-account strong { color: var(--acid); font-size: 18px; overflow-wrap: anywhere; }
 .user-center-account p { margin-top: 8px; font-size: 12px; line-height: 1.8; opacity: .65; }
+.user-member-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-top: 22px; }
+.user-member-title strong { color: var(--acid); font-size: 20px; }
+.user-member-title span { font-size: 11px; opacity: .58; }
+.user-health-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 42px; }
+.user-health-stats article { padding: 28px; border: 1px solid var(--line-light); background: rgb(255 255 255 / 3%); }
+.user-health-stats article > span { display: block; font-size: 12px; opacity: .65; }
+.user-health-stats strong { display: block; margin-top: 14px; color: var(--acid); font-size: clamp(32px, 4vw, 52px); letter-spacing: -.04em; }
+.user-health-stats small { display: block; margin-top: 12px; font-size: 11px; line-height: 1.7; opacity: .55; }
+.check-in-assets-link { display: inline-flex; margin-top: 42px; padding: 15px 24px; border: 1px solid var(--acid); color: var(--acid); font-size: 14px; font-weight: 800; text-decoration: none; }
+.check-in-assets-link:hover { background: var(--acid); color: var(--forest); }
 .user-center-checkin-link { display: inline-block; margin-top: 28px; padding: 14px 24px; background: var(--acid); color: var(--forest); font-size: 14px; font-weight: 800; text-decoration: none; }
 @media (max-width: 760px) {
   .user-center-label { display: none; }
@@ -1186,6 +1196,9 @@ section { scroll-margin-top: 78px; }
   .sync-modal-milestone-visual { height: 120px; margin: -28px -22px 22px; }
   .user-center { padding-top: calc(120px + env(safe-area-inset-top, 0px)); }
   .user-center-account { padding: 20px; }
+  .user-health-stats { grid-template-columns: 1fr; }
+  .user-health-stats article { padding: 22px; }
+  .check-in-assets-link { width: 100%; justify-content: center; box-sizing: border-box; text-align: center; }
 }
 
 /* 内容信任展示：专业词解释、真实批件入口与科普脚注可读性 */

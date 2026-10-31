@@ -154,10 +154,11 @@ describe("sync panel", () => {
       seedCalendarDay(7, 1);
       window.localStorage.setItem("junheng-sync-toast-snooze", String(Date.now()));
       const user = userEvent.setup();
-      renderCheckIn();
+      renderCheckIn("/user-center");
       await user.click(screen.getByRole("button", { name: "导出记录海报" }));
       expect(screen.getByRole("dialog", { name: "🎉 您的专属健康海报已生成！" })).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: "暂不，返回打卡" }));
+      await user.click(screen.getByRole("link", { name: "继续打卡" }));
 
       await user.type(screen.getByLabelText("早晨体重（空腹）"), "68");
       const saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}");
@@ -170,7 +171,7 @@ describe("sync panel", () => {
       mockPosterCanvas();
       seedRecordedDays(7);
       const user = userEvent.setup();
-      renderCheckIn();
+      renderCheckIn("/user-center");
       await user.click(screen.getByRole("button", { name: "导出记录海报" }));
 
       const dialog = screen.getByRole("dialog", { name: "🎉 您的专属健康海报已生成！" });
@@ -191,7 +192,7 @@ describe("sync panel", () => {
       mockPosterCanvas();
       seedRecordedDays(7);
       const user = userEvent.setup();
-      renderCheckIn();
+      renderCheckIn("/user-center");
       await user.click(screen.getByRole("button", { name: "导出记录海报" }));
       await bindFromMilestone();
 
@@ -204,7 +205,7 @@ describe("sync panel", () => {
       mockPosterCanvas();
       seedRecordedDays(7);
       const user = userEvent.setup();
-      renderCheckIn();
+      renderCheckIn("/user-center");
       expect(screen.queryByRole("img", { name: "体重趋势图" })).not.toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: "查看趋势图" }));
       expect(screen.getByRole("dialog", { name: /太棒了！您已坚持记录 7 天/ })).toBeInTheDocument();
@@ -222,14 +223,14 @@ describe("sync panel", () => {
       });
       const user = userEvent.setup();
       renderCheckIn();
-      const userCenter = await screen.findByRole("link", { name: "用户中心" });
+      const userCenterLink = await screen.findByRole("link", { name: "用户中心" });
+      await user.click(userCenterLink);
+      expect(screen.getByRole("heading", { name: "我的脂代谢追踪档案" })).toBeInTheDocument();
+      expect(screen.getByText("bound@example.com")).toBeInTheDocument();
+
       await user.click(screen.getByRole("button", { name: "导出记录海报" }));
       expect(screen.getByRole("img", { name: "21 天健康记录海报预览" })).toBeInTheDocument();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-
-      await user.click(userCenter);
-      expect(screen.getByRole("heading", { name: "用户中心" })).toBeInTheDocument();
-      expect(screen.getByText("bound@example.com")).toBeInTheDocument();
       expect(screen.getByRole("link", { name: "继续打卡" })).toHaveAttribute("href", "/check-in");
     });
   });

@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
-import { RecordTrends } from "./RecordTrends";
+import { Link } from "react-router";
 import { WaterFluctuation } from "./WaterFluctuation";
-import { createRecordPoster } from "../utils/recordPoster";
 import { useSyncStatus } from "../hooks/useSyncStatus";
 import { openSyncModal } from "../services/syncUi";
 import {
@@ -9,11 +8,9 @@ import {
   STORAGE_KEY,
   LEGACY_V1_KEY,
   LEGACY_V2_KEY,
-  buildWindowRecords,
   clampActiveDate,
   diffDays,
   emptyDay,
-  exportCheckInCsv,
   formatShortDate,
   getCampStats,
   getWindowDates,
@@ -62,12 +59,9 @@ export function SevenDayCheckIn() {
   const [activeDate, setActiveDate] = useState(() => clampActiveDate(state));
   const [recordName, setRecordName] = useState(loadName);
   const [storageError, setStorageError] = useState(false);
-  const [posterUrl, setPosterUrl] = useState("");
-  const [posterError, setPosterError] = useState(false);
   const [extraNodesMode, setExtraNodesMode] = useState<"auto" | "open" | "closed">("auto");
   const [editingClothes, setEditingClothes] = useState(false);
   const [clothesDraft, setClothesDraft] = useState("0");
-  const [trendUnlocked, setTrendUnlocked] = useState(false);
   const { configured: syncConfigured, email: syncEmail } = useSyncStatus();
   const [toastDays, setToastDays] = useState<number | null>(null);
   const toastShownRef = useRef(false);
@@ -77,7 +71,6 @@ export function SevenDayCheckIn() {
   const activeIndex = Math.max(diffDays(state.startDate, activeDate), 0);
   const current = state.records[activeDate] ?? emptyDay();
   const stats = getCampStats(state);
-  const requiresMilestoneBinding = syncConfigured && !syncEmail && stats.elapsedDays >= 7;
 
   const commitState = (next: CheckInState) => {
     setState(next);
@@ -185,47 +178,6 @@ export function SevenDayCheckIn() {
     setActiveDate(clampActiveDate(next, activeDate <= today ? activeDate : today));
   };
 
-  const buildPoster = () => createRecordPoster(buildWindowRecords(state), recordName, {
-    userCode: state.userCode,
-    startDate: state.startDate,
-    endDate: stats.endDate,
-  });
-
-  const exportPoster = () => {
-    try {
-      setPosterUrl(buildPoster());
-      setPosterError(false);
-    } catch {
-      setPosterError(true);
-    }
-  };
-
-  const openMilestoneBinding = (kind: "poster" | "trend", onSuccess: () => void) => {
-    let previewUrl = "";
-    try { previewUrl = buildPoster(); } catch { /* 无 Canvas 时仅降级头图，不阻断绑定 */ }
-    openSyncModal("bind", { milestone: true, milestoneKind: kind, posterUrl: previewUrl, onSuccess });
-  };
-
-  const requestPoster = () => {
-    if (requiresMilestoneBinding) openMilestoneBinding("poster", exportPoster);
-    else exportPoster();
-  };
-
-  const requestTrends = () => {
-    if (requiresMilestoneBinding) openMilestoneBinding("trend", () => setTrendUnlocked(true));
-    else setTrendUnlocked(true);
-  };
-
-  const exportCsv = () => {
-    const blob = new Blob([exportCheckInCsv(state)], { type: "text/csv;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement("a");
-    anchor.href = url;
-    anchor.download = `菌衡计划-21天打卡-${state.userCode}.csv`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  };
-
   const clearRecords = () => {
     commitState({ ...state, records: {} });
     setRecordName("");
@@ -236,8 +188,6 @@ export function SevenDayCheckIn() {
     } catch {
       setStorageError(true);
     }
-    setPosterUrl("");
-    setPosterError(false);
   };
 
   const recordedItems = [current.weight, current.waist, ...current.meals, current.water, current.movement, current.sleep].filter(Boolean).length;
@@ -399,18 +349,7 @@ export function SevenDayCheckIn() {
           </div>
         )}
       </div>
-      {!requiresMilestoneBinding || trendUnlocked ? (
-        <RecordTrends records={buildWindowRecords(state)} />
-      ) : (
-        <section className="record-trends record-trends-locked" aria-label="21 天身体记录趋势">
-          <div className="record-trends-heading"><span>MY 21-DAY RECORD</span><h3>真实记录，看得见。</h3><p>专属健康趋势已经生成。绑定邮箱后即可查看，换手机或清理缓存也能恢复记录。</p></div>
-          <button type="button" className="trend-unlock-button" onClick={requestTrends}>查看趋势图</button>
-        </section>
-      )}
-      <section className="poster-export" aria-labelledby="poster-export-title">
-        <div className="poster-export-copy"><span>PERSONAL RECORD POSTER</span><h3 id="poster-export-title">把 21 天坚持，留成一张海报。</h3><p>只导出你的真实记录，不生成固定减重目标。微信内可长按图片保存，其他浏览器可下载 PNG。CSV 含营员代码与真实日期，可直接用 Excel 汇总统计。</p><button type="button" onClick={requestPoster}>导出记录海报</button><button type="button" className="csv-export" onClick={exportCsv}>导出打卡 CSV</button>{posterError && <p role="alert">当前浏览器无法生成海报，请更换浏览器后重试。</p>}</div>
-        {posterUrl && <div className="poster-preview"><img src={posterUrl} alt="21 天健康记录海报预览" /><p>微信内可长按图片保存；也可以<a href={posterUrl} download="菌衡计划-21天健康记录.png">下载 PNG 海报</a>。</p><small>仅为个人健康记录，不代表固定减重目标或产品功效</small></div>}
-      </section>
+      <Link className="check-in-assets-link" to="/user-center">前往用户中心查看个人资产</Link>
       <p className="check-in-note">21 天用于建立观察习惯，不设定固定减重目标。体重管理应结合合理饮食、适量运动与良好作息，个体结果存在差异。</p>
       {toastDays !== null && (
         <div className="sync-toast" role="status">
