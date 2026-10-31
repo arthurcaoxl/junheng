@@ -21,7 +21,7 @@ export function SyncPanel() {
       const detail = (event as CustomEvent<SyncOpenOptions & { mode?: SyncMode }>).detail;
       setMode(detail?.mode === "restore" || detail?.mode === "change-email" ? detail.mode : "bind");
       setMilestone(Boolean(detail?.milestone));
-      setMilestoneKind(detail?.milestoneKind === "poster" ? "poster" : "trend");
+      setMilestoneKind(detail?.milestoneKind === "poster" || detail?.milestoneKind === "certificate" ? detail.milestoneKind : "trend");
       setPosterUrl(detail?.posterUrl ?? "");
       pendingActionRef.current = detail?.onSuccess ?? null;
       setModalOpen(true);

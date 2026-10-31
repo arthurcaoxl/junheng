@@ -1,7 +1,7 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { CheckInState } from "../utils/checkin";
 import { addDays, emptyDay } from "../utils/checkin";
-import { canGraduate, getCertificateNumber, getLifetimeRecordedDays } from "../utils/graduationCertificate";
+import { canGraduate, createGraduationCertificate, getCertificateNumber, getLifetimeRecordedDays } from "../utils/graduationCertificate";
 
 function stateWithDates(dates: string[]): CheckInState {
   return {
@@ -38,5 +38,21 @@ describe("结业证书资格与编号", () => {
     const state = stateWithDates([]);
     expect(getCertificateNumber(state)).toBe("FUNGIBLEND-2026-WQAKS");
     expect(getCertificateNumber(state)).toBe(getCertificateNumber({ ...state }));
+  });
+
+  it("PNG 使用固定会员落款并写入完整纪念证书边界声明", () => {
+    const context = {
+      fillRect: vi.fn(), strokeRect: vi.fn(), fillText: vi.fn(),
+      beginPath: vi.fn(), moveTo: vi.fn(), lineTo: vi.fn(), stroke: vi.fn(),
+    };
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context as unknown as CanvasRenderingContext2D);
+    vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/png;base64,certificate");
+    const state = stateWithDates([...twentyDates, "2026-03-15"]);
+
+    expect(createGraduationCertificate(state, "")).toBe("data:image/png;base64,certificate");
+    expect(context.fillText).toHaveBeenCalledWith("脂代谢研究所会员", expect.any(Number), expect.any(Number));
+    expect(context.fillText).toHaveBeenCalledWith("本证书为品牌内部会员成长纪念，不属于学历、职业资格、科研身份或医疗证明。", expect.any(Number), expect.any(Number));
+    expect(context.fillText).toHaveBeenCalledWith("会员纪念", expect.any(Number), expect.any(Number));
+    vi.restoreAllMocks();
   });
 });

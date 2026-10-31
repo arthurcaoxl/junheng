@@ -106,19 +106,21 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
         {!milestone && <button type="button" className="sync-modal-close" aria-label="关闭" onClick={onClose}>×</button>}
         {milestone && posterUrl && (
           <div className="sync-modal-milestone-visual">
-            <img src={posterUrl} alt={milestoneKind === "poster" ? "专属健康海报模糊预览" : "7 天健康趋势海报预览"} />
+            <img src={posterUrl} alt={milestoneKind === "poster" ? "专属健康海报模糊预览" : milestoneKind === "certificate" ? "会员结业纪念证书模糊预览" : "7 天健康趋势海报预览"} />
           </div>
         )}
         <h2 id="sync-modal-title">
           {milestone
-            ? milestoneKind === "poster" ? "🎉 您的专属健康海报已生成！" : "🎉 太棒了！您已坚持记录 7 天，专属的健康趋势已经生成！"
+            ? milestoneKind === "poster" ? "🎉 您的专属健康海报已生成！" : milestoneKind === "certificate" ? "🎉 您的会员结业纪念证书已生成！" : "🎉 太棒了！您已坚持记录 7 天，专属的健康趋势已经生成！"
             : mode === "bind" ? "绑定邮箱，换手机/电脑接着打卡" : mode === "change-email" ? "修改登录邮箱" : "在新设备恢复数据"}
         </h2>
         <p className="sync-modal-sub">
           {milestone
             ? milestoneKind === "poster"
               ? "绑定邮箱即可永久保存这份成就（换手机不丢失）。登录后将自动为您展开高清海报。"
-              : "为了防止数据丢失（换手机/清缓存），请绑定邮箱永久保存。登录后自动为您展开成果。"
+              : milestoneKind === "certificate"
+                ? "绑定邮箱即可永久保存这份会员成长纪念（换手机不丢失）。登录后将自动为您展开证书。"
+                : "为了防止数据丢失（换手机/清缓存），请绑定邮箱永久保存。登录后自动为您展开成果。"
             : mode === "bind"
               ? "输入邮箱接收 6–8 位数字验证码。绑定后，您的打卡记录会自动备份到云端，换手机或电脑登录即可恢复。"
               : mode === "change-email"
@@ -139,7 +141,7 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
               autoFocus
             />
             <button type="button" className="sync-modal-primary" disabled={busy || cooldown > 0 || !email.includes("@")} onClick={sendCode}>
-              {busy ? "发送中…" : cooldown > 0 ? `重发（${cooldown}s）` : milestone && milestoneKind === "poster" ? "立即绑定并查看海报" : mode === "bind" ? "获取邮箱验证码" : mode === "change-email" ? "发送修改验证码" : "发送登录验证码"}
+              {busy ? "发送中…" : cooldown > 0 ? `重发（${cooldown}s）` : milestone && milestoneKind === "poster" ? "立即绑定并查看海报" : milestone && milestoneKind === "certificate" ? "立即绑定并查看证书" : mode === "bind" ? "获取邮箱验证码" : mode === "change-email" ? "发送修改验证码" : "发送登录验证码"}
             </button>
           </>
         ) : (
@@ -155,7 +157,7 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
             />
             <p className="sync-modal-hint">{OTP_INPUT_HINT}</p>
             <button type="button" className="sync-modal-primary" disabled={busy || !code.trim()} onClick={submitCode}>
-              {busy ? "验证中…" : milestone && milestoneKind === "poster" ? "完成绑定并查看海报" : mode === "bind" ? "完成绑定" : mode === "change-email" ? "确认修改邮箱" : "登录并恢复数据"}
+              {busy ? "验证中…" : milestone && milestoneKind === "poster" ? "完成绑定并查看海报" : milestone && milestoneKind === "certificate" ? "完成绑定并查看证书" : mode === "bind" ? "完成绑定" : mode === "change-email" ? "确认修改邮箱" : "登录并恢复数据"}
             </button>
           </>
         )}

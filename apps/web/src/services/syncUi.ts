@@ -1,5 +1,5 @@
 export type SyncMode = "bind" | "restore" | "change-email";
-export type SyncMilestoneKind = "poster" | "trend";
+export type SyncMilestoneKind = "poster" | "trend" | "certificate";
 
 export type SyncOpenOptions = {
   milestone?: boolean;

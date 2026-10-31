@@ -1198,6 +1198,15 @@ section { scroll-margin-top: 78px; }
 .account-security-actions button { min-height: 44px; padding: 10px 20px; border: 1px solid var(--line-light); background: transparent; color: var(--paper); font: inherit; font-size: 13px; cursor: pointer; }
 .account-security-actions button:first-child { border-color: var(--acid); color: var(--acid); }
 .account-security-actions button:hover { border-color: var(--acid); }
+.graduation-cert { display: grid; grid-template-columns: minmax(0, 1fr) minmax(240px, 360px); gap: 6vw; align-items: center; margin-top: 56px; padding: 44px; border: 1px solid var(--line-light); background: rgb(255 255 255 / 3%); }
+.graduation-cert-copy > span { color: var(--acid); font-size: 9px; font-weight: 750; letter-spacing: .16em; }
+.graduation-cert-copy h3 { margin-top: 16px; font-size: clamp(28px, 3vw, 42px); }
+.graduation-cert-copy > p { margin-top: 20px; font-size: 12px; line-height: 1.85; opacity: .65; }
+.graduation-cert-copy > button { min-height: 48px; margin-top: 26px; padding: 0 24px; border: 1px solid var(--acid); background: var(--acid); color: var(--forest); font: inherit; font-size: 13px; font-weight: 800; cursor: pointer; }
+.graduation-cert-copy > button:disabled { border-color: var(--line-light); background: transparent; color: var(--paper); cursor: not-allowed; opacity: .4; }
+.graduation-cert-copy > small { display: block; margin-top: 18px; font-size: 11px; line-height: 1.8; opacity: .6; }
+.graduation-cert-preview img { display: block; width: 100%; border: 5px solid var(--paper); box-shadow: 0 20px 50px rgb(0 0 0 / 22%); }
+.graduation-cert-preview a { display: inline-block; margin-top: 18px; color: var(--acid); font-size: 13px; font-weight: 750; text-underline-offset: 4px; }
 @media (max-width: 760px) {
   .user-center-label { display: none; }
   .user-center-link { padding: 7px 10px; opacity: .85; }
@@ -1207,6 +1216,8 @@ section { scroll-margin-top: 78px; }
   .user-health-stats { grid-template-columns: 1fr; }
   .user-health-stats article { padding: 22px; }
   .check-in-assets-link { width: 100%; justify-content: center; box-sizing: border-box; text-align: center; }
+  .graduation-cert { grid-template-columns: 1fr; padding: 28px 22px; }
+  .graduation-cert-preview { width: min(100%, 360px); margin: 0 auto; }
 }
 
 /* 内容信任展示：专业词解释、真实批件入口与科普脚注可读性 */
