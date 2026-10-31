@@ -1,4 +1,5 @@
 import type { DayRecord } from "../components/SevenDayCheckIn";
+import { getRepresentativeWeight, type NodeWeights } from "./weight";
 
 export const TOTAL_DAYS = 21;
 export const STORAGE_KEY = "junheng-checkin-v3";
@@ -10,6 +11,7 @@ export type CheckInState = {
   userCode: string;
   startDate: string;
   records: Record<string, DayRecord>;
+  clothesWeight?: string; // 全局默认衣物重量（kg），缺省 "0"
 };
 
 export function emptyDay(): DayRecord {
@@ -57,17 +59,32 @@ export function generateUserCode() {
   return `JH-${Array.from(randomValues, (value) => alphabet[value % alphabet.length]).join("")}`;
 }
 
+function normalizeWeights(input: unknown): NodeWeights | undefined {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return undefined;
+  const source = input as Record<string, unknown>;
+  const weights: NodeWeights = {};
+  (["morning", "noon", "evening"] as const).forEach((node) => {
+    if (typeof source[node] === "string") weights[node] = source[node] as string;
+  });
+  return Object.keys(weights).length ? weights : undefined;
+}
+
 function normalizeDay(day: Partial<DayRecord> | undefined): DayRecord {
+  const weights = normalizeWeights(day?.weights);
   return {
     ...emptyDay(),
     ...day,
     meals: Array.isArray(day?.meals) && day.meals.length === 3 ? day.meals.map(Boolean) : [false, false, false],
+    // 多节点扩展：weights/clothes 可选放行；旧数据没有这些字段时保持缺省
+    ...(weights ? { weights } : {}),
+    ...(typeof day?.clothes === "string" ? { clothes: day.clothes } : {}),
   };
 }
 
 export function hasContent(day: DayRecord | undefined): day is DayRecord {
   if (!day) return false;
-  return Boolean(day.weight || day.waist || day.meals.some(Boolean) || day.water || day.movement || day.sleep);
+  const hasNodeWeight = Boolean(day.weights && Object.values(day.weights).some((value) => typeof value === "string" && value.trim() !== ""));
+  return Boolean(hasNodeWeight || day.weight || day.waist || day.meals.some(Boolean) || day.water || day.movement || day.sleep);
 }
 
 export function createFreshState(): CheckInState {
@@ -94,7 +111,13 @@ function parseState(raw: string | null): CheckInState | null {
     Object.entries(parsed.records).forEach(([key, day]) => {
       if (isDateKey(key)) records[key] = normalizeDay(day);
     });
-    return { schema: 3, userCode: parsed.userCode, startDate: parsed.startDate, records };
+    return {
+      schema: 3,
+      userCode: parsed.userCode,
+      startDate: parsed.startDate,
+      records,
+      ...(typeof parsed.clothesWeight === "string" ? { clothesWeight: parsed.clothesWeight } : {}),
+    };
   } catch {
     return null;
   }
@@ -168,7 +191,7 @@ export function exportCheckInCsv(state: CheckInState, currentStartDate = state.s
         state.userCode,
         key,
         inWindow,
-        day.weight,
+        getRepresentativeWeight(day), // 列语义不变：综合代表体重（旧数据即原 weight）
         day.waist,
         ...day.meals.map((value) => (value ? "1" : "0")),
         day.water ? "1" : "0",

@@ -25,6 +25,15 @@ import {
 } from "../utils/checkin";
 import type { CheckInState } from "../utils/checkin";
 import { scheduleSyncToCloud } from "../services/checkinSync";
+import {
+  clothesKg,
+  deriveWeightCache,
+  netWeight,
+  representativeFromNodes,
+  WEIGHT_NODES,
+  type NodeWeights,
+  type WeightNode,
+} from "../utils/weight";
 
 const NAME_STORAGE_KEY = "junheng-checkin-name-v1";
 const TOAST_SNOOZE_KEY = "junheng-sync-toast-snooze"; // 独立键，与 v3 无关
@@ -45,6 +54,8 @@ export type DayRecord = {
   water: boolean;
   movement: boolean;
   sleep: boolean;
+  weights?: NodeWeights; // 多节点原始称重值（未扣衣物），weights 存在时为唯一真相
+  clothes?: string;      // 当天衣物重量快照（kg）
 };
 
 function loadName() {
@@ -62,6 +73,7 @@ export function SevenDayCheckIn() {
   const [storageError, setStorageError] = useState(false);
   const [posterUrl, setPosterUrl] = useState("");
   const [posterError, setPosterError] = useState(false);
+  const [showExtraNodes, setShowExtraNodes] = useState(false);
   const { configured: syncConfigured, email: syncEmail } = useSyncStatus();
   const [toastDays, setToastDays] = useState<number | null>(null);
   const toastShownRef = useRef(false);
@@ -105,11 +117,26 @@ export function SevenDayCheckIn() {
 
   const updateDay = (patch: Partial<DayRecord>) => {
     const nextDay = { ...current, ...patch };
+    // weight 仅为派生缓存：weights 有有效节点时重算，否则保留旧值（契约见 storage-v3.md）
+    nextDay.weight = deriveWeightCache(nextDay);
     const records = { ...state.records };
     if (hasContent(nextDay)) records[activeDate] = nextDay;
     else delete records[activeDate];
     commitState({ ...state, records });
   };
+
+  // 多节点体重：旧数据只有 weight 时，首次编辑把旧值带入 morning（编辑才升级，只读不改旧数据）
+  const effectiveClothes = current.clothes ?? state.clothesWeight ?? "0";
+  const nodeValue = (node: WeightNode) =>
+    current.weights ? (current.weights[node] ?? "") : (node === "morning" ? current.weight : "");
+  const updateNode = (node: WeightNode, value: string) => {
+    const base: NodeWeights = current.weights ?? (current.weight ? { morning: current.weight } : {});
+    updateDay({
+      weights: { ...base, [node]: value },
+      clothes: current.clothes ?? state.clothesWeight ?? "0", // 录入当天快照
+    });
+  };
+  const representative = representativeFromNodes(current.weights, effectiveClothes);
 
   const updateMeal = (mealIndex: number, checked: boolean) => {
     updateDay({ meals: current.meals.map((value, index) => index === mealIndex ? checked : value) });
@@ -203,6 +230,26 @@ export function SevenDayCheckIn() {
         <label htmlFor="camp-start-date">开营日期</label>
         <input id="camp-start-date" name="campStartDate" type="date" value={state.startDate} onChange={(event) => updateStartDate(event.target.value)} />
         <p>调整开营日会重排第 1–21 天的日期，已有记录按真实日期保留。</p>
+        <details className="clothes-settings">
+          <summary>⚙ 称重设置（衣物重量）</summary>
+          <label htmlFor="clothes-weight">衣物重量（kg）</label>
+          <input
+            id="clothes-weight"
+            name="clothesWeight"
+            type="number"
+            inputMode="decimal"
+            min="0"
+            step="0.1"
+            value={state.clothesWeight ?? "0"}
+            onChange={(event) => commitState({ ...state, clothesWeight: event.target.value })}
+          />
+          <div className="clothes-chips" role="group" aria-label="常用衣物重量">
+            {["0", "0.5", "0.8", "1.0"].map((value) => (
+              <button key={value} type="button" onClick={() => commitState({ ...state, clothesWeight: value })}>{value} kg</button>
+            ))}
+          </div>
+          <p>穿衣物称重时自动扣除（通常 0.3–1.0 kg）。仅影响之后新填的记录，已保存的当天记录不受影响。</p>
+        </details>
         <span className="record-code-label">营员代码</span>
         <div className="record-code"><strong>{state.userCode}</strong><button type="button" onClick={regenerateCode}>重新生成</button></div>
         <p>代码随海报与 CSV 一起导出，方便运营方按代码汇总；重新生成后，旧导出文件中的代码作废。仅用于本机记录与个人海报，不上传服务器。</p>
@@ -244,9 +291,48 @@ export function SevenDayCheckIn() {
           <strong>{recordedItems}<span> / 8 项已记录</span></strong>
         </div>
         <div className="body-metrics">
-          <label>体重（kg）<input type="number" inputMode="decimal" min="0" step="0.1" placeholder="选填" value={current.weight} onChange={(event) => updateDay({ weight: event.target.value })} /></label>
+          {WEIGHT_NODES.filter((meta) => meta.key === "morning" || showExtraNodes || nodeValue(meta.key)).map((meta) => {
+            const value = nodeValue(meta.key);
+            const net = netWeight(value, effectiveClothes);
+            return (
+              <div className="weight-node" key={meta.key}>
+                <label>
+                  {meta.label}{meta.hint && <span className="weight-node-hint">{meta.hint}</span>}
+                  <input
+                    type="number"
+                    inputMode="decimal"
+                    min="0"
+                    step="0.1"
+                    placeholder="选填"
+                    value={value}
+                    aria-label={meta.label}
+                    onChange={(event) => updateNode(meta.key, event.target.value)}
+                  />
+                </label>
+                {value.trim() !== "" && (
+                  net !== null
+                    ? <p className="weight-net">净重 {net.toFixed(1)} kg{clothesKg(effectiveClothes) > 0 ? `（已扣衣物 ${clothesKg(effectiveClothes)} kg）` : ""}</p>
+                    : <p className="weight-net-warning" role="alert">请检查数值：净重需 ≥ 20 kg（称重 − 衣物）。</p>
+                )}
+              </div>
+            );
+          })}
+          {!showExtraNodes && !nodeValue("noon") && !nodeValue("evening") && (
+            <button type="button" className="weight-add-nodes" onClick={() => setShowExtraNodes(true)}>＋ 添加中午 / 晚间记录（可选）</button>
+          )}
+          {representative.value !== null && (
+            <div className="weight-summary">
+              <strong>今日{representative.used.length > 1 ? "基准" : ""}体重：{representative.value} kg</strong>
+              <span>
+                {representative.used.length > 1
+                  ? `按 ${representative.used.map((item) => `${WEIGHT_NODES.find((meta) => meta.key === item.node)?.label.slice(0, 2)} ${Math.round(item.ratio * 100)}%`).join(" · ")} 加权，已扣衣物`
+                  : representative.used[0]?.node === "morning" ? "早晨空腹记录" : "单节点记录"}
+              </span>
+              {representative.nonFastingOnly && <span className="weight-nonfasting">*含晚间/非空腹记录，水分波动较大，建议以早晨空腹为准。</span>}
+            </div>
+          )}
           <label>腰围（cm）<input type="number" inputMode="decimal" min="0" step="0.1" placeholder="选填" value={current.waist} onChange={(event) => updateDay({ waist: event.target.value })} /></label>
-          <p>建议尽量在相近时间、相近状态下测量；单日波动不等于趋势。</p>
+          <p>建议尽量在相近时间、相近状态下测量；单日波动不等于趋势。趋势图按早晚加权、扣除衣物后的基准体重展示。</p>
         </div>
         <div className="check-in-groups">
           <fieldset><legend>每餐打卡</legend>{["早餐前已饮用", "午餐前已饮用", "晚餐前已饮用"].map((label, index) => <label key={label}><input type="checkbox" checked={current.meals[index]} onChange={(event) => updateMeal(index, event.target.checked)} /><span>{label}</span></label>)}</fieldset>

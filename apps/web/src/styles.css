@@ -652,6 +652,25 @@ section { scroll-margin-top: 78px; }
 .body-metrics label { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 18px; font-size: 12px; font-weight: 700; }
 .body-metrics input { width: 100%; min-width: 0; min-height: 54px; padding: 10px 14px; border: 1px solid var(--line-light); border-radius: 0; background: var(--paper); color: var(--forest); font: inherit; font-size: 18px; }
 .body-metrics > p { align-self: center; font-size: 11px; line-height: 1.8; opacity: .55; }
+
+/* v1.10.0 · 体重多节点（早晚加权 + 扣衣物） */
+.weight-node-hint { margin-left: 8px; padding: 2px 8px; border: 1px solid var(--acid); border-radius: 999px; color: var(--acid); font-size: 10px; font-weight: 700; }
+.weight-net { margin-top: 8px; color: var(--acid); font-size: 12px; font-weight: 600; }
+.weight-net-warning { margin-top: 8px; color: #ff9d8a; font-size: 12px; line-height: 1.6; }
+.weight-add-nodes { align-self: center; justify-self: start; padding: 10px 16px; background: none; border: 1px dashed var(--line-light); border-radius: 999px; color: var(--paper); font: inherit; font-size: 12px; cursor: pointer; opacity: .75; }
+.weight-add-nodes:hover { border-color: var(--acid); color: var(--acid); opacity: 1; }
+.weight-summary { align-self: center; padding: 14px 16px; border: 1px solid var(--line-light); background: rgb(163 230 53 / 5%); }
+.weight-summary strong { display: block; color: var(--acid); font-size: 18px; letter-spacing: -.01em; }
+.weight-summary span { display: block; margin-top: 6px; font-size: 11px; line-height: 1.7; opacity: .7; }
+.weight-summary .weight-nonfasting { color: #f0c98a; opacity: 1; }
+.clothes-settings { margin-top: 18px; padding: 14px 16px; border: 1px solid var(--line-light); }
+.clothes-settings summary { cursor: pointer; font-size: 12px; font-weight: 700; color: var(--acid); }
+.clothes-settings label { display: block; margin: 14px 0 8px; font-size: 12px; font-weight: 700; }
+.clothes-settings input { width: 120px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line-light); background: var(--paper); color: var(--forest); font: inherit; font-size: 16px; }
+.clothes-chips { display: inline-flex; gap: 8px; margin-left: 12px; }
+.clothes-chips button { padding: 8px 12px; background: none; border: 1px solid var(--line-light); border-radius: 999px; color: var(--paper); font: inherit; font-size: 12px; cursor: pointer; }
+.clothes-chips button:hover { border-color: var(--acid); color: var(--acid); }
+.clothes-settings > p { margin-top: 12px; font-size: 11px; line-height: 1.8; opacity: .6; }
 .check-in-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5vw; margin-top: 36px; }
 .check-in-groups fieldset { margin: 0; padding: 0; border: 0; }
 .check-in-groups legend { width: 100%; padding: 0 0 16px; border-bottom: 1px solid var(--line-light); color: var(--acid); font-size: 11px; font-weight: 750; letter-spacing: .08em; }

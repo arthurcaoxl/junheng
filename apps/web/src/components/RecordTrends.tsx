@@ -1,5 +1,6 @@
 import type { DayRecord } from "./SevenDayCheckIn";
 import { formatTrendValue, selectTrendLabelDays } from "../utils/trend";
+import { getRepresentativeWeight } from "../utils/weight";
 
 type TrendChartProps = {
   records: DayRecord[];
@@ -13,7 +14,11 @@ const chartConfig = {
 
 function TrendChart({ records, metric }: TrendChartProps) {
   const config = chartConfig[metric];
-  const points = records.map((day, index) => ({ day: index + 1, value: Number(day[metric]) }))
+  const points = records.map((day, index) => ({
+    day: index + 1,
+    // 体重统一展示综合代表体重（早晚加权、扣衣物）；腰围保持原值
+    value: Number(metric === "weight" ? getRepresentativeWeight(day) : day.waist),
+  }))
     .filter((point) => Number.isFinite(point.value) && point.value > 0);
   const values = points.map((point) => point.value);
   const minimum = values.length ? Math.min(...values) : 0;

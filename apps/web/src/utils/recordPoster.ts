@@ -1,11 +1,15 @@
 import type { DayRecord } from "../components/SevenDayCheckIn";
 import { formatTrendValue, selectTrendLabelDays } from "./trend";
+import { getRepresentativeWeight } from "./weight";
 
 const WIDTH = 1080;
 const HEIGHT = 1920;
 
 function numericValues(records: DayRecord[], metric: "weight" | "waist") {
-  return records.map((day, index) => ({ day: index + 1, value: Number(day[metric]) }))
+  return records.map((day, index) => ({
+    day: index + 1,
+    value: Number(metric === "weight" ? getRepresentativeWeight(day) : day.waist),
+  }))
     .filter((point) => Number.isFinite(point.value) && point.value > 0);
 }
 

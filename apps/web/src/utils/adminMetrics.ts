@@ -1,6 +1,7 @@
 import type { AdminCamper, AdminDayRecord } from "../services/adminCheckin";
 import type { DayRecord } from "../components/SevenDayCheckIn";
 import { addDays, diffDays, emptyDay, getWindowDates, isDateKey, TOTAL_DAYS } from "./checkin";
+import { getRepresentativeWeight } from "./weight";
 
 /** 后台可视化专用纯计算：不接触 Supabase，不改动 storage-v3 契约。 */
 
@@ -23,7 +24,8 @@ export type CamperDayDetail = {
 export type CamperFilter = "all" | "unbound" | "inactive2d";
 
 function hasContent(day: AdminDayRecord | undefined): day is AdminDayRecord {
-  return Boolean(day && (day.weight || day.waist || day.meals.some(Boolean) || day.water || day.movement || day.sleep));
+  const hasNodeWeight = Boolean(day?.weights && Object.values(day.weights).some((value) => typeof value === "string" && value.trim() !== ""));
+  return Boolean(day && (hasNodeWeight || day.weight || day.waist || day.meals.some(Boolean) || day.water || day.movement || day.sleep));
 }
 
 function metricValue(value: string): number | null {
@@ -36,9 +38,13 @@ function changePercent(baseline: number | null, current: string): number | null 
   return baseline && value ? Number(((value - baseline) / baseline * 100).toFixed(1)) : null;
 }
 
+function metricOf(record: AdminDayRecord, metric: "weight" | "waist"): string {
+  return metric === "weight" ? getRepresentativeWeight(record) : record.waist;
+}
+
 function firstMetric(camper: AdminCamper, metric: "weight" | "waist"): number | null {
   return Object.keys(camper.records).sort()
-    .map((key) => metricValue(camper.records[key][metric]))
+    .map((key) => metricValue(metricOf(camper.records[key], metric)))
     .find((value) => value !== null) ?? null;
 }
 
@@ -46,7 +52,7 @@ function latestChangePercent(camper: AdminCamper, metric: "weight" | "waist"): n
   const baseline = firstMetric(camper, metric);
   const dates = Object.keys(camper.records).sort().reverse();
   for (const date of dates) {
-    const change = changePercent(baseline, camper.records[date][metric]);
+    const change = changePercent(baseline, metricOf(camper.records[date], metric));
     if (change !== null) return change;
   }
   return null;
@@ -82,7 +88,7 @@ export function buildCamperDays(camper: AdminCamper): CamperDayDetail[] {
       dayIndex: index + 1,
       date,
       record: hasContent(record) ? record : null,
-      weightChangePercent: hasContent(record) ? changePercent(weightBaseline, record.weight) : null,
+      weightChangePercent: hasContent(record) ? changePercent(weightBaseline, getRepresentativeWeight(record)) : null,
       waistChangePercent: hasContent(record) ? changePercent(waistBaseline, record.waist) : null,
     };
   });

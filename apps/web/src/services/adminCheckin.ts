@@ -1,5 +1,6 @@
 import { getSupabase } from "../lib/supabase";
 import { addDays, diffDays, isDateKey, TOTAL_DAYS } from "../utils/checkin";
+import { getRepresentativeWeight, type NodeWeights } from "../utils/weight";
 import { sendLoginCode } from "./checkinSync";
 import { normalizeOtpInput } from "./otp";
 
@@ -10,6 +11,8 @@ export type AdminDayRecord = {
   water: boolean;
   movement: boolean;
   sleep: boolean;
+  weights?: NodeWeights;
+  clothes?: string;
 };
 
 export type AdminCamper = {
@@ -48,6 +51,13 @@ function normalizeRecords(input: unknown): Record<string, AdminDayRecord> {
   Object.entries(input as Record<string, unknown>).forEach(([date, raw]) => {
     if (!isDateKey(date) || !raw || typeof raw !== "object") return;
     const day = raw as Partial<AdminDayRecord>;
+    const rawWeights = day.weights && typeof day.weights === "object" && !Array.isArray(day.weights) ? day.weights : undefined;
+    const weights: NodeWeights = {};
+    if (rawWeights) {
+      (["morning", "noon", "evening"] as const).forEach((node) => {
+        if (typeof rawWeights[node] === "string") weights[node] = rawWeights[node] as string;
+      });
+    }
     records[date] = {
       weight: typeof day.weight === "string" ? day.weight : "",
       waist: typeof day.waist === "string" ? day.waist : "",
@@ -55,13 +65,16 @@ function normalizeRecords(input: unknown): Record<string, AdminDayRecord> {
       water: Boolean(day.water),
       movement: Boolean(day.movement),
       sleep: Boolean(day.sleep),
+      ...(Object.keys(weights).length ? { weights } : {}),
+      ...(typeof day.clothes === "string" ? { clothes: day.clothes } : {}),
     };
   });
   return records;
 }
 
 function hasRecord(day: AdminDayRecord | undefined): day is AdminDayRecord {
-  return Boolean(day && (day.weight || day.waist || day.meals.some(Boolean) || day.water || day.movement || day.sleep));
+  const hasNodeWeight = Boolean(day?.weights && Object.values(day.weights).some((value) => typeof value === "string" && value.trim() !== ""));
+  return Boolean(day && (hasNodeWeight || day.weight || day.waist || day.meals.some(Boolean) || day.water || day.movement || day.sleep));
 }
 
 function toCampers(rows: unknown): AdminCamper[] {
@@ -127,8 +140,13 @@ function metricValue(value: string): number | null {
   return value !== "" && Number.isFinite(number) && number > 0 ? number : null;
 }
 
+/** 后台与前台同口径：体重取综合代表体重，腰围取原值。 */
+function metricOf(record: AdminDayRecord, metric: "weight" | "waist"): string {
+  return metric === "weight" ? getRepresentativeWeight(record) : record.waist;
+}
+
 function firstMetric(camper: AdminCamper, metric: "weight" | "waist"): number | null {
-  return Object.keys(camper.records).sort().map((key) => metricValue(camper.records[key][metric])).find((value) => value !== null) ?? null;
+  return Object.keys(camper.records).sort().map((key) => metricValue(metricOf(camper.records[key], metric))).find((value) => value !== null) ?? null;
 }
 
 function average(values: number[]): number | null {
@@ -146,7 +164,7 @@ export function buildCampDayMetrics(campers: AdminCamper[]): CampDayMetric[] {
 
     const weightChanges = points.flatMap(({ camper, record }) => {
       const baseline = firstMetric(camper, "weight");
-      const current = metricValue(record.weight);
+      const current = metricValue(getRepresentativeWeight(record));
       return baseline && current ? [Number(((current - baseline) / baseline * 100).toFixed(1))] : [];
     });
     const waistChanges = points.flatMap(({ camper, record }) => {
@@ -186,7 +204,7 @@ export function buildAdminCsv(campers: AdminCamper[]): string {
         camper.userCode,
         date,
         dayIndex >= 1 && dayIndex <= TOTAL_DAYS ? String(dayIndex) : "",
-        record.weight,
+        getRepresentativeWeight(record),
         record.waist,
         ...record.meals.map((value) => (value ? "1" : "0")),
         record.water ? "1" : "0",

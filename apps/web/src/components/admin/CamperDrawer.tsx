@@ -3,6 +3,7 @@ import type { AdminCamper } from "../../services/adminCheckin";
 import { buildCamperDays, toWindowRecords } from "../../utils/adminMetrics";
 import { addDays, TOTAL_DAYS } from "../../utils/checkin";
 import { createRecordPoster } from "../../utils/recordPoster";
+import { getRepresentativeWeight } from "../../utils/weight";
 import { RecordTrends } from "../RecordTrends";
 
 function formatPercent(value: number | null): string {
@@ -126,7 +127,7 @@ export default function CamperDrawer({ camper, initialTab = "detail", onClose }:
                     <tr key={day.dayIndex} className={day.record ? "" : "admin-day-empty"}>
                       <td>D{day.dayIndex}</td>
                       <td>{day.date.slice(5)}</td>
-                      <td>{day.record?.weight || "—"}</td>
+                      <td>{day.record ? getRepresentativeWeight(day.record) || "—" : "—"}</td>
                       <td>{formatPercent(day.weightChangePercent)}</td>
                       <td>{day.record?.waist || "—"}</td>
                       <td>{formatPercent(day.waistChangePercent)}</td>
