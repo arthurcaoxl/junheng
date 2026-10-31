@@ -14,6 +14,7 @@ export default function UserCenter() {
     <section className="user-center section-pad" data-theme="forest" aria-labelledby="user-center-title">
       <p className="eyebrow">MY LIPID METABOLISM RECORD</p>
       <h1 id="user-center-title">我的脂代谢追踪档案</h1>
+      <p className="user-center-intro">记录您的体重、腰围与生活方式，见证科学管理轨迹。</p>
       <div className="user-center-account">
         <span aria-hidden="true">👤</span>
         <div>

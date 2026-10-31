@@ -338,18 +338,18 @@ export function SevenDayCheckIn() {
           <fieldset><legend>生活习惯</legend><label><input type="checkbox" checked={current.water} onChange={(event) => updateDay({ water: event.target.checked })} /><span>完成适量饮水</span></label><label><input type="checkbox" checked={current.movement} onChange={(event) => updateDay({ movement: event.target.checked })} /><span>完成适量运动</span></label><label><input type="checkbox" checked={current.sleep} onChange={(event) => updateDay({ sleep: event.target.checked })} /><span>保持规律作息</span></label></fieldset>
         </div>
         <div className="check-in-actions">
-          <p>{syncConfigured ? "记录不仅保存在当前设备，还会自动备份到云端；绑定邮箱后可在其他设备恢复。" : "记录仅保存在当前设备，不上传服务器。清理浏览器数据后可能无法恢复。"}</p>
+          <p>数据已在本机自动保存。绑定邮箱可同步至云端，换设备随时恢复。</p>
           <button type="button" onClick={clearRecords}>清空本机记录</button>
         </div>
         <p className="storage-status" role="status">{storageError ? "当前浏览器无法保存，本次记录仅在页面打开期间有效。" : "修改后自动保存，无需注册。"}</p>
         {syncConfigured && !syncEmail && (
           <div className="sync-inline-hint">
-            <p>☁️ 记录目前仅保存在本机。绑定邮箱，换手机/电脑也能接着打卡。</p>
+            <p>数据已在本机自动保存。绑定邮箱可同步至云端，换设备随时恢复。</p>
             <button type="button" onClick={() => openSyncModal("bind")}>立即绑定</button>
           </div>
         )}
       </div>
-      <Link className="check-in-assets-link" to="/user-center">前往用户中心查看个人资产</Link>
+      <Link className="check-in-assets-link" to="/user-center">查看我的脂代谢报告</Link>
       <p className="check-in-note">21 天用于建立观察习惯，不设定固定减重目标。体重管理应结合合理饮食、适量运动与良好作息，个体结果存在差异。</p>
       {toastDays !== null && (
         <div className="sync-toast" role="status">

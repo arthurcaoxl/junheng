@@ -71,7 +71,7 @@ export function SyncPanel() {
         </>
       ) : (
         <>
-          <p className="sync-panel-status">☁️ 记录目前仅保存在本机。绑定邮箱，换手机/电脑也能接着打卡。</p>
+          <p className="sync-panel-status">数据已在本机自动保存。绑定邮箱可同步至云端，换设备随时恢复。</p>
           <div className="sync-panel-actions">
             <button type="button" className="sync-panel-bind" onClick={() => open("bind")}>绑定邮箱，换手机/电脑接着打卡</button>
             <button type="button" className="sync-panel-secondary" onClick={() => open("restore")}>在新设备恢复数据</button>

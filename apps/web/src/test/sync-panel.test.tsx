@@ -55,7 +55,7 @@ describe("sync panel", () => {
     renderCheckIn();
     expect(screen.queryByText("跨设备同步")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "未同步，绑定邮箱" })).not.toBeInTheDocument();
-    expect(screen.queryByText(/记录目前仅保存在本机/)).not.toBeInTheDocument();
+    expect(screen.getAllByText("数据已在本机自动保存。绑定邮箱可同步至云端，换设备随时恢复。")).toHaveLength(1);
   });
 
   describe("with supabase configured (mocked)", () => {
@@ -71,7 +71,7 @@ describe("sync panel", () => {
       const user = userEvent.setup();
       renderCheckIn();
       expect(screen.getByRole("button", { name: "未同步，绑定邮箱" })).toBeInTheDocument();
-      expect(screen.getAllByText(/记录目前仅保存在本机/)).toHaveLength(2);
+      expect(screen.getAllByText("数据已在本机自动保存。绑定邮箱可同步至云端，换设备随时恢复。")).toHaveLength(3);
 
       await user.click(screen.getByRole("button", { name: "立即绑定" }));
       expect(screen.getByRole("dialog", { name: "绑定邮箱，换手机/电脑接着打卡" })).toBeInTheDocument();

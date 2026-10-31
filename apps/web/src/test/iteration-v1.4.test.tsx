@@ -55,7 +55,7 @@ describe("v1.4 science, plate and personal records", () => {
     first.unmount();
     renderApp("/check-in");
     expect(screen.getByLabelText("姓名或网名")).toHaveValue("小菌");
-    await user.click(screen.getByRole("link", { name: "前往用户中心查看个人资产" }));
+    await user.click(screen.getByRole("link", { name: "查看我的脂代谢报告" }));
     await user.click(screen.getByRole("button", { name: "导出记录海报" }));
     expect(context.fillText).toHaveBeenCalledWith("记录人：小菌", 70, 318);
   });

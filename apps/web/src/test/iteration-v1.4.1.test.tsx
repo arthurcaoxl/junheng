@@ -97,7 +97,7 @@ describe("v1.4.1 interface refinement", () => {
     renderApp("/check-in");
     await user.type(screen.getByLabelText("姓名或网名"), "小菌");
     expect(screen.getByText("海报署名：小菌")).toBeInTheDocument();
-    await user.click(screen.getByRole("link", { name: "前往用户中心查看个人资产" }));
+    await user.click(screen.getByRole("link", { name: "查看我的脂代谢报告" }));
     await user.click(screen.getByRole("button", { name: "导出记录海报" }));
     expect(posterCanvases[0]?.width).toBe(1080);
     expect(posterCanvases[0]?.height).toBe(1920);

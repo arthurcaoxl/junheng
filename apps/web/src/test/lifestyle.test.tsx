@@ -145,7 +145,7 @@ describe("priority lifestyle sections", () => {
     expect(within(restored).getByLabelText("腰围（cm）")).toHaveValue(82);
     expect(within(restored).getByRole("checkbox", { name: "早餐前已饮用" })).toBeChecked();
     expect(within(restored).getByRole("checkbox", { name: "完成适量运动" })).toBeChecked();
-    expect(within(restored).getByText(/仅保存在当前设备/)).toBeInTheDocument();
+    expect(within(restored).getByText("数据已在本机自动保存。绑定邮箱可同步至云端，换设备随时恢复。")).toBeInTheDocument();
   });
 
   it("migrates existing seven-day records without losing them", async () => {
@@ -174,7 +174,7 @@ describe("priority lifestyle sections", () => {
     await user.click(within(checkIn).getByRole("tab", { name: /第 21 天/ }));
     await user.type(within(checkIn).getByLabelText("早晨体重（空腹）"), "64.8");
     await user.type(within(checkIn).getByLabelText("腰围（cm）"), "80.5");
-    await user.click(within(checkIn).getByRole("link", { name: "前往用户中心查看个人资产" }));
+    await user.click(within(checkIn).getByRole("link", { name: "查看我的脂代谢报告" }));
     let userCenter = screen.getByRole("region", { name: "我的脂代谢追踪档案" });
     expect(within(userCenter).getByRole("img", { name: "体重趋势图" })).toBeInTheDocument();
     expect(within(userCenter).getByRole("img", { name: "腰围趋势图" })).toBeInTheDocument();
@@ -201,7 +201,7 @@ describe("priority lifestyle sections", () => {
     renderApp("/check-in");
     const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
     await user.type(within(checkIn).getByLabelText("早晨体重（空腹）"), "65.4");
-    await user.click(within(checkIn).getByRole("link", { name: "前往用户中心查看个人资产" }));
+    await user.click(within(checkIn).getByRole("link", { name: "查看我的脂代谢报告" }));
     const userCenter = screen.getByRole("region", { name: "我的脂代谢追踪档案" });
     await user.click(within(userCenter).getByRole("button", { name: "导出记录海报" }));
     expect(within(userCenter).getByRole("img", { name: "21 天健康记录海报预览" })).toHaveAttribute("src", "data:image/png;base64,poster");
@@ -293,7 +293,7 @@ describe("priority lifestyle sections", () => {
     const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
     await user.type(within(checkIn).getByLabelText("早晨体重（空腹）"), "65.4");
     await user.click(within(checkIn).getByRole("checkbox", { name: "早餐前已饮用" }));
-    await user.click(within(checkIn).getByRole("link", { name: "前往用户中心查看个人资产" }));
+    await user.click(within(checkIn).getByRole("link", { name: "查看我的脂代谢报告" }));
     await user.click(screen.getByRole("button", { name: "导出打卡 CSV" }));
     expect(createObjectURL).toHaveBeenCalledTimes(1);
     const blob = createObjectURL.mock.calls[0][0] as Blob;

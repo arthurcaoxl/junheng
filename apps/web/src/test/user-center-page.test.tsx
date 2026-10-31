@@ -27,7 +27,7 @@ function mockPosterCanvas() {
   return context;
 }
 
-describe("用户中心本机档案与资产", () => {
+describe("用户中心本机档案与报告", () => {
   beforeEach(() => {
     window.localStorage.clear();
     vi.clearAllMocks();
@@ -49,6 +49,7 @@ describe("用户中心本机档案与资产", () => {
     renderAt();
 
     expect(screen.getByRole("heading", { name: "我的脂代谢追踪档案" })).toBeInTheDocument();
+    expect(screen.getByText("记录您的体重、腰围与生活方式，见证科学管理轨迹。")).toBeInTheDocument();
     expect(screen.getByText("小菌")).toBeInTheDocument();
     expect(screen.getByText("JH-WQAKS")).toBeInTheDocument();
     expect(screen.getByText("脂代谢观察员")).toBeInTheDocument();
@@ -86,9 +87,9 @@ describe("用户中心本机档案与资产", () => {
     expect(screen.queryByText("跨设备同步")).not.toBeInTheDocument();
   });
 
-  it("打卡页只保留个人资产入口，不再渲染趋势和海报", () => {
+  it("打卡页只保留脂代谢报告入口，不再渲染趋势和海报", () => {
     renderAt("/check-in");
-    expect(screen.getByRole("link", { name: "前往用户中心查看个人资产" })).toHaveAttribute("href", "/user-center");
+    expect(screen.getByRole("link", { name: "查看我的脂代谢报告" })).toHaveAttribute("href", "/user-center");
     expect(screen.queryByRole("button", { name: "导出记录海报" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "导出打卡 CSV" })).not.toBeInTheDocument();
     expect(screen.queryByRole("img", { name: "体重趋势图" })).not.toBeInTheDocument();
