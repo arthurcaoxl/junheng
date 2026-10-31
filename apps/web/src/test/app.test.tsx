@@ -8,7 +8,7 @@ describe("brand page", () => {
     render(<MemoryRouter><App /></MemoryRouter>);
     expect(screen.getByText("菌衡计划 | 脂代谢研究所")).toBeInTheDocument();
     expect(screen.getByText("注：菌衡计划·脂代谢研究所为本品牌内部健康管理研究平台，非医疗或国家级学术机构。相关数据与成分科普不作为医疗诊断或治疗依据。")).toBeInTheDocument();
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("餐前伴侣助力脂代谢健康体重管理");
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("餐前精准膳食，重塑脂代谢平衡。");
     expect(screen.getByText("——23种菌菇精华 × 优质蛋白 × 复合维生素——")).toBeInTheDocument();
     expect(screen.getAllByText("40%+").length).toBeGreaterThan(0);
     expect(screen.getAllByText(/数据依据品牌提供素材/).length).toBeGreaterThan(0);
@@ -36,7 +36,7 @@ describe("brand page", () => {
     expect(screen.getAllByRole("heading", { name: "麦角硫因" }).length).toBeGreaterThan(0);
     expect(screen.getByText("从多样营养供给，到日常代谢管理")).toBeInTheDocument();
     expect(screen.getByText(/围绕真菌多糖肽、麦角硫因及菌菇活性营养的保留与释放/)).toBeInTheDocument();
-    expect(screen.getByText(/21天减脂是阶段性的成果/)).toBeInTheDocument();
+    expect(screen.getByText(/数据，见证身体的科学改变/)).toBeInTheDocument();
     expect(screen.getByText(/研究情况与结论以正式报告为准/)).toBeInTheDocument();
     expect(screen.getByText(/不是药品，不能代替药物/)).toBeInTheDocument();
   });
