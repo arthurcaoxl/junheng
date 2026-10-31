@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { getSupabase } from "../lib/supabase";
-import { confirmEmailUpgrade, confirmOldEmailForChange, upgradeToPermanentAccount } from "../services/authUpgrade";
+import { confirmEmailUpgrade, upgradeToPermanentAccount } from "../services/authUpgrade";
 
 describe("upgradeToPermanentAccount 错误分类与脱敏诊断", () => {
   beforeEach(() => {
@@ -54,7 +54,7 @@ describe("upgradeToPermanentAccount 错误分类与脱敏诊断", () => {
 });
 
 
-describe("confirmEmailUpgrade 双确认核对", () => {
+describe("confirmEmailUpgrade 服务端邮箱强制核对（杜绝假成功）", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv("VITE_SUPABASE_URL", "https://test.supabase.co");
@@ -65,57 +65,29 @@ describe("confirmEmailUpgrade 双确认核对", () => {
     vi.unstubAllEnvs();
   });
 
-  it("服务端邮箱已等于目标邮箱时判定换绑真正生效", async () => {
+  it("verifyOtp 成功且服务端邮箱已等于目标邮箱时正常完成", async () => {
     (getSupabase().auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       data: { user: { email: "new@example.com" } }, error: null,
     });
-    await expect(confirmEmailUpgrade("new@example.com", "12345678")).resolves.toEqual({ status: "changed" });
+    await expect(confirmEmailUpgrade("new@example.com", "12345678")).resolves.toBeUndefined();
   });
 
-  it("仅新邮箱验证但服务端仍是旧邮箱时返回 pending 与当前邮箱", async () => {
+  it("verifyOtp 成功但服务端仍是旧邮箱时抛出换绑未生效", async () => {
     (getSupabase().auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       data: { user: { email: "old@example.com" } }, error: null,
     });
-    await expect(confirmEmailUpgrade("new@example.com", "12345678")).resolves.toEqual({
-      status: "pending",
-      currentEmail: "old@example.com",
+    await expect(confirmEmailUpgrade("new@example.com", "12345678")).rejects.toThrow(/换绑未生效/);
+  });
+
+  it("拿不到服务端用户（邮箱未知）时同样不允许报成功", async () => {
+    (getSupabase().auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      data: { user: null }, error: null,
     });
+    await expect(confirmEmailUpgrade("new@example.com", "12345678")).rejects.toThrow(/换绑未生效/);
   });
 
   it("验证码错误时抛出友好提示", async () => {
     (getSupabase().auth.verifyOtp as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ error: { message: "invalid" } });
     await expect(confirmEmailUpgrade("new@example.com", "000000")).rejects.toThrow(/验证码不正确或已过期/);
-  });
-});
-
-describe("confirmOldEmailForChange 原邮箱二次确认", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    vi.stubEnv("VITE_SUPABASE_URL", "https://test.supabase.co");
-    vi.stubEnv("VITE_SUPABASE_ANON_KEY", "test-anon-key");
-  });
-
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
-  it("用原邮箱提交确认码，服务端更新为目标邮箱后成功", async () => {
-    (getSupabase().auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      data: { user: { email: "new@example.com" } }, error: null,
-    });
-    await expect(confirmOldEmailForChange("old@example.com", "new@example.com", "87654321")).resolves.toBeUndefined();
-    expect(getSupabase().auth.verifyOtp).toHaveBeenCalledWith({ email: "old@example.com", token: "87654321", type: "email_change" });
-  });
-
-  it("原邮箱确认码错误时给出针对性提示", async () => {
-    (getSupabase().auth.verifyOtp as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ error: { message: "invalid" } });
-    await expect(confirmOldEmailForChange("old@example.com", "new@example.com", "000000")).rejects.toThrow(/原邮箱确认码不正确或已过期/);
-  });
-
-  it("确认后服务端仍未换绑时不允许报成功", async () => {
-    (getSupabase().auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
-      data: { user: { email: "old@example.com" } }, error: null,
-    });
-    await expect(confirmOldEmailForChange("old@example.com", "new@example.com", "87654321")).rejects.toThrow(/尚未生效/);
   });
 });

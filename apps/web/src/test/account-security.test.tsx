@@ -80,10 +80,10 @@ describe("账号安全", () => {
       expect(getSupabase().auth.verifyOtp).toHaveBeenCalledWith({ email: "new@example.com", token: "12345678", type: "email_change" });
     });
 
-    it("双确认场景：新邮箱验证后须再确认原邮箱，完成前不得报成功", async () => {
-      (getSupabase().auth.getUser as ReturnType<typeof vi.fn>)
-        .mockResolvedValueOnce({ data: { user: { email: "old@example.com" } }, error: null })
-        .mockResolvedValueOnce({ data: { user: { email: "new@example.com" } }, error: null });
+    it("服务端邮箱未真正更新时提示换绑未生效，不广播成功", async () => {
+      (getSupabase().auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+        data: { user: { email: "old@example.com" } }, error: null,
+      });
       const user = userEvent.setup();
       renderUserCenter();
       await user.click(await screen.findByRole("button", { name: "修改邮箱" }));
@@ -92,17 +92,10 @@ describe("账号安全", () => {
       await user.type(await screen.findByLabelText("邮箱验证码"), "12345678");
       await user.click(screen.getByRole("button", { name: "确认修改邮箱" }));
 
-      // 仅验证新邮箱，服务端邮箱未变：进入原邮箱二次确认步骤，不广播成功
-      expect(await screen.findByLabelText("原邮箱确认码")).toBeInTheDocument();
+      // verifyOtp 成功但服务端仍是旧邮箱：明确报错，绝不假成功
+      expect(await screen.findByRole("alert")).toHaveTextContent(/换绑未生效/);
       expect(screen.queryByText("邮箱修改成功，云端数据已同步")).not.toBeInTheDocument();
       expect(screen.getByText("old@example.com")).toBeInTheDocument();
-
-      await user.type(screen.getByLabelText("原邮箱确认码"), "87654321");
-      await user.click(screen.getByRole("button", { name: "完成换绑" }));
-
-      expect(getSupabase().auth.verifyOtp).toHaveBeenCalledWith({ email: "old@example.com", token: "87654321", type: "email_change" });
-      expect(await screen.findByText("邮箱修改成功，云端数据已同步")).toBeInTheDocument();
-      expect(screen.getByText("new@example.com")).toBeInTheDocument();
     });
 
     it("退出登录保留本机 v3、营员代码和云端数据", async () => {

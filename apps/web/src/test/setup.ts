@@ -41,7 +41,12 @@ vi.mock("@supabase/supabase-js", () => {
   const client = {
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
-      getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      // 模拟真实 Supabase：verifyOtp 成功后，当前 session 用户邮箱即刚验证的邮箱；
+      // service 测试可用 mockResolvedValueOnce 覆盖为不匹配/缺失的场景。
+      getUser: vi.fn(async () => {
+        const last = client.auth.verifyOtp.mock.calls.at(-1) as [{ email?: string }] | undefined;
+        return { data: { user: last?.[0]?.email ? { email: last[0].email } : null }, error: null };
+      }),
       signInAnonymously: vi.fn().mockResolvedValue({
         data: { session: { user: { id: "test-uid" } } }, error: null,
       }),

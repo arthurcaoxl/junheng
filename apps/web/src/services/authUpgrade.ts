@@ -25,32 +25,16 @@ export async function upgradeToPermanentAccount(email: string): Promise<void> {
   }
 }
 
-/** 换绑结果：changed = 服务端邮箱已更新；pending = 双确认开启，仅新邮箱验证通过，还需原邮箱确认。 */
-export type EmailUpgradeResult = { status: "changed" } | { status: "pending"; currentEmail: string | null };
-
 /** 第二步：输入邮件中的数字码完成绑定；uid 不变，云端数据无缝继承。 */
-export async function confirmEmailUpgrade(email: string, token: string): Promise<EmailUpgradeResult> {
+export async function confirmEmailUpgrade(email: string, token: string): Promise<void> {
   const code = normalizeOtpInput(token);
   const { error } = await getSupabase().auth.verifyOtp({ email, token: code, type: "email_change" });
   if (error) throw new Error("验证码不正确或已过期，请重新绑定。");
-  // Secure email change 开启时，仅验证新邮箱不会完成换绑，verifyOtp 也不报错；
-  // 必须核对服务端真实邮箱，避免"假成功"。
+  // verifyOtp 成功不代表换绑生效（历史上曾开启双确认时，仅验证新邮箱服务端不变更），
+  // 必须核对服务端真实邮箱，杜绝"假成功"。
   const { data } = await getSupabase().auth.getUser();
   const actual = data.user?.email ?? null;
-  if (actual && actual.toLowerCase() !== email.toLowerCase()) {
-    return { status: "pending", currentEmail: actual };
-  }
-  return { status: "changed" };
-}
-
-/** 双确认的最后一步：用原邮箱收到的确认码完成换绑，并再次核对服务端邮箱。 */
-export async function confirmOldEmailForChange(oldEmail: string, newEmail: string, token: string): Promise<void> {
-  const code = normalizeOtpInput(token);
-  const { error } = await getSupabase().auth.verifyOtp({ email: oldEmail, token: code, type: "email_change" });
-  if (error) throw new Error("原邮箱确认码不正确或已过期，请检查后重试。");
-  const { data } = await getSupabase().auth.getUser();
-  const actual = data.user?.email;
-  if (actual && actual.toLowerCase() !== newEmail.toLowerCase()) {
-    throw new Error("换绑尚未生效，请稍后刷新页面再查看。");
+  if (!actual || actual.toLowerCase() !== email.toLowerCase()) {
+    throw new Error("换绑未生效，请重试或联系管理员。");
   }
 }
