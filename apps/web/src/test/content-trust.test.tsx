@@ -34,7 +34,8 @@ describe("职场内容与信任展示", () => {
     expect(within(detail).getByText(/天然含硫氨基酸/)).toBeInTheDocument();
     expect(within(detail).getByText(/人体不能自行合成/)).toBeInTheDocument();
     expect(within(detail).getByText(/抗氧化与细胞营养相关研究/)).toBeInTheDocument();
-    expect(within(detail).getByText(/研究结论不等于产品功效/)).toBeInTheDocument();
+    expect(within(detail).getByRole("heading", { name: "科学辅助" })).toBeInTheDocument();
+    expect(within(detail).getByText("职场节奏快，三餐难以做到绝对完美。菌衡计划作为日常膳食的精准营养补充，建议配合规律作息，共同支持您的脂代谢健康。")).toBeInTheDocument();
     expect(within(detail).queryByText(/激活线粒体|重塑易瘦体质|治疗疾病/)).not.toBeInTheDocument();
   });
 

@@ -155,7 +155,7 @@ describe("sync panel", () => {
       window.localStorage.setItem("junheng-sync-toast-snooze", String(Date.now()));
       const user = userEvent.setup();
       renderCheckIn("/user-center");
-      await user.click(screen.getByRole("button", { name: "导出记录海报" }));
+      await user.click(screen.getByRole("button", { name: "生成专属成就海报" }));
       expect(screen.getByRole("dialog", { name: "🎉 您的专属健康海报已生成！" })).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: "暂不，返回打卡" }));
       await user.click(screen.getByRole("link", { name: "继续打卡" }));
@@ -172,7 +172,7 @@ describe("sync panel", () => {
       seedRecordedDays(7);
       const user = userEvent.setup();
       renderCheckIn("/user-center");
-      await user.click(screen.getByRole("button", { name: "导出记录海报" }));
+      await user.click(screen.getByRole("button", { name: "生成专属成就海报" }));
 
       const dialog = screen.getByRole("dialog", { name: "🎉 您的专属健康海报已生成！" });
       expect(dialog).toHaveTextContent("绑定邮箱即可永久保存这份成就（换手机不丢失）。登录后将自动为您展开高清海报。");
@@ -193,7 +193,7 @@ describe("sync panel", () => {
       seedRecordedDays(7);
       const user = userEvent.setup();
       renderCheckIn("/user-center");
-      await user.click(screen.getByRole("button", { name: "导出记录海报" }));
+      await user.click(screen.getByRole("button", { name: "生成专属成就海报" }));
       await bindFromMilestone();
 
       expect(await screen.findByRole("img", { name: "21 天健康记录海报预览" })).toHaveAttribute("src", "data:image/png;base64,poster");
@@ -228,7 +228,7 @@ describe("sync panel", () => {
       expect(screen.getByRole("heading", { name: "我的脂代谢追踪档案" })).toBeInTheDocument();
       expect(screen.getByText("bound@example.com")).toBeInTheDocument();
 
-      await user.click(screen.getByRole("button", { name: "导出记录海报" }));
+      await user.click(screen.getByRole("button", { name: "生成专属成就海报" }));
       expect(screen.getByRole("img", { name: "21 天健康记录海报预览" })).toBeInTheDocument();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
       expect(screen.getByRole("link", { name: "继续打卡" })).toHaveAttribute("href", "/check-in");

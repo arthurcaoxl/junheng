@@ -80,9 +80,11 @@ describe("用户中心本机档案与报告", () => {
     renderAt();
 
     expect(screen.getByRole("img", { name: "体重趋势图" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "导出记录海报" }));
+    expect(screen.getByRole("heading", { name: "把坚持的成果，变成你的专属成就。" })).toBeInTheDocument();
+    expect(screen.getByText("用真实数据见证 21 天的自我管理轨迹。支持微信内长按保存，或下载高清 PNG 分享。CSV 数据可直接用于个人建档参考。")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "生成专属成就海报" }));
     expect(screen.getByRole("img", { name: "21 天健康记录海报预览" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "导出打卡 CSV" }));
+    await user.click(screen.getByRole("button", { name: "导出完整数据 (CSV)" }));
     expect(createObjectURL).toHaveBeenCalledTimes(1);
     expect(screen.queryByText("跨设备同步")).not.toBeInTheDocument();
   });
@@ -90,8 +92,8 @@ describe("用户中心本机档案与报告", () => {
   it("打卡页只保留脂代谢报告入口，不再渲染趋势和海报", () => {
     renderAt("/check-in");
     expect(screen.getByRole("link", { name: "查看我的脂代谢报告" })).toHaveAttribute("href", "/user-center");
-    expect(screen.queryByRole("button", { name: "导出记录海报" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "导出打卡 CSV" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "生成专属成就海报" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "导出完整数据 (CSV)" })).not.toBeInTheDocument();
     expect(screen.queryByRole("img", { name: "体重趋势图" })).not.toBeInTheDocument();
   });
 
@@ -131,7 +133,7 @@ describe("用户中心本机档案与报告", () => {
     await user.click(screen.getByRole("button", { name: "生成结业证书" }));
     expect(screen.getByRole("alert")).toHaveTextContent("当前浏览器无法生成结业证书");
     expect(screen.getByRole("region", { name: "21 天身体记录趋势" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "导出打卡 CSV" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "导出完整数据 (CSV)" })).toBeEnabled();
   });
 });
 
@@ -158,7 +160,7 @@ describe("用户中心 D7 与绑定状态", () => {
     renderAt();
 
     expect(screen.queryByRole("img", { name: "体重趋势图" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "导出记录海报" }));
+    await user.click(screen.getByRole("button", { name: "生成专属成就海报" }));
     expect(screen.getByRole("dialog", { name: "🎉 您的专属健康海报已生成！" })).toBeInTheDocument();
     await user.type(screen.getByLabelText("邮箱地址"), "seven@example.com");
     await user.click(screen.getByRole("button", { name: "立即绑定并查看海报" }));
@@ -197,7 +199,7 @@ describe("用户中心 D7 与绑定状态", () => {
     expect(await screen.findByText("研究员")).toBeInTheDocument();
     expect(screen.getByText("bound@example.com")).toBeInTheDocument();
     expect(screen.getByRole("img", { name: "体重趋势图" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "导出记录海报" }));
+    await user.click(screen.getByRole("button", { name: "生成专属成就海报" }));
     expect(screen.getByRole("img", { name: "21 天健康记录海报预览" })).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });

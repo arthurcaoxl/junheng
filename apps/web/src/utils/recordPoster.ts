@@ -81,10 +81,10 @@ export function createRecordPoster(records: DayRecord[], recordName = "", camp?:
   context.fillStyle = "#C6FF36";
   context.fillRect(0, 0, WIDTH, 20);
   context.font = "600 28px sans-serif";
-  context.fillText(siteConfig.platformEnglish, 70, 100);
+  context.fillText("菌衡计划 | 脂代谢研究所 × 心脑健康营", 70, 100, 940);
   context.fillStyle = "#F3F1E8";
-  context.font = "700 72px sans-serif";
-  context.fillText("我的 21 天健康记录", 70, 210);
+  context.font = "700 70px sans-serif";
+  context.fillText("我的脂代谢健康记录", 70, 210, 940);
   context.font = "28px sans-serif";
   context.fillText("看见自己的节奏，不追赶固定数字。", 70, 270);
   context.fillStyle = "#C6FF36";

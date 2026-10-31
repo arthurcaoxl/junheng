@@ -28,7 +28,7 @@ export function MetabolismMechanism() {
           <li><span>01</span><div><h4>菌菇来源</h4><p>麦角硫因是一种天然含硫氨基酸，存在于部分菌菇等食物中。</p></div></li>
           <li><span>02</span><div><h4>膳食获得</h4><p>人体不能自行合成，可通过日常膳食获得，是饮食结构中的一种营养补充。</p></div></li>
           <li><span>03</span><div><h4>研究关注</h4><p>常见于抗氧化与细胞营养相关研究，但成分研究不能直接推导为食用后的个体效果。</p></div></li>
-          <li><span>04</span><div><h4>理性看待</h4><p>研究结论不等于产品功效。日常健康管理仍需结合均衡饮食、规律作息与适量运动。</p></div></li>
+          <li><span>04</span><div><h4>科学辅助</h4><p>职场节奏快，三餐难以做到绝对完美。菌衡计划作为日常膳食的精准营养补充，建议配合规律作息，共同支持您的脂代谢健康。</p></div></li>
         </ol>
       </section>
       <div className="mechanism-synergy"><span>小分子菌糖肽</span><i aria-hidden="true">＋</i><span>麦角硫因</span><strong>从多样营养供给，到日常代谢管理</strong></div>
