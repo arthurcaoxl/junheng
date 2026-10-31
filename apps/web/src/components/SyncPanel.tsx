@@ -82,8 +82,8 @@ export function SyncPanel() {
             <button type="button" className="sync-panel-secondary" disabled={backupState === "saving"} onClick={backupNow}>
               {backupState === "saving" ? "正在备份…" : "立即备份到云端"}
             </button>
-            <button type="button" className="sync-panel-secondary" onClick={() => open("restore")}>
-              在新设备恢复数据
+            <button type="button" className="sync-panel-secondary sync-panel-restore" onClick={() => open("restore")}>
+              使用原邮箱登录恢复
             </button>
           </div>
           {backupState === "synced" && <p className="sync-panel-notice" role="status">本机打卡记录已备份到云端。</p>}
@@ -92,9 +92,21 @@ export function SyncPanel() {
       ) : (
         <>
           <p className="sync-panel-status">数据已在本机自动保存。绑定邮箱可同步至云端，换设备随时恢复。</p>
-          <div className="sync-panel-actions">
-            <button type="button" className="sync-panel-bind" onClick={() => open("bind")}>绑定邮箱，换手机/电脑接着打卡</button>
-            <button type="button" className="sync-panel-secondary" onClick={() => open("restore")}>在新设备恢复数据</button>
+          <div className="sync-paths">
+            <article className="sync-path sync-path-primary">
+              <p className="sync-path-audience">新用户（当前设备有数据）</p>
+              <button type="button" className="sync-panel-bind" onClick={() => open("bind")}>
+                绑定邮箱，接着打卡
+              </button>
+              <p className="sync-path-note">适用于当前设备。绑定后，本机数据将自动同步至云端备份。</p>
+            </article>
+            <article className="sync-path">
+              <p className="sync-path-audience">老用户（新设备找回数据）</p>
+              <button type="button" className="sync-panel-secondary sync-panel-restore" onClick={() => open("restore")}>
+                使用原邮箱登录恢复
+              </button>
+              <p className="sync-path-note">适用于更换手机/电脑。请使用您之前已绑定的原邮箱登录，找回历史数据。</p>
+            </article>
           </div>
         </>
       )}

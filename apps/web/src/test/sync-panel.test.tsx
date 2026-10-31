@@ -79,11 +79,23 @@ describe("sync panel", () => {
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     });
 
+    it("separates new-device binding and returning-user recovery into two explicit paths", () => {
+      renderCheckIn();
+
+      expect(screen.getByText("新用户（当前设备有数据）")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "绑定邮箱，接着打卡" })).toBeInTheDocument();
+      expect(screen.getByText("适用于当前设备。绑定后，本机数据将自动同步至云端备份。")).toBeInTheDocument();
+
+      expect(screen.getByText("老用户（新设备找回数据）")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "使用原邮箱登录恢复" })).toHaveClass("sync-panel-restore");
+      expect(screen.getByText("适用于更换手机/电脑。请使用您之前已绑定的原邮箱登录，找回历史数据。")).toBeInTheDocument();
+    });
+
     it("binds an email, immediately backs up existing records, and refreshes all status surfaces", async () => {
       const user = userEvent.setup();
       seedRecordedDays(1);
       renderCheckIn();
-      await user.click(screen.getByRole("button", { name: "绑定邮箱，换手机/电脑接着打卡" }));
+      await user.click(screen.getByRole("button", { name: "绑定邮箱，接着打卡" }));
       expect(screen.getByText(/输入邮箱接收 6–8 位数字验证码/)).toBeInTheDocument();
       await user.type(screen.getByLabelText("邮箱地址"), "bind@example.com");
       await user.click(screen.getByRole("button", { name: "获取邮箱验证码" }));
@@ -98,9 +110,9 @@ describe("sync panel", () => {
 
       expect(await screen.findByText(/已绑定邮箱：bind@example.com。打卡记录会自动备份到云端。/)).toBeInTheDocument();
       expect(screen.getByRole("link", { name: "用户中心" })).toHaveAttribute("href", "/user-center");
-      expect(screen.queryByRole("button", { name: "绑定邮箱，换手机/电脑接着打卡" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "绑定邮箱，接着打卡" })).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "立即绑定" })).not.toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "在新设备恢复数据" })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "使用原邮箱登录恢复" })).toBeInTheDocument();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
       const query = client.from("checkin_sync") as unknown as { insert: ReturnType<typeof vi.fn> };
@@ -114,7 +126,12 @@ describe("sync panel", () => {
       const user = userEvent.setup();
       seedRecordedDays(1);
       renderCheckIn();
-      await user.click(screen.getByRole("button", { name: "在新设备恢复数据" }));
+      await user.click(screen.getByRole("button", { name: "使用原邮箱登录恢复" }));
+
+      expect(screen.getByRole("dialog", { name: "恢复您的脂代谢档案" })).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("请输入您之前绑定的原邮箱")).toBeInTheDocument();
+      expect(screen.getByText("⚠️ 请勿使用新邮箱登录，否则将无法找回您的历史打卡记录。")).toBeInTheDocument();
+
       await user.type(screen.getByLabelText("邮箱地址"), "restore@example.com");
       await user.click(screen.getByRole("button", { name: "发送登录验证码" }));
       expect(await screen.findByText(/验证码已发送/)).toBeInTheDocument();
@@ -132,7 +149,7 @@ describe("sync panel", () => {
         error: { status: 429, message: "rate limit exceeded" },
       });
       renderCheckIn();
-      await user.click(screen.getByRole("button", { name: "在新设备恢复数据" }));
+      await user.click(screen.getByRole("button", { name: "使用原邮箱登录恢复" }));
       await user.type(screen.getByLabelText("邮箱地址"), "limited@example.com");
       await user.click(screen.getByRole("button", { name: "发送登录验证码" }));
       expect(await screen.findByRole("alert")).toHaveTextContent(/发送太频繁/);

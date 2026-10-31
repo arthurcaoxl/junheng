@@ -966,6 +966,14 @@ section { scroll-margin-top: 78px; }
 .sync-panel-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 22px; }
 .sync-panel-actions button { padding: 12px 18px; background: none; border: 1px solid var(--line-light); border-radius: 999px; color: var(--paper); font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; }
 .sync-panel-actions button[aria-expanded="true"] { border-color: var(--acid); color: var(--acid); }
+.sync-paths { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 24px; }
+.sync-path { min-width: 0; padding: 24px; border: 1px solid var(--line-light); }
+.sync-path-primary { border-color: var(--acid); }
+.sync-path-audience { color: var(--paper); font-size: 12px; font-weight: 800; letter-spacing: .04em; }
+.sync-path-primary .sync-path-audience { color: var(--acid); }
+.sync-path button { width: 100%; min-height: 48px; margin-top: 18px; padding: 12px 16px; background: none; border: 1px solid var(--line-light); border-radius: 999px; color: var(--paper); font: inherit; font-size: 13px; font-weight: 700; line-height: 1.5; cursor: pointer; }
+.sync-path .sync-panel-bind { background: var(--acid); color: var(--forest) !important; }
+.sync-path-note { margin-top: 14px; font-size: 12px; line-height: 1.8; opacity: .6; }
 .sync-panel-form { max-width: 560px; margin-top: 24px; padding: 22px; border: 1px solid var(--line-light); }
 .sync-panel-form label { display: block; margin-bottom: 10px; font-size: 12px; font-weight: 700; letter-spacing: .06em; opacity: .8; }
 .sync-panel-form input { width: 100%; padding: 14px 12px; background: rgba(243, 241, 232, .06); border: 1px solid var(--line-light); color: var(--paper); font: inherit; font-size: 16px; }
@@ -995,6 +1003,7 @@ section { scroll-margin-top: 78px; }
 .sync-modal-primary:disabled { opacity: .45; cursor: not-allowed; }
 .sync-modal-error { margin-top: 16px; font-size: 13px; line-height: 1.7; color: #ff9d8a; }
 .sync-modal-notice { margin-top: 16px; font-size: 13px; line-height: 1.7; color: var(--acid); }
+.sync-modal-restore-warning { margin-top: 16px; padding: 12px 14px; border-left: 2px solid #ff9d8a; background: rgba(255, 157, 138, .08); color: #ff9d8a; font-size: 13px; font-weight: 700; line-height: 1.7; }
 
 /* v1.9.0 · 打卡表单内嵌引导（仅未绑定显示） */
 .sync-inline-hint { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 20px; padding: 16px 18px; border: 1px dashed var(--line-light); }
@@ -1011,6 +1020,8 @@ section { scroll-margin-top: 78px; }
 /* v1.9.0 · 底部状态栏按钮 */
 .sync-panel-bind { border-color: var(--acid) !important; color: var(--acid) !important; }
 .sync-panel-secondary { opacity: .8; }
+.sync-panel .sync-panel-restore { border-color: var(--acid); background: rgb(200 255 61 / 8%); color: var(--acid); opacity: 1; }
+.sync-panel .sync-panel-restore:hover, .sync-panel .sync-panel-restore:focus-visible { background: rgb(200 255 61 / 16%); }
 .sync-panel-bound { color: var(--acid); opacity: .85; }
 .sync-panel-flash { animation: sync-flash 1.4s ease; }
 @keyframes sync-flash {
@@ -1022,6 +1033,8 @@ section { scroll-margin-top: 78px; }
   .check-in-entry-heading { margin-top: 44px; }
   .check-in-entry-link { width: 100%; justify-content: center; }
   .check-in-page-nav { padding-top: calc(88px + env(safe-area-inset-top, 0px)); }
+  .sync-paths { grid-template-columns: 1fr; gap: 12px; }
+  .sync-path { padding: 20px; }
   .sync-status-pill { padding: 6px 10px; font-size: 11px; letter-spacing: 0; }
   .sync-modal { max-height: calc(100dvh - 40px); padding: 28px 22px 24px; overflow-y: auto; }
   .sync-modal h2 { font-size: 20px; line-height: 1.5; }

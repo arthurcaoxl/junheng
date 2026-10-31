@@ -123,7 +123,7 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
         <h2 id="sync-modal-title">
           {milestone
             ? milestoneKind === "poster" ? "🎉 您的专属健康海报已生成！" : milestoneKind === "certificate" ? "🎉 您的会员结业纪念证书已生成！" : "🎉 太棒了！您已坚持记录 7 天，专属的健康趋势已经生成！"
-            : mode === "bind" ? "绑定邮箱，换手机/电脑接着打卡" : mode === "change-email" ? "修改登录邮箱" : "在新设备恢复数据"}
+            : mode === "bind" ? "绑定邮箱，换手机/电脑接着打卡" : mode === "change-email" ? "修改登录邮箱" : "恢复您的脂代谢档案"}
         </h2>
         <p className="sync-modal-sub">
           {milestone
@@ -138,6 +138,9 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
                 ? "输入新邮箱接收验证码。验证与云端同步成功后才会更新登录邮箱，账号身份和营员代码保持不变。"
                 : "输入已绑定的邮箱接收验证码。登录后，云端记录会恢复到本机；本机原记录会自动备份。"}
         </p>
+        {!milestone && mode === "restore" && (
+          <p className="sync-modal-restore-warning">⚠️ 请勿使用新邮箱登录，否则将无法找回您的历史打卡记录。</p>
+        )}
 
         {phase === "email" ? (
           <>
@@ -146,7 +149,7 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
               id="sync-modal-email"
               type="email"
               autoComplete="email"
-              placeholder="you@example.com"
+              placeholder={!milestone && mode === "restore" ? "请输入您之前绑定的原邮箱" : "you@example.com"}
               value={email}
               onChange={(event) => setEmail(event.target.value)}
               autoFocus={!preserveFocus}
