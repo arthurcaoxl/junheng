@@ -37,9 +37,29 @@
 
 - 日期键使用浏览器本地日历日期，格式 `YYYY-MM-DD`；不得改用 UTC 时间戳或带时间的 ISO 字符串。
 - 21 天窗口为 `startDate` 起连续 21 个日期键。
-- `DayRecord` 字段：`weight: string`、`waist: string`、`meals: boolean[3]`、`water: boolean`、`movement: boolean`、`sleep: boolean`。
+- `DayRecord` 字段：`weight: string`、`waist: string`、`meals: boolean[3]`、`water: boolean`、`movement: boolean`、`sleep: boolean`；多节点扩展字段 `weights`、`clothes` 为可选（见下节）。
 - `meals` 顺序固定为早餐、午餐、晚餐；长度必须为 3。
-- 体重或腰围非空，或任一行为项为 `true`，即视为有内容。CSV 只导出有内容记录。
+- 体重或腰围非空，或任一行为项为 `true`，即视为有内容；`weights` 任一节点有有效值同样视为有内容。CSV 只导出有内容记录。
+
+## 体重多节点扩展（v3 增量，schema 仍为 3）
+
+`DayRecord` 新增可选字段，原始称重值全部保留：
+
+| 字段 | 类型 | 规则 |
+| --- | --- | --- |
+| `weights` | object，可选 | 原始称重值（未扣衣物），键为 `morning` / `noon` / `evening`，值为 string kg。 |
+| `clothes` | string，可选 | 当天录入时的衣物重量快照（kg）；缺省视为 `"0"`。 |
+
+顶层 `CheckInState` 新增 `clothesWeight: string`（可选）：全局默认衣物重量，默认 `"0"`。修改全局值只影响之后新录入的记录；已保存当天的 `clothes` 快照不变。
+
+派生与兼容规则：
+
+1. **唯一真相是 `weights` 原始值**；净重 = 称重 − 衣物，在使用时现算，不存净重。净重 < 20 kg 视为录入异常，不参与代表体重计算并由 UI 警告。
+2. `weight` 字段保留，保存时双写为「综合代表体重」缓存，仅供旧读者（趋势、CSV、海报）使用；`weights` 存在时以 `weights` 为准，忽略 `weight` 缓存。
+3. 旧数据只有 `weight` 时，读取视为 `morning = weight`、`clothes = "0"`；只读不静默重写，用户编辑保存时才升级为 `weights` 结构。
+4. `weights` 损坏或不是对象时回退到 `weight`；仍无效则视为无体重记录。
+5. 综合代表体重算法：早/中/晚基础权重 60% / 20% / 20%，缺失节点按剩余权重等比重归一化；仅一个节点时取其净重；仅中/晚无早晨时标注「非空腹参考值」。不设固定时段补偿偏移量。
+6. 实现：`apps/web/src/utils/weight.ts` 纯函数；前台趋势、海报、CSV、后台统计必须统一调用 `getRepresentativeWeight`，不得各自实现。
 
 ## v2 / v1 迁移
 
