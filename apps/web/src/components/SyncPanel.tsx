@@ -12,7 +12,9 @@ export function SyncPanel() {
   const [milestone, setMilestone] = useState(false);
   const [milestoneKind, setMilestoneKind] = useState<SyncMilestoneKind>("trend");
   const [posterUrl, setPosterUrl] = useState("");
+  const [preserveFocus, setPreserveFocus] = useState(false);
   const pendingActionRef = useRef<(() => void) | null>(null);
+  const pendingCancelRef = useRef<(() => void) | null>(null);
   const [backupState, setBackupState] = useState<"idle" | "saving" | "synced" | "offline">("idle");
 
   useEffect(() => {
@@ -23,11 +25,18 @@ export function SyncPanel() {
       setMilestone(Boolean(detail?.milestone));
       setMilestoneKind(detail?.milestoneKind === "poster" || detail?.milestoneKind === "certificate" ? detail.milestoneKind : "trend");
       setPosterUrl(detail?.posterUrl ?? "");
+      setPreserveFocus(Boolean(detail?.preserveFocus));
       pendingActionRef.current = detail?.onSuccess ?? null;
+      pendingCancelRef.current = detail?.onCancel ?? null;
       setModalOpen(true);
     };
     window.addEventListener("junheng-open-sync", onOpen);
-    return () => window.removeEventListener("junheng-open-sync", onOpen);
+    return () => {
+      window.removeEventListener("junheng-open-sync", onOpen);
+      pendingCancelRef.current?.(); // 页面卸载等同取消，清除全局 pendingSave / savePromptOpen
+      pendingActionRef.current = null;
+      pendingCancelRef.current = null;
+    };
   }, [configured]);
 
   if (!configured) return null;
@@ -37,14 +46,25 @@ export function SyncPanel() {
     setMilestone(false);
     setMilestoneKind("trend");
     setPosterUrl("");
+    setPreserveFocus(false);
     pendingActionRef.current = null;
+    pendingCancelRef.current = null;
     setModalOpen(true);
   };
 
   const continueAfterBinding = () => {
     const action = pendingActionRef.current;
     pendingActionRef.current = null;
+    pendingCancelRef.current = null;
     action?.();
+  };
+
+  const closeModal = () => {
+    const cancel = pendingCancelRef.current;
+    pendingActionRef.current = null;
+    pendingCancelRef.current = null;
+    cancel?.();
+    setModalOpen(false);
   };
 
   const backupNow = async () => {
@@ -84,8 +104,9 @@ export function SyncPanel() {
         milestone={milestone}
         milestoneKind={milestoneKind}
         posterUrl={posterUrl}
+        preserveFocus={preserveFocus}
         onSuccess={continueAfterBinding}
-        onClose={() => setModalOpen(false)}
+        onClose={closeModal}
       />
     </section>
   );

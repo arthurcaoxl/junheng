@@ -81,6 +81,7 @@ describe("sync panel", () => {
 
     it("binds an email, immediately backs up existing records, and refreshes all status surfaces", async () => {
       const user = userEvent.setup();
+      seedRecordedDays(1);
       renderCheckIn();
       await user.click(screen.getByRole("button", { name: "绑定邮箱，换手机/电脑接着打卡" }));
       expect(screen.getByText(/输入邮箱接收 6–8 位数字验证码/)).toBeInTheDocument();
@@ -111,6 +112,7 @@ describe("sync panel", () => {
 
     it("seeds local data to the cloud when restoring on a new device with no cloud row", async () => {
       const user = userEvent.setup();
+      seedRecordedDays(1);
       renderCheckIn();
       await user.click(screen.getByRole("button", { name: "在新设备恢复数据" }));
       await user.type(screen.getByLabelText("邮箱地址"), "restore@example.com");
@@ -161,6 +163,7 @@ describe("sync panel", () => {
       await user.click(screen.getByRole("link", { name: "继续打卡" }));
 
       await user.type(screen.getByLabelText("早晨体重（空腹）"), "68");
+      await bindFromMilestone("after-d7@example.com");
       const saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}");
       expect(saved.records[todayKey()].weights.morning).toBe("68");
       expect(saved.records[todayKey()].weight).toBe("67.5");

@@ -101,7 +101,10 @@ describe("checkinSync with mocked supabase", () => {
       update: ReturnType<typeof vi.fn>;
       insert: ReturnType<typeof vi.fn>;
     };
-    query.maybeSingle.mockResolvedValueOnce({ data: { user_code: "JH-CLOUD" }, error: null });
+    query.maybeSingle.mockResolvedValueOnce({
+      data: { user_code: "JH-CLOUD", start_date: validSnapshot.startDate, records: {} },
+      error: null,
+    });
     await expect(syncToCloud()).resolves.toBe("synced");
     // 更新载荷不含 user_code，营员代码终身以云端为准
     const [payload] = query.update.mock.calls[0];
@@ -120,6 +123,7 @@ describe("checkinSync with mocked supabase", () => {
   });
 
   it("debounces repeated check-in saves into a single upload", async () => {
+    writeV3Snapshot(validSnapshot);
     vi.useFakeTimers();
     const client = getSupabase();
     scheduleSyncToCloud();
@@ -133,6 +137,7 @@ describe("checkinSync with mocked supabase", () => {
   });
 
   it("flushes pending sync on page hide", async () => {
+    writeV3Snapshot(validSnapshot);
     vi.useFakeTimers();
     const client = getSupabase();
     const uninstall = installSyncLifecycle();
@@ -175,11 +180,11 @@ describe("checkinSync with mocked supabase", () => {
   });
 
   it("restores cloud data with a local backup on a new device", async () => {
-    writeV3Snapshot(validSnapshot);
+    writeV3Snapshot({ ...validSnapshot, records: {} });
     const client = getSupabase();
-    const query = client.from("checkin_sync") as unknown as { single: ReturnType<typeof vi.fn> };
-    const cloudRow = { user_code: "JH-CLOUD", start_date: "2026-09-20", records: {} };
-    query.single.mockResolvedValueOnce({ data: cloudRow, error: null });
+    const query = client.from("checkin_sync") as unknown as { maybeSingle: ReturnType<typeof vi.fn> };
+    const cloudRow = { user_code: "JH-CLOUD", start_date: "2026-09-20", records: validSnapshot.records };
+    query.maybeSingle.mockResolvedValueOnce({ data: cloudRow, error: null });
     await expect(loginWithEmail("user@example.com", "12345678")).resolves.toBe("cloud-restored");
     expect(readV3Snapshot().userCode).toBe("JH-CLOUD");
     const backups = Object.keys(window.localStorage).filter((k) => k.startsWith("junheng-v3-backup-"));

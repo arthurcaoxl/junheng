@@ -5,12 +5,27 @@ export function readV3Snapshot(): CheckInState {
   return loadState();
 }
 
+/**
+ * 首次合并专用严格读取：已有 v3 损坏时必须中止，不能让 loadState()
+ * 回退成空的新快照，否则会被误判为“本地为空”并遭云端覆盖。
+ */
+export function readV3SnapshotStrict(): CheckInState {
+  const raw = window.localStorage.getItem(STORAGE_KEY);
+  if (raw === null) return readV3Snapshot();
+  const parsed = JSON.parse(raw) as Partial<CheckInState>;
+  const state = validateV3Snapshot(parsed);
+  if (Object.keys(state.records).length !== Object.keys(parsed.records ?? {}).length) {
+    throw new Error("本地数据包含无效日期键，已中止合并（本地数据未动）。");
+  }
+  return state;
+}
+
 /** 校验云端快照，拒绝脏数据写入本机。 */
 export function validateV3Snapshot(input: unknown): CheckInState {
   const s = input as Partial<CheckInState> | null;
   if (
     !s || s.schema !== 3 || typeof s.userCode !== "string" || !s.userCode ||
-    !isDateKey(s.startDate) || !s.records || typeof s.records !== "object"
+    !isDateKey(s.startDate) || !s.records || typeof s.records !== "object" || Array.isArray(s.records)
   ) {
     throw new Error("云端数据格式与 storage-v3 契约不符，已中止恢复（本地数据未动）。");
   }
@@ -18,7 +33,13 @@ export function validateV3Snapshot(input: unknown): CheckInState {
   Object.entries(s.records).forEach(([key, day]) => {
     if (isDateKey(key)) records[key] = day;
   });
-  return { schema: 3, userCode: s.userCode, startDate: s.startDate, records };
+  return {
+    schema: 3,
+    userCode: s.userCode,
+    startDate: s.startDate,
+    records,
+    ...(typeof s.clothesWeight === "string" ? { clothesWeight: s.clothesWeight } : {}),
+  };
 }
 
 const BACKUP_PREFIX = "junheng-v3-backup-"; // 独立备份键，与 v3 键语义无关

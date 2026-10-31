@@ -21,6 +21,7 @@ import {
 } from "../utils/checkin";
 import type { CheckInState } from "../utils/checkin";
 import { scheduleSyncToCloud } from "../services/checkinSync";
+import { requestCheckinSave } from "../services/authUpgrade";
 import {
   clothesKg,
   deriveWeightCache,
@@ -72,7 +73,7 @@ export function SevenDayCheckIn() {
   const current = state.records[activeDate] ?? emptyDay();
   const stats = getCampStats(state);
 
-  const commitState = (next: CheckInState) => {
+  const persistState = (next: CheckInState) => {
     setState(next);
     try {
       window.localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
@@ -81,8 +82,14 @@ export function SevenDayCheckIn() {
       setStorageError(true);
     }
     scheduleSyncToCloud(); // 只调度防抖上传，不改 v3 写入逻辑本身
+  };
 
-    // D3 轻提醒：达到第 3 天时仅提示一次；点“暂不”后 7 天内不再弹。
+  const commitState = (next: CheckInState) => {
+    // 匿名时只保留内存草稿，保证连续输入完整；OTP 成功后才由 pendingSave 写入 v3。
+    if (syncConfigured && !syncEmail) setState(next);
+    requestCheckinSave(() => persistState(next), { configured: syncConfigured, email: syncEmail });
+
+    // D3 轻提醒保持原触发时机：达到第 3 天即提示，与保存硬拦截互不替代。
     if (syncConfigured && !syncEmail && !toastShownRef.current && !isToastSnoozed()) {
       const days = getCampStats(next).recordedDays;
       if (days === 3) {

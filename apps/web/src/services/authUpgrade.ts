@@ -1,5 +1,44 @@
 import { ensureSession, getSupabase } from "../lib/supabase";
 import { normalizeOtpInput } from "./otp";
+import { openSyncModal } from "./syncUi";
+
+let pendingSave: (() => void) | null = null;
+let savePromptOpen = false;
+
+export type SaveAuthResult = "saved" | "login-required";
+
+/**
+ * 打卡保存硬门槛：匿名 session 虽有 uid，但没有邮箱时仍不得写入 v3。
+ * 连续输入只更新最新待保存动作；OTP 成功后恢复一次，取消则丢弃待保存动作。
+ */
+export function requestCheckinSave(
+  save: () => void,
+  auth: { configured: boolean; email: string | null },
+): SaveAuthResult {
+  if (!auth.configured || auth.email) {
+    save();
+    return "saved";
+  }
+
+  pendingSave = save;
+  if (!savePromptOpen) {
+    savePromptOpen = true;
+    openSyncModal("bind", {
+      preserveFocus: true,
+      onSuccess: () => {
+        savePromptOpen = false;
+        const action = pendingSave;
+        pendingSave = null;
+        action?.();
+      },
+      onCancel: () => {
+        savePromptOpen = false;
+        pendingSave = null;
+      },
+    });
+  }
+  return "login-required";
+}
 
 /** 第一步：匿名账户原地绑定邮箱，"Email Change"模板发 6–8 位数字码（模板已无链接）。 */
 export async function upgradeToPermanentAccount(email: string): Promise<void> {

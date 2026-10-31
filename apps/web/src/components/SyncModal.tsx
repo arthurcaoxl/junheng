@@ -12,10 +12,11 @@ type SyncModalProps = {
   milestone?: boolean;
   milestoneKind?: SyncMilestoneKind;
   posterUrl?: string;
+  preserveFocus?: boolean;
 };
 
 /** 全站统一的绑定/恢复弹窗：普通入口与 D7 里程碑拦截共用同一套 OTP 逻辑。 */
-export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, milestoneKind = "trend", posterUrl = "" }: SyncModalProps) {
+export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, milestoneKind = "trend", posterUrl = "", preserveFocus = false }: SyncModalProps) {
   const [phase, setPhase] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -88,15 +89,20 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
       return;
     }
     const source = await loginWithEmail(email, code);
-    if (source === "local-seeded") {
-      window.dispatchEvent(new CustomEvent("junheng-sync-changed", { detail: { email } }));
-      setNotice("云端暂无记录，已将本机数据上传到云端。");
-      setPhase("email");
-      setCode("");
-    } else {
+    if (source === "cloud-restored") {
       setNotice("数据已恢复，正在刷新…");
       window.location.reload();
+      return;
     }
+    window.dispatchEvent(new CustomEvent("junheng-sync-changed", { detail: { email } }));
+    setNotice(
+      source === "local-seeded" ? "云端暂无记录，已将本机数据上传到云端。"
+        : source === "local-merged" ? "本机与云端记录已按日期合并，本机新增记录已补传到云端。"
+          : source === "empty" ? "当前暂无打卡记录，账号同步已就绪。"
+            : "当前账号的数据已完成同步。",
+    );
+    setPhase("email");
+    setCode("");
   });
 
   return (
@@ -143,7 +149,7 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
               placeholder="you@example.com"
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              autoFocus
+              autoFocus={!preserveFocus}
             />
             <button type="button" className="sync-modal-primary" disabled={busy || cooldown > 0 || !email.includes("@")} onClick={sendCode}>
               {busy ? "发送中…" : cooldown > 0 ? `重发（${cooldown}s）` : milestone && milestoneKind === "poster" ? "立即绑定并查看海报" : milestone && milestoneKind === "certificate" ? "立即绑定并查看证书" : mode === "bind" ? "获取邮箱验证码" : mode === "change-email" ? "发送修改验证码" : "发送登录验证码"}

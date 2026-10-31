@@ -5,7 +5,9 @@ export type SyncOpenOptions = {
   milestone?: boolean;
   milestoneKind?: SyncMilestoneKind;
   posterUrl?: string;
+  preserveFocus?: boolean;
   onSuccess?: () => void;
+  onCancel?: () => void;
 };
 
 /** 各同步入口通过统一事件请求打卡页打开绑定/恢复弹窗。 */
