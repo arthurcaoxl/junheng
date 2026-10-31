@@ -88,4 +88,21 @@ describe("极简体重记录与衣物扣减", () => {
     expect(within(evening as HTMLElement).queryByText(/净重|扣除衣物/)).not.toBeInTheDocument();
     expect(savedState().records[todayKey()].weight).toBe("67.9");
   });
+
+  it("收起其他时段后隐藏中晚输入但保留已记录数据", async () => {
+    const user = userEvent.setup();
+    renderCheckIn();
+    await user.click(screen.getByRole("button", { name: "+ 记录中午/晚间体重（选填）" }));
+    await user.type(screen.getByLabelText("中午体重"), "68.4");
+    await user.type(screen.getByLabelText("晚间体重"), "68.8");
+
+    await user.click(screen.getByRole("button", { name: "收起其他时段记录" }));
+
+    expect(screen.queryByLabelText("中午体重")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("晚间体重")).not.toBeInTheDocument();
+    expect(savedState().records[todayKey()].weights).toMatchObject({ noon: "68.4", evening: "68.8" });
+    await user.click(screen.getByRole("button", { name: "+ 记录中午/晚间体重（选填）" }));
+    expect(screen.getByLabelText("中午体重")).toHaveValue(68.4);
+    expect(screen.getByLabelText("晚间体重")).toHaveValue(68.8);
+  });
 });

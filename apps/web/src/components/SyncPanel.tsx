@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useSyncStatus } from "../hooks/useSyncStatus";
 import { syncToCloud } from "../services/checkinSync";
-import type { SyncMode, SyncOpenOptions } from "../services/syncUi";
+import type { SyncMilestoneKind, SyncMode, SyncOpenOptions } from "../services/syncUi";
 import { SyncModal } from "./SyncModal";
 
 /** 打卡页底部的同步状态栏：未绑定给引导入口，已绑定弱化展示并保留恢复入口。 */
@@ -10,6 +10,7 @@ export function SyncPanel() {
   const [modalOpen, setModalOpen] = useState(false);
   const [mode, setMode] = useState<SyncMode>("bind");
   const [milestone, setMilestone] = useState(false);
+  const [milestoneKind, setMilestoneKind] = useState<SyncMilestoneKind>("trend");
   const [posterUrl, setPosterUrl] = useState("");
   const pendingActionRef = useRef<(() => void) | null>(null);
   const [backupState, setBackupState] = useState<"idle" | "saving" | "synced" | "offline">("idle");
@@ -20,6 +21,7 @@ export function SyncPanel() {
       const detail = (event as CustomEvent<SyncOpenOptions & { mode?: SyncMode }>).detail;
       setMode(detail?.mode === "restore" ? "restore" : "bind");
       setMilestone(Boolean(detail?.milestone));
+      setMilestoneKind(detail?.milestoneKind === "poster" ? "poster" : "trend");
       setPosterUrl(detail?.posterUrl ?? "");
       pendingActionRef.current = detail?.onSuccess ?? null;
       setModalOpen(true);
@@ -33,6 +35,7 @@ export function SyncPanel() {
   const open = (next: SyncMode) => {
     setMode(next);
     setMilestone(false);
+    setMilestoneKind("trend");
     setPosterUrl("");
     pendingActionRef.current = null;
     setModalOpen(true);
@@ -79,6 +82,7 @@ export function SyncPanel() {
         open={modalOpen}
         mode={mode}
         milestone={milestone}
+        milestoneKind={milestoneKind}
         posterUrl={posterUrl}
         onSuccess={continueAfterBinding}
         onClose={() => setModalOpen(false)}

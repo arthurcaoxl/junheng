@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { confirmEmailUpgrade, upgradeToPermanentAccount } from "../services/authUpgrade";
 import { loginWithEmail, resendRemainingSeconds, sendLoginCode, syncToCloud } from "../services/checkinSync";
 import { OTP_INPUT_HINT, OTP_INPUT_PROPS } from "../services/otp";
-import type { SyncMode } from "../services/syncUi";
+import type { SyncMilestoneKind, SyncMode } from "../services/syncUi";
 
 type SyncModalProps = {
   open: boolean;
@@ -10,11 +10,12 @@ type SyncModalProps = {
   onClose: () => void;
   onSuccess?: () => void;
   milestone?: boolean;
+  milestoneKind?: SyncMilestoneKind;
   posterUrl?: string;
 };
 
 /** 全站统一的绑定/恢复弹窗：普通入口与 D7 里程碑拦截共用同一套 OTP 逻辑。 */
-export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, posterUrl = "" }: SyncModalProps) {
+export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, milestoneKind = "trend", posterUrl = "" }: SyncModalProps) {
   const [phase, setPhase] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -102,15 +103,19 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, p
         {!milestone && <button type="button" className="sync-modal-close" aria-label="关闭" onClick={onClose}>×</button>}
         {milestone && posterUrl && (
           <div className="sync-modal-milestone-visual">
-            <img src={posterUrl} alt="7 天健康趋势海报预览" />
+            <img src={posterUrl} alt={milestoneKind === "poster" ? "专属健康海报模糊预览" : "7 天健康趋势海报预览"} />
           </div>
         )}
         <h2 id="sync-modal-title">
-          {milestone ? "🎉 太棒了！您已坚持记录 7 天，专属的健康趋势已经生成！" : mode === "bind" ? "绑定邮箱，换手机/电脑接着打卡" : "在新设备恢复数据"}
+          {milestone
+            ? milestoneKind === "poster" ? "🎉 您的专属健康海报已生成！" : "🎉 太棒了！您已坚持记录 7 天，专属的健康趋势已经生成！"
+            : mode === "bind" ? "绑定邮箱，换手机/电脑接着打卡" : "在新设备恢复数据"}
         </h2>
         <p className="sync-modal-sub">
           {milestone
-            ? "为了防止数据丢失（换手机/清缓存），请绑定邮箱永久保存。登录后自动为您展开成果。"
+            ? milestoneKind === "poster"
+              ? "绑定邮箱即可永久保存这份成就（换手机不丢失）。登录后将自动为您展开高清海报。"
+              : "为了防止数据丢失（换手机/清缓存），请绑定邮箱永久保存。登录后自动为您展开成果。"
             : mode === "bind"
               ? "输入邮箱接收 6–8 位数字验证码。绑定后，您的打卡记录会自动备份到云端，换手机或电脑登录即可恢复。"
               : "输入已绑定的邮箱接收验证码。登录后，云端记录会恢复到本机；本机原记录会自动备份。"}
@@ -129,7 +134,7 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, p
               autoFocus
             />
             <button type="button" className="sync-modal-primary" disabled={busy || cooldown > 0 || !email.includes("@")} onClick={sendCode}>
-              {busy ? "发送中…" : cooldown > 0 ? `重发（${cooldown}s）` : mode === "bind" ? "获取邮箱验证码" : "发送登录验证码"}
+              {busy ? "发送中…" : cooldown > 0 ? `重发（${cooldown}s）` : milestone && milestoneKind === "poster" ? "立即绑定并查看海报" : mode === "bind" ? "获取邮箱验证码" : "发送登录验证码"}
             </button>
           </>
         ) : (
@@ -145,7 +150,7 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, p
             />
             <p className="sync-modal-hint">{OTP_INPUT_HINT}</p>
             <button type="button" className="sync-modal-primary" disabled={busy || !code.trim()} onClick={submitCode}>
-              {busy ? "验证中…" : mode === "bind" ? "完成绑定" : "登录并恢复数据"}
+              {busy ? "验证中…" : milestone && milestoneKind === "poster" ? "完成绑定并查看海报" : mode === "bind" ? "完成绑定" : "登录并恢复数据"}
             </button>
           </>
         )}

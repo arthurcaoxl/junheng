@@ -237,14 +237,33 @@ describe("priority lifestyle sections", () => {
     expect(screen.queryByRole("link", { name: "咨询与留资" })).not.toBeInTheDocument();
   });
 
-  it("defaults to today inside the camp window and disables future days", async () => {
+  it("defaults to today inside the camp window and disables future days without backfill labels", async () => {
     renderApp("/check-in");
     const checkIn = setCampStart(-5);
     expect(within(checkIn).getByText(/第 6 天 · 保持记录/)).toBeInTheDocument();
     expect(within(checkIn).getByRole("tab", { name: /第 21 天/ })).toBeDisabled();
     expect(within(checkIn).getByRole("tab", { name: /第 6 天/ })).toHaveAttribute("aria-selected", "true");
-    const missedTabs = within(checkIn).getAllByRole("tab").filter((tab) => tab.textContent?.includes("补记"));
-    expect(missedTabs.length).toBeGreaterThan(0);
+    expect(within(checkIn).queryByText(/补记/)).not.toBeInTheDocument();
+  });
+
+  it("derives date status dots from real records whenever the camp start changes", async () => {
+    const yesterday = addDays(todayKey(), -1);
+    const recordedDay = { weight: "65", waist: "", meals: [false, false, false], water: false, movement: false, sleep: false };
+    window.localStorage.setItem("junheng-checkin-v3", JSON.stringify({
+      schema: 3, userCode: "JH-TEST1", startDate: yesterday, records: { [yesterday]: recordedDay },
+    }));
+    renderApp("/check-in");
+    const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
+
+    expect(within(checkIn).getByRole("tab", { name: /第 1 天/ })).toHaveAttribute("data-has-content", "true");
+    expect(within(checkIn).getByRole("tab", { name: /第 1 天/ }).querySelector(".day-tab-status")).toBeInTheDocument();
+    expect(within(checkIn).getByRole("tab", { name: /第 2 天/ })).toHaveAttribute("data-has-content", "false");
+    expect(within(checkIn).getByRole("tab", { name: /第 2 天/ }).querySelector(".day-tab-status")).not.toBeInTheDocument();
+
+    fireEvent.change(within(checkIn).getByLabelText("开营日期"), { target: { value: addDays(todayKey(), -2) } });
+    expect(within(checkIn).getByRole("tab", { name: /第 1 天/ })).toHaveAttribute("data-has-content", "false");
+    expect(within(checkIn).getByRole("tab", { name: /第 2 天/ })).toHaveAttribute("data-has-content", "true");
+    expect(within(checkIn).queryByText(/补记/)).not.toBeInTheDocument();
   });
 
   it("shows camp completion stats after day 21 and keeps the camper code immutable", async () => {

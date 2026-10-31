@@ -37,9 +37,9 @@ function mockPosterCanvas() {
 async function bindFromMilestone(email = "seven@example.com") {
   const user = userEvent.setup();
   await user.type(screen.getByLabelText("邮箱地址"), email);
-  await user.click(screen.getByRole("button", { name: "获取邮箱验证码" }));
+  await user.click(screen.getByRole("button", { name: /获取邮箱验证码|立即绑定并查看海报/ }));
   await user.type(await screen.findByLabelText("邮箱验证码"), "12345678");
-  await user.click(screen.getByRole("button", { name: "完成绑定" }));
+  await user.click(screen.getByRole("button", { name: /完成绑定/ }));
 }
 
 describe("sync panel", () => {
@@ -149,13 +149,14 @@ describe("sync panel", () => {
       expect(window.localStorage.getItem("junheng-sync-toast-snooze")).not.toBeNull();
     });
 
-    it("gates calendar day 7 even with fewer records and keeps saving after dismissal", async () => {
+    it("gates calendar day 7 after a D3 snooze and keeps saving after dismissal", async () => {
       mockPosterCanvas();
       seedCalendarDay(7, 1);
+      window.localStorage.setItem("junheng-sync-toast-snooze", String(Date.now()));
       const user = userEvent.setup();
       renderCheckIn();
       await user.click(screen.getByRole("button", { name: "导出记录海报" }));
-      expect(screen.getByRole("dialog", { name: /太棒了！您已坚持记录 7 天/ })).toBeInTheDocument();
+      expect(screen.getByRole("dialog", { name: "🎉 您的专属健康海报已生成！" })).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: "暂不，返回打卡" }));
 
       await user.type(screen.getByLabelText("早晨体重（空腹）"), "68");
@@ -165,16 +166,17 @@ describe("sync panel", () => {
       expect(screen.queryByRole("img", { name: "21 天健康记录海报预览" })).not.toBeInTheDocument();
     });
 
-    it("blocks an anonymous day-7 poster export without allowing Escape or overlay dismissal", async () => {
+    it("blocks an anonymous day-7 poster export with achievement copy and a blurred preview", async () => {
       mockPosterCanvas();
       seedRecordedDays(7);
       const user = userEvent.setup();
       renderCheckIn();
       await user.click(screen.getByRole("button", { name: "导出记录海报" }));
 
-      const dialog = screen.getByRole("dialog", { name: /太棒了！您已坚持记录 7 天/ });
-      expect(dialog).toHaveTextContent("为了防止数据丢失（换手机/清缓存），请绑定邮箱永久保存。登录后自动为您展开成果。");
-      expect(screen.getByRole("img", { name: "7 天健康趋势海报预览" })).toBeInTheDocument();
+      const dialog = screen.getByRole("dialog", { name: "🎉 您的专属健康海报已生成！" });
+      expect(dialog).toHaveTextContent("绑定邮箱即可永久保存这份成就（换手机不丢失）。登录后将自动为您展开高清海报。");
+      expect(screen.getByRole("button", { name: "立即绑定并查看海报" })).toBeInTheDocument();
+      expect(screen.getByRole("img", { name: "专属健康海报模糊预览" })).toBeInTheDocument();
       expect(screen.queryByRole("img", { name: "21 天健康记录海报预览" })).not.toBeInTheDocument();
       await user.keyboard("{Escape}");
       expect(screen.getByRole("dialog")).toBeInTheDocument();

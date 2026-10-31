@@ -1,7 +1,9 @@
 export type SyncMode = "bind" | "restore";
+export type SyncMilestoneKind = "poster" | "trend";
 
 export type SyncOpenOptions = {
   milestone?: boolean;
+  milestoneKind?: SyncMilestoneKind;
   posterUrl?: string;
   onSuccess?: () => void;
 };

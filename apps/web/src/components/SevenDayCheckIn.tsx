@@ -72,7 +72,7 @@ export function SevenDayCheckIn() {
   const [storageError, setStorageError] = useState(false);
   const [posterUrl, setPosterUrl] = useState("");
   const [posterError, setPosterError] = useState(false);
-  const [showExtraNodes, setShowExtraNodes] = useState(false);
+  const [extraNodesMode, setExtraNodesMode] = useState<"auto" | "open" | "closed">("auto");
   const [editingClothes, setEditingClothes] = useState(false);
   const [clothesDraft, setClothesDraft] = useState("0");
   const [trendUnlocked, setTrendUnlocked] = useState(false);
@@ -132,6 +132,8 @@ export function SevenDayCheckIn() {
   const effectiveClothes = current.clothes ?? state.clothesWeight ?? "0";
   const nodeValue = (node: WeightNode) =>
     current.weights ? (current.weights[node] ?? "") : (node === "morning" ? current.weight : "");
+  const hasExtraNodeValues = Boolean(nodeValue("noon") || nodeValue("evening"));
+  const extraNodesVisible = extraNodesMode === "open" || (extraNodesMode === "auto" && hasExtraNodeValues);
   const updateNode = (node: WeightNode, value: string) => {
     const base: NodeWeights = current.weights ?? (current.weight ? { morning: current.weight } : {});
     updateDay({
@@ -166,6 +168,7 @@ export function SevenDayCheckIn() {
   const selectDate = (key: string) => {
     if (key > today) return;
     setActiveDate(key);
+    setExtraNodesMode("auto");
     const tab = document.getElementById(`day-tab-${key}`);
     tab?.focus();
     tab?.scrollIntoView?.({ block: "nearest", inline: "center" });
@@ -205,19 +208,19 @@ export function SevenDayCheckIn() {
     }
   };
 
-  const openMilestoneBinding = (onSuccess: () => void) => {
+  const openMilestoneBinding = (kind: "poster" | "trend", onSuccess: () => void) => {
     let previewUrl = "";
     try { previewUrl = buildPoster(); } catch { /* 无 Canvas 时仅降级头图，不阻断绑定 */ }
-    openSyncModal("bind", { milestone: true, posterUrl: previewUrl, onSuccess });
+    openSyncModal("bind", { milestone: true, milestoneKind: kind, posterUrl: previewUrl, onSuccess });
   };
 
   const requestPoster = () => {
-    if (requiresMilestoneBinding) openMilestoneBinding(exportPoster);
+    if (requiresMilestoneBinding) openMilestoneBinding("poster", exportPoster);
     else exportPoster();
   };
 
   const requestTrends = () => {
-    if (requiresMilestoneBinding) openMilestoneBinding(() => setTrendUnlocked(true));
+    if (requiresMilestoneBinding) openMilestoneBinding("trend", () => setTrendUnlocked(true));
     else setTrendUnlocked(true);
   };
 
@@ -278,7 +281,7 @@ export function SevenDayCheckIn() {
       <div className="day-tabs" role="tablist" aria-label="21 天打卡日期" onKeyDown={onKeyDown}>
         {windowDates.map((key, index) => {
           const isFuture = key > today;
-          const isMissed = key < today && !hasContent(state.records[key]);
+          const recorded = hasContent(state.records[key]);
           return (
             <button
               type="button"
@@ -290,11 +293,13 @@ export function SevenDayCheckIn() {
               tabIndex={activeDate === key ? 0 : -1}
               key={key}
               disabled={isFuture}
-              className={`${key === today ? "day-tab-today" : ""}${isMissed ? " day-tab-missed" : ""}`}
+              data-has-content={recorded ? "true" : "false"}
+              className={`${key === today ? "day-tab-today" : ""}${recorded ? " day-tab-recorded" : " day-tab-empty"}`}
               onClick={() => selectDate(key)}
             >
-              <span>DAY{isFuture ? " · 未到" : isMissed ? " · 补记" : ""}</span>
+              <span>DAY{isFuture ? " · 未到" : ""}</span>
               <strong>{String(index + 1).padStart(2, "0")}</strong>
+              {recorded && <span className="day-tab-status" aria-hidden="true" />}
               <small>{formatShortDate(key)}</small>
             </button>
           );
@@ -340,7 +345,7 @@ export function SevenDayCheckIn() {
             <p>仅晨起空腹记录会扣除该重量。建议晨起穿轻便睡衣测量。</p>
           </div>
           <div className="metrics-input-grid">
-            {WEIGHT_NODES.filter((meta) => meta.key === "morning" || showExtraNodes || nodeValue(meta.key)).map((meta) => {
+            {WEIGHT_NODES.filter((meta) => meta.key === "morning" || extraNodesVisible).map((meta) => {
               const value = nodeValue(meta.key);
               const net = netWeight(value, meta.key === "morning" ? effectiveClothes : "0");
               return (
@@ -369,8 +374,10 @@ export function SevenDayCheckIn() {
               <label><span className="weight-node-label">腰围（cm）</span><input type="number" inputMode="decimal" min="0" step="0.1" placeholder="选填" value={current.waist} onChange={(event) => updateDay({ waist: event.target.value })} /></label>
             </div>
           </div>
-          {!showExtraNodes && !nodeValue("noon") && !nodeValue("evening") && (
-            <button type="button" className="weight-add-nodes" onClick={() => setShowExtraNodes(true)}>+ 记录中午/晚间体重（选填）</button>
+          {extraNodesVisible ? (
+            <button type="button" className="weight-add-nodes" onClick={() => setExtraNodesMode("closed")}>收起其他时段记录</button>
+          ) : (
+            <button type="button" className="weight-add-nodes" onClick={() => setExtraNodesMode("open")}>+ 记录中午/晚间体重（选填）</button>
           )}
           {representative.value !== null && (
             <div className="weight-summary">
