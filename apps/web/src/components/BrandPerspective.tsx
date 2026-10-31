@@ -7,8 +7,8 @@ export function BrandPerspective() {
         <h2 id="perspective-title">吃对了，营养打底，<br />脂肪代谢才更有底气</h2>
       </div>
       <div className="perspective-body">
-        <p className="lead">减脂，不应该是一场与身体的对抗。</p>
-        <p>一味节食，可能让营养摄入不足，也可能伴随肌肉流失，让长期坚持变得更难。比起极端限制，我们更在意每一餐的质量，以及可以持续的生活节奏。</p>
+        <p className="lead">科学管理体重，不靠极端节食，不追求脱水式减重。</p>
+        <p>饭前一杯，配合正常三餐和规律记录；即使应酬较多，也能把饮食搭配和体重变化看得更清楚。</p>
         <dl className="perspective-values">
           <div><dt>不只关注少吃</dt><dd>也关注蛋白质、维生素与日常营养补充</dd></div>
           <div><dt>不追求短期对抗</dt><dd>把餐前一杯变成容易坚持的小习惯</dd></div>

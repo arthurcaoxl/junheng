@@ -28,7 +28,7 @@ export function PlateGuide() {
         <header className="plate-copy">
           <p className="eyebrow">不用计算每一口，也能看清一餐</p>
           <h2 id="plate-title">211 饮食法，<br />把一餐摆明白。</h2>
-          <p>2 拳蔬菜、1 拳优质蛋白、1 拳主食。餐前一杯是营养伴侣，正常吃饭仍然是主角。</p>
+          <p>不用算热量，记住 2 拳蔬菜、1 拳优质蛋白、1 拳主食。哪怕在饭店应酬，也能照着搭配。餐前一杯是营养伴侣，正常吃饭仍然是主角。</p>
           <div className="plate-example" role="tabpanel" id="plate-panel" aria-labelledby={`plate-tab-${active}`}>
             <span>{item.ratio} · 食物示例</span>
             <p>{item.examples}</p>

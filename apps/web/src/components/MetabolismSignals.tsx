@@ -10,8 +10,8 @@ export function MetabolismSignals() {
       <div className="section-index"><span>02</span><span>METABOLISM SIGNALS</span></div>
       <header className="section-heading signals-heading">
         <p className="eyebrow">代谢保护机制</p>
-        <h2 id="signals-title">营养不均时，<br />身体会亮起“饥荒信号”。</h2>
-        <p className="lead-copy">吃得少，不等于吃得对。极端节食可能让营养摄入不足，也可能伴随肌肉流失。</p>
+        <h2 id="signals-title">为什么吃得少，体重还是难降？<br />吃得不均衡，长期坚持也会更难。</h2>
+        <p className="lead-copy">外卖高油高碳水、频繁应酬饮酒、久坐不动，让 30 岁后的体重管理越来越吃力。不是你不自律，而是忙碌的生活，正在挤占均衡营养和运动的空间。</p>
       </header>
       <div className="signal-list">
         {signals.map((signal) => (
