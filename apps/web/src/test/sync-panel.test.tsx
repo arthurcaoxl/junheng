@@ -6,14 +6,40 @@ import App from "../App";
 import { getSupabase } from "../lib/supabase";
 import { addDays, emptyDay, STORAGE_KEY, todayKey } from "../utils/checkin";
 
-function renderCheckIn() {
-  return render(<MemoryRouter initialEntries={["/check-in"]}><App /></MemoryRouter>);
+function renderCheckIn(route = "/check-in") {
+  return render(<MemoryRouter initialEntries={[route]}><App /></MemoryRouter>);
+}
+
+function seedRecordedDays(count: number, leaveTodayEmpty = false) {
+  const startDate = addDays(todayKey(), -(count - 1 + (leaveTodayEmpty ? 1 : 0)));
+  const recordedDay = { ...emptyDay(), weight: "65", waist: "82", water: true };
+  const records = Object.fromEntries(Array.from({ length: count }, (_, index) => [addDays(startDate, index), recordedDay]));
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ schema: 3, userCode: "JH-TEST1", startDate, records }));
+}
+
+function mockPosterCanvas() {
+  const context = {
+    fillRect: vi.fn(), fillText: vi.fn(), beginPath: vi.fn(), moveTo: vi.fn(),
+    lineTo: vi.fn(), stroke: vi.fn(), arc: vi.fn(), fill: vi.fn(),
+    measureText: vi.fn(() => ({ width: 100 })), closePath: vi.fn(),
+  };
+  vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context as unknown as CanvasRenderingContext2D);
+  vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/png;base64,poster");
+}
+
+async function bindFromMilestone(email = "seven@example.com") {
+  const user = userEvent.setup();
+  await user.type(screen.getByLabelText("邮箱地址"), email);
+  await user.click(screen.getByRole("button", { name: "获取邮箱验证码" }));
+  await user.type(await screen.findByLabelText("邮箱验证码"), "12345678");
+  await user.click(screen.getByRole("button", { name: "完成绑定" }));
 }
 
 describe("sync panel", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
     vi.useRealTimers();
+    vi.restoreAllMocks();
   });
 
   it("hides every sync entry when supabase env is not configured", () => {
@@ -31,6 +57,7 @@ describe("sync panel", () => {
       vi.clearAllMocks();
       vi.stubEnv("VITE_SUPABASE_URL", "https://test.supabase.co");
       vi.stubEnv("VITE_SUPABASE_ANON_KEY", "test-anon-key");
+      (getSupabase().auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { session: null } });
     });
 
     it("exposes the header pill and inline guide, both opening the shared modal", async () => {
@@ -62,7 +89,7 @@ describe("sync panel", () => {
       expect(client.auth.verifyOtp).toHaveBeenCalledWith({ email: "bind@example.com", token: "12345678", type: "email_change" });
 
       expect(await screen.findByText(/已绑定邮箱：bind@example.com。打卡记录会自动备份到云端。/)).toBeInTheDocument();
-      expect(screen.getByRole("button", { name: "已同步，查看跨设备同步" })).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "用户中心" })).toHaveAttribute("href", "/user-center");
       expect(screen.queryByRole("button", { name: "绑定邮箱，换手机/电脑接着打卡" })).not.toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "立即绑定" })).not.toBeInTheDocument();
       expect(screen.getByRole("button", { name: "在新设备恢复数据" })).toBeInTheDocument();
@@ -102,28 +129,83 @@ describe("sync panel", () => {
       expect(await screen.findByRole("alert")).toHaveTextContent(/发送太频繁/);
     });
 
-    it("shows a dismissible soft prompt after the fourth recorded day", async () => {
+    it("shows a dismissible soft prompt exactly when the third day is recorded", async () => {
       vi.useFakeTimers();
-      const startDate = addDays(todayKey(), -3);
-      const recordedDay = { ...emptyDay(), water: true };
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        schema: 3,
-        userCode: "JH-TEST1",
-        startDate,
-        records: {
-          [startDate]: recordedDay,
-          [addDays(startDate, 1)]: recordedDay,
-          [addDays(startDate, 2)]: recordedDay,
-        },
-      }));
+      seedRecordedDays(2, true);
       renderCheckIn();
       fireEvent.click(screen.getByRole("checkbox", { name: "早餐前已饮用" }));
       await act(async () => { await vi.advanceTimersByTimeAsync(1500); });
 
-      expect(screen.getByText(/您已坚持打卡 4 天/)).toBeInTheDocument();
-      fireEvent.click(screen.getByRole("button", { name: "稍后再说" }));
-      expect(screen.queryByText(/您已坚持打卡 4 天/)).not.toBeInTheDocument();
+      expect(screen.getByText("🎉 您已坚持打卡 3 天！建议绑定邮箱，防止数据丢失，换手机也能接着打卡。")).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: "暂不" }));
+      expect(screen.queryByText(/您已坚持打卡 3 天/)).not.toBeInTheDocument();
       expect(window.localStorage.getItem("junheng-sync-toast-snooze")).not.toBeNull();
+    });
+
+    it("blocks an anonymous day-7 poster export without allowing Escape or overlay dismissal", async () => {
+      mockPosterCanvas();
+      seedRecordedDays(7);
+      const user = userEvent.setup();
+      renderCheckIn();
+      await user.click(screen.getByRole("button", { name: "导出记录海报" }));
+
+      const dialog = screen.getByRole("dialog", { name: /恭喜完成 7 天打卡/ });
+      expect(dialog).toHaveTextContent("为了永久保存您的打卡数据和专属海报（换设备不丢失），请绑定邮箱。");
+      expect(screen.getByRole("img", { name: "7 天健康趋势海报预览" })).toBeInTheDocument();
+      expect(screen.queryByRole("img", { name: "21 天健康记录海报预览" })).not.toBeInTheDocument();
+      await user.keyboard("{Escape}");
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      fireEvent.click(document.querySelector(".sync-modal-overlay")!);
+      expect(screen.getByRole("dialog")).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "暂不，返回打卡" }));
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(screen.queryByRole("img", { name: "21 天健康记录海报预览" })).not.toBeInTheDocument();
+    });
+
+    it("automatically continues the poster export after day-7 email binding", async () => {
+      mockPosterCanvas();
+      seedRecordedDays(7);
+      const user = userEvent.setup();
+      renderCheckIn();
+      await user.click(screen.getByRole("button", { name: "导出记录海报" }));
+      await bindFromMilestone();
+
+      expect(await screen.findByRole("img", { name: "21 天健康记录海报预览" })).toHaveAttribute("src", "data:image/png;base64,poster");
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+      expect(getSupabase().auth.verifyOtp).toHaveBeenCalledWith({ email: "seven@example.com", token: "12345678", type: "email_change" });
+    });
+
+    it("gates day-7 trends and reveals the original charts after binding", async () => {
+      mockPosterCanvas();
+      seedRecordedDays(7);
+      const user = userEvent.setup();
+      renderCheckIn();
+      expect(screen.queryByRole("img", { name: "体重趋势图" })).not.toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "查看趋势图" }));
+      expect(screen.getByRole("dialog", { name: /恭喜完成 7 天打卡/ })).toBeInTheDocument();
+      await bindFromMilestone("trend@example.com");
+
+      expect(await screen.findByRole("img", { name: "体重趋势图" })).toBeInTheDocument();
+      expect(screen.getByRole("img", { name: "腰围趋势图" })).toBeInTheDocument();
+    });
+
+    it("does not gate a bound user and links the header icon to a real user-center route", async () => {
+      mockPosterCanvas();
+      seedRecordedDays(7);
+      (getSupabase().auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({
+        data: { session: { user: { email: "bound@example.com" } } },
+      });
+      const user = userEvent.setup();
+      renderCheckIn();
+      const userCenter = await screen.findByRole("link", { name: "用户中心" });
+      await user.click(screen.getByRole("button", { name: "导出记录海报" }));
+      expect(screen.getByRole("img", { name: "21 天健康记录海报预览" })).toBeInTheDocument();
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+
+      await user.click(userCenter);
+      expect(screen.getByRole("heading", { name: "用户中心" })).toBeInTheDocument();
+      expect(screen.getByText("bound@example.com")).toBeInTheDocument();
+      expect(screen.getByRole("link", { name: "继续打卡" })).toHaveAttribute("href", "/check-in");
     });
   });
 });

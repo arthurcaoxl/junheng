@@ -73,6 +73,7 @@ export function SevenDayCheckIn() {
   const [posterUrl, setPosterUrl] = useState("");
   const [posterError, setPosterError] = useState(false);
   const [showExtraNodes, setShowExtraNodes] = useState(false);
+  const [trendUnlocked, setTrendUnlocked] = useState(false);
   const { configured: syncConfigured, email: syncEmail } = useSyncStatus();
   const [toastDays, setToastDays] = useState<number | null>(null);
   const toastShownRef = useRef(false);
@@ -82,6 +83,7 @@ export function SevenDayCheckIn() {
   const activeIndex = Math.max(diffDays(state.startDate, activeDate), 0);
   const current = state.records[activeDate] ?? emptyDay();
   const stats = getCampStats(state);
+  const requiresMilestoneBinding = syncConfigured && !syncEmail && stats.recordedDays >= 7;
 
   const commitState = (next: CheckInState) => {
     setState(next);
@@ -93,10 +95,10 @@ export function SevenDayCheckIn() {
     }
     scheduleSyncToCloud(); // 只调度防抖上传，不改 v3 写入逻辑本身
 
-    // 软引导：未绑定且打卡超过 3 天，提交 1.5 秒后克制弹一次（会话内仅一次，可 snooze 7 天）
+    // D3 轻提醒：达到第 3 天时仅提示一次；点“暂不”后 7 天内不再弹。
     if (syncConfigured && !syncEmail && !toastShownRef.current && !isToastSnoozed()) {
       const days = getCampStats(next).recordedDays;
-      if (days > 3) {
+      if (days === 3) {
         toastShownRef.current = true;
         window.setTimeout(() => setToastDays(days), 1500);
       }
@@ -168,17 +170,35 @@ export function SevenDayCheckIn() {
     setActiveDate(clampActiveDate(next, activeDate <= today ? activeDate : today));
   };
 
+  const buildPoster = () => createRecordPoster(buildWindowRecords(state), recordName, {
+    userCode: state.userCode,
+    startDate: state.startDate,
+    endDate: stats.endDate,
+  });
+
   const exportPoster = () => {
     try {
-      setPosterUrl(createRecordPoster(buildWindowRecords(state), recordName, {
-        userCode: state.userCode,
-        startDate: state.startDate,
-        endDate: stats.endDate,
-      }));
+      setPosterUrl(buildPoster());
       setPosterError(false);
     } catch {
       setPosterError(true);
     }
+  };
+
+  const openMilestoneBinding = (onSuccess: () => void) => {
+    let previewUrl = "";
+    try { previewUrl = buildPoster(); } catch { /* 无 Canvas 时仅降级头图，不阻断绑定 */ }
+    openSyncModal("bind", { milestone: true, posterUrl: previewUrl, onSuccess });
+  };
+
+  const requestPoster = () => {
+    if (requiresMilestoneBinding) openMilestoneBinding(exportPoster);
+    else exportPoster();
+  };
+
+  const requestTrends = () => {
+    if (requiresMilestoneBinding) openMilestoneBinding(() => setTrendUnlocked(true));
+    else setTrendUnlocked(true);
   };
 
   const exportCsv = () => {
@@ -225,26 +245,6 @@ export function SevenDayCheckIn() {
         <label htmlFor="camp-start-date">开营日期</label>
         <input id="camp-start-date" name="campStartDate" type="date" value={state.startDate} onChange={(event) => updateStartDate(event.target.value)} />
         <p>调整开营日会重排第 1–21 天的日期，已有记录按真实日期保留。</p>
-        <details className="clothes-settings">
-          <summary>⚙ 称重设置（衣物重量）</summary>
-          <label htmlFor="clothes-weight">衣物重量（kg）</label>
-          <input
-            id="clothes-weight"
-            name="clothesWeight"
-            type="number"
-            inputMode="decimal"
-            min="0"
-            step="0.1"
-            value={state.clothesWeight ?? "0"}
-            onChange={(event) => commitState({ ...state, clothesWeight: event.target.value })}
-          />
-          <div className="clothes-chips" role="group" aria-label="常用衣物重量">
-            {["0", "0.5", "0.8", "1.0"].map((value) => (
-              <button key={value} type="button" onClick={() => commitState({ ...state, clothesWeight: value })}>{value} kg</button>
-            ))}
-          </div>
-          <p>穿衣物称重时自动扣除（通常 0.3–1.0 kg）。仅影响之后新填的记录，已保存的当天记录不受影响。</p>
-        </details>
         <span className="record-code-label">营员代码</span>
         <div className="record-code"><strong>{state.userCode}</strong></div>
         <p>营员代码为您的专属唯一标识，生成后不可更改，用于海报展示与打卡记录。代码随海报与 CSV 一起导出，方便运营方按代码汇总。</p>
@@ -286,32 +286,59 @@ export function SevenDayCheckIn() {
           <strong>{recordedItems}<span> / 8 项已记录</span></strong>
         </div>
         <div className="body-metrics">
-          {WEIGHT_NODES.filter((meta) => meta.key === "morning" || showExtraNodes || nodeValue(meta.key)).map((meta) => {
-            const value = nodeValue(meta.key);
-            const net = netWeight(value, effectiveClothes);
-            return (
-              <div className="weight-node" key={meta.key}>
-                <label>
-                  {meta.label}{meta.hint && <span className="weight-node-hint">{meta.hint}</span>}
-                  <input
-                    type="number"
-                    inputMode="decimal"
-                    min="0"
-                    step="0.1"
-                    placeholder="选填"
-                    value={value}
-                    aria-label={meta.label}
-                    onChange={(event) => updateNode(meta.key, event.target.value)}
-                  />
-                </label>
-                {value.trim() !== "" && (
-                  net !== null
-                    ? <p className="weight-net">净重 {net.toFixed(1)} kg{clothesKg(effectiveClothes) > 0 ? `（已扣衣物 ${clothesKg(effectiveClothes)} kg）` : ""}</p>
-                    : <p className="weight-net-warning" role="alert">请检查数值：净重需 ≥ 20 kg（称重 − 衣物）。</p>
-                )}
+          <details className="clothes-settings clothes-inline">
+            <summary>👕 默认衣物重量：{state.clothesWeight ?? "0"} kg <span>修改</span></summary>
+            <div className="clothes-settings-body">
+              <label htmlFor="clothes-weight">衣物重量（kg）</label>
+              <input
+                id="clothes-weight"
+                name="clothesWeight"
+                type="number"
+                inputMode="decimal"
+                min="0"
+                step="0.1"
+                value={state.clothesWeight ?? "0"}
+                onChange={(event) => commitState({ ...state, clothesWeight: event.target.value })}
+              />
+              <div className="clothes-chips" role="group" aria-label="常用衣物重量">
+                {["0", "0.5", "0.8", "1.0"].map((value) => (
+                  <button key={value} type="button" onClick={() => commitState({ ...state, clothesWeight: value })}>{value} kg</button>
+                ))}
               </div>
-            );
-          })}
+            </div>
+            <p>穿衣物称重时自动扣除（通常 0.3–1.0 kg）。仅影响之后新填的记录，已保存的当天记录不受影响。</p>
+          </details>
+          <div className="metrics-input-grid">
+            {WEIGHT_NODES.filter((meta) => meta.key === "morning" || showExtraNodes || nodeValue(meta.key)).map((meta) => {
+              const value = nodeValue(meta.key);
+              const net = netWeight(value, effectiveClothes);
+              return (
+                <div className="weight-node" key={meta.key}>
+                  <label>
+                    <span className="weight-node-label">{meta.label}{meta.hint && <span className="weight-node-hint">{meta.hint}</span>}</span>
+                    <input
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      step="0.1"
+                      placeholder="选填"
+                      value={value}
+                      aria-label={meta.label}
+                      onChange={(event) => updateNode(meta.key, event.target.value)}
+                    />
+                  </label>
+                  {value.trim() !== "" && (
+                    net !== null
+                      ? <p className="weight-net">净重 {net.toFixed(1)} kg{clothesKg(effectiveClothes) > 0 ? `（已扣衣物 ${clothesKg(effectiveClothes)} kg）` : ""}</p>
+                      : <p className="weight-net-warning" role="alert">请检查数值：净重需 ≥ 20 kg（称重 − 衣物）。</p>
+                  )}
+                </div>
+              );
+            })}
+            <div className="weight-node waist-node">
+              <label><span className="weight-node-label">腰围（cm）</span><input type="number" inputMode="decimal" min="0" step="0.1" placeholder="选填" value={current.waist} onChange={(event) => updateDay({ waist: event.target.value })} /></label>
+            </div>
+          </div>
           {!showExtraNodes && !nodeValue("noon") && !nodeValue("evening") && (
             <button type="button" className="weight-add-nodes" onClick={() => setShowExtraNodes(true)}>＋ 添加中午 / 晚间记录（可选）</button>
           )}
@@ -326,8 +353,7 @@ export function SevenDayCheckIn() {
               {representative.nonFastingOnly && <span className="weight-nonfasting">*含晚间/非空腹记录，水分波动较大，建议以早晨空腹为准。</span>}
             </div>
           )}
-          <label>腰围（cm）<input type="number" inputMode="decimal" min="0" step="0.1" placeholder="选填" value={current.waist} onChange={(event) => updateDay({ waist: event.target.value })} /></label>
-          <p>建议尽量在相近时间、相近状态下测量；单日波动不等于趋势。趋势图按早晚加权、扣除衣物后的基准体重展示。</p>
+          <p className="body-metrics-note">建议尽量在相近时间、相近状态下测量；单日波动不等于趋势。趋势图按早晚加权、扣除衣物后的基准体重展示。</p>
         </div>
         <div className="check-in-groups">
           <fieldset><legend>每餐打卡</legend>{["早餐前已饮用", "午餐前已饮用", "晚餐前已饮用"].map((label, index) => <label key={label}><input type="checkbox" checked={current.meals[index]} onChange={(event) => updateMeal(index, event.target.checked)} /><span>{label}</span></label>)}</fieldset>
@@ -345,21 +371,28 @@ export function SevenDayCheckIn() {
           </div>
         )}
       </div>
-      <RecordTrends records={buildWindowRecords(state)} />
+      {!requiresMilestoneBinding || trendUnlocked ? (
+        <RecordTrends records={buildWindowRecords(state)} />
+      ) : (
+        <section className="record-trends record-trends-locked" aria-label="21 天身体记录趋势">
+          <div className="record-trends-heading"><span>MY 21-DAY RECORD</span><h3>真实记录，看得见。</h3><p>您已积累 7 天记录。绑定邮箱后即可查看个人趋势，并确保换设备后记录不丢失。</p></div>
+          <button type="button" className="trend-unlock-button" onClick={requestTrends}>查看趋势图</button>
+        </section>
+      )}
       <section className="poster-export" aria-labelledby="poster-export-title">
-        <div className="poster-export-copy"><span>PERSONAL RECORD POSTER</span><h3 id="poster-export-title">把 21 天坚持，留成一张海报。</h3><p>只导出你的真实记录，不生成固定减重目标。微信内可长按图片保存，其他浏览器可下载 PNG。CSV 含营员代码与真实日期，可直接用 Excel 汇总统计。</p><button type="button" onClick={exportPoster}>导出记录海报</button><button type="button" className="csv-export" onClick={exportCsv}>导出打卡 CSV</button>{posterError && <p role="alert">当前浏览器无法生成海报，请更换浏览器后重试。</p>}</div>
+        <div className="poster-export-copy"><span>PERSONAL RECORD POSTER</span><h3 id="poster-export-title">把 21 天坚持，留成一张海报。</h3><p>只导出你的真实记录，不生成固定减重目标。微信内可长按图片保存，其他浏览器可下载 PNG。CSV 含营员代码与真实日期，可直接用 Excel 汇总统计。</p><button type="button" onClick={requestPoster}>导出记录海报</button><button type="button" className="csv-export" onClick={exportCsv}>导出打卡 CSV</button>{posterError && <p role="alert">当前浏览器无法生成海报，请更换浏览器后重试。</p>}</div>
         {posterUrl && <div className="poster-preview"><img src={posterUrl} alt="21 天健康记录海报预览" /><p>微信内可长按图片保存；也可以<a href={posterUrl} download="菌衡计划-21天健康记录.png">下载 PNG 海报</a>。</p><small>仅为个人健康记录，不代表固定减重目标或产品功效</small></div>}
       </section>
       <p className="check-in-note">21 天用于建立观察习惯，不设定固定减重目标。体重管理应结合合理饮食、适量运动与良好作息，个体结果存在差异。</p>
       {toastDays !== null && (
         <div className="sync-toast" role="status">
-          <p>🎉 您已坚持打卡 {toastDays} 天！建议绑定邮箱，防止清理浏览器导致记录丢失。</p>
+          <p>🎉 您已坚持打卡 {toastDays} 天！建议绑定邮箱，防止数据丢失，换手机也能接着打卡。</p>
           <div className="sync-toast-actions">
-            <button type="button" className="sync-toast-bind" onClick={() => { setToastDays(null); openSyncModal("bind"); }}>立即绑定</button>
+            <button type="button" className="sync-toast-bind" onClick={() => { setToastDays(null); openSyncModal("bind"); }}>去绑定</button>
             <button type="button" className="sync-toast-dismiss" onClick={() => {
               try { window.localStorage.setItem(TOAST_SNOOZE_KEY, String(Date.now())); } catch { /* 忽略 */ }
               setToastDays(null);
-            }}>稍后再说</button>
+            }}>暂不</button>
           </div>
         </div>
       )}

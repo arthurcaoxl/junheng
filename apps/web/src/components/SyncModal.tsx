@@ -4,8 +4,17 @@ import { loginWithEmail, resendRemainingSeconds, sendLoginCode, syncToCloud } fr
 import { OTP_INPUT_HINT, OTP_INPUT_PROPS } from "../services/otp";
 import type { SyncMode } from "../services/syncUi";
 
-/** 全站统一的绑定/恢复弹窗：Header 胶囊、内嵌引导、Toast、底部状态栏共用。 */
-export function SyncModal({ open, mode, onClose }: { open: boolean; mode: SyncMode; onClose: () => void }) {
+type SyncModalProps = {
+  open: boolean;
+  mode: SyncMode;
+  onClose: () => void;
+  onSuccess?: () => void;
+  milestone?: boolean;
+  posterUrl?: string;
+};
+
+/** 全站统一的绑定/恢复弹窗：普通入口与 D7 里程碑拦截共用同一套 OTP 逻辑。 */
+export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, posterUrl = "" }: SyncModalProps) {
   const [phase, setPhase] = useState<"email" | "code">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -26,10 +35,10 @@ export function SyncModal({ open, mode, onClose }: { open: boolean; mode: SyncMo
 
   useEffect(() => {
     if (!open) return;
-    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") onClose(); };
+    const onKey = (event: KeyboardEvent) => { if (event.key === "Escape" && !milestone) onClose(); };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open, milestone, onClose]);
 
   useEffect(() => {
     if (cooldown <= 0) return;
@@ -62,9 +71,10 @@ export function SyncModal({ open, mode, onClose }: { open: boolean; mode: SyncMo
   const submitCode = () => run(async () => {
     if (mode === "bind") {
       await confirmEmailUpgrade(email, code);
-      // 绑定前已有的记录也要立即上传；此前只有再次修改打卡才会触发备份。
+      // 原地升级保留匿名 auth.uid；历史记录仍归属同一用户。
       await syncToCloud();
       window.dispatchEvent(new CustomEvent("junheng-sync-changed", { detail: { email } }));
+      onSuccess?.();
       onClose();
       return;
     }
@@ -81,20 +91,29 @@ export function SyncModal({ open, mode, onClose }: { open: boolean; mode: SyncMo
   });
 
   return (
-    <div className="sync-modal-overlay" onClick={onClose}>
+    <div className="sync-modal-overlay" onClick={milestone ? undefined : onClose}>
       <div
-        className="sync-modal"
+        className={`sync-modal${milestone ? " sync-modal-milestone" : ""}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby="sync-modal-title"
         onClick={(event) => event.stopPropagation()}
       >
-        <button type="button" className="sync-modal-close" aria-label="关闭" onClick={onClose}>×</button>
-        <h2 id="sync-modal-title">{mode === "bind" ? "绑定邮箱，换手机/电脑接着打卡" : "在新设备恢复数据"}</h2>
+        {!milestone && <button type="button" className="sync-modal-close" aria-label="关闭" onClick={onClose}>×</button>}
+        {milestone && posterUrl && (
+          <div className="sync-modal-milestone-visual">
+            <img src={posterUrl} alt="7 天健康趋势海报预览" />
+          </div>
+        )}
+        <h2 id="sync-modal-title">
+          {milestone ? "🎉 恭喜完成 7 天打卡！您的专属健康趋势已生成。" : mode === "bind" ? "绑定邮箱，换手机/电脑接着打卡" : "在新设备恢复数据"}
+        </h2>
         <p className="sync-modal-sub">
-          {mode === "bind"
-            ? "输入邮箱接收 6–8 位数字验证码。绑定后，您的打卡记录会自动备份到云端，换手机或电脑登录即可恢复。"
-            : "输入已绑定的邮箱接收验证码。登录后，云端记录会恢复到本机；本机原记录会自动备份。"}
+          {milestone
+            ? "为了永久保存您的打卡数据和专属海报（换设备不丢失），请绑定邮箱。"
+            : mode === "bind"
+              ? "输入邮箱接收 6–8 位数字验证码。绑定后，您的打卡记录会自动备份到云端，换手机或电脑登录即可恢复。"
+              : "输入已绑定的邮箱接收验证码。登录后，云端记录会恢复到本机；本机原记录会自动备份。"}
         </p>
 
         {phase === "email" ? (
@@ -133,6 +152,7 @@ export function SyncModal({ open, mode, onClose }: { open: boolean; mode: SyncMo
 
         {error && <p className="sync-modal-error" role="alert">{error}</p>}
         {notice && <p className="sync-modal-notice" role="status">{notice}</p>}
+        {milestone && <button type="button" className="sync-modal-secondary" onClick={onClose}>暂不，返回打卡</button>}
       </div>
     </div>
   );

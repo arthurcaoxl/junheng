@@ -648,13 +648,17 @@ section { scroll-margin-top: 78px; }
 .check-in-panel-heading h3 { margin-top: 18px; font-size: clamp(26px, 3vw, 46px); letter-spacing: -.04em; }
 .check-in-panel-heading > strong { color: var(--acid); font-family: var(--display); font-size: 70px; line-height: .85; white-space: nowrap; }
 .check-in-panel-heading > strong > span { color: var(--paper); font-family: var(--sans); font-size: 11px; font-weight: 500; letter-spacing: 0; opacity: .55; }
-.body-metrics { display: grid; grid-template-columns: 1fr 1fr 1.5fr; gap: 26px; margin-top: 48px; padding: 30px 0; border-top: 1px solid var(--line-light); border-bottom: 1px solid var(--line-light); }
-.body-metrics label { display: grid; grid-template-columns: auto 1fr; align-items: center; gap: 18px; font-size: 12px; font-weight: 700; }
+.body-metrics { display: grid; grid-template-columns: 1fr; gap: 22px; margin-top: 48px; padding: 30px 0; border-top: 1px solid var(--line-light); border-bottom: 1px solid var(--line-light); }
+.body-metrics label { display: grid; align-items: center; gap: 10px; font-size: 12px; font-weight: 700; }
 .body-metrics input { width: 100%; min-width: 0; min-height: 54px; padding: 10px 14px; border: 1px solid var(--line-light); border-radius: 0; background: var(--paper); color: var(--forest); font: inherit; font-size: 18px; }
 .body-metrics > p { align-self: center; font-size: 11px; line-height: 1.8; opacity: .55; }
+.metrics-input-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.weight-node { min-width: 0; }
+.weight-node-label { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.weight-net, .weight-net-warning { min-height: 20px; }
 
 /* v1.10.0 · 体重多节点（早晚加权 + 扣衣物） */
-.weight-node-hint { margin-left: 8px; padding: 2px 8px; border: 1px solid var(--acid); border-radius: 999px; color: var(--acid); font-size: 10px; font-weight: 700; }
+.weight-node-hint { margin-left: 4px; padding: 1px 6px; border: 1px solid var(--acid); border-radius: 999px; color: var(--acid); font-size: 9px; font-weight: 700; line-height: 1.5; }
 .weight-net { margin-top: 8px; color: var(--acid); font-size: 12px; font-weight: 600; }
 .weight-net-warning { margin-top: 8px; color: #ff9d8a; font-size: 12px; line-height: 1.6; }
 .weight-add-nodes { align-self: center; justify-self: start; padding: 10px 16px; background: none; border: 1px dashed var(--line-light); border-radius: 999px; color: var(--paper); font: inherit; font-size: 12px; cursor: pointer; opacity: .75; }
@@ -663,14 +667,24 @@ section { scroll-margin-top: 78px; }
 .weight-summary strong { display: block; color: var(--acid); font-size: 18px; letter-spacing: -.01em; }
 .weight-summary span { display: block; margin-top: 6px; font-size: 11px; line-height: 1.7; opacity: .7; }
 .weight-summary .weight-nonfasting { color: #f0c98a; opacity: 1; }
-.clothes-settings { margin-top: 18px; padding: 14px 16px; border: 1px solid var(--line-light); }
-.clothes-settings summary { cursor: pointer; font-size: 12px; font-weight: 700; color: var(--acid); }
-.clothes-settings label { display: block; margin: 14px 0 8px; font-size: 12px; font-weight: 700; }
+.clothes-settings { margin: 0; padding: 0; border: 0; }
+.clothes-settings summary { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--paper); list-style-position: inside; }
+.clothes-settings summary > span { padding: 2px 8px; border: 1px solid var(--line-light); border-radius: 999px; color: var(--acid); font-size: 10px; }
+.clothes-settings-body { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+.clothes-settings label { display: block; margin: 0; font-size: 12px; font-weight: 700; }
 .clothes-settings input { width: 120px; min-height: 44px; padding: 8px 12px; border: 1px solid var(--line-light); background: var(--paper); color: var(--forest); font: inherit; font-size: 16px; }
-.clothes-chips { display: inline-flex; gap: 8px; margin-left: 12px; }
+.clothes-chips { display: inline-flex; flex-wrap: wrap; gap: 8px; }
 .clothes-chips button { padding: 8px 12px; background: none; border: 1px solid var(--line-light); border-radius: 999px; color: var(--paper); font: inherit; font-size: 12px; cursor: pointer; }
 .clothes-chips button:hover { border-color: var(--acid); color: var(--acid); }
 .clothes-settings > p { margin-top: 12px; font-size: 11px; line-height: 1.8; opacity: .6; }
+.body-metrics-note { margin-top: 0; }
+@media (max-width: 1180px) {
+  .metrics-input-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 760px) {
+  .metrics-input-grid { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .clothes-settings-body { align-items: flex-start; }
+}
 .check-in-groups { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5vw; margin-top: 36px; }
 .check-in-groups fieldset { margin: 0; padding: 0; border: 0; }
 .check-in-groups legend { width: 100%; padding: 0 0 16px; border-bottom: 1px solid var(--line-light); color: var(--acid); font-size: 11px; font-weight: 750; letter-spacing: .08em; }
@@ -1141,4 +1155,28 @@ section { scroll-margin-top: 78px; }
   .admin-heading-actions { justify-content: flex-start; margin-top: 22px; }
   .admin-block-heading { display: block; }
   .admin-block-heading span { display: block; margin-top: 8px; }
+}
+
+/* D3/D7 登录转化与个人账号入口 */
+.user-center-link { display: inline-flex; align-items: center; gap: 6px; text-decoration: none; }
+.sync-modal-milestone { width: min(560px, 100%); max-height: calc(100dvh - 40px); overflow-y: auto; }
+.sync-modal-milestone h2 { padding-right: 0; line-height: 1.45; }
+.sync-modal-milestone-visual { height: 150px; margin: -32px -28px 24px; overflow: hidden; border-bottom: 1px solid var(--line-light); background: rgb(198 255 54 / 8%); }
+.sync-modal-milestone-visual img { width: 100%; height: 100%; object-fit: cover; object-position: center 30%; filter: blur(1px); opacity: .68; }
+.sync-modal-secondary { width: 100%; margin-top: 14px; padding: 12px 20px; background: none; border: 1px solid var(--line-light); color: var(--paper); font: inherit; font-size: 13px; cursor: pointer; }
+.record-trends-locked { padding-bottom: 48px; }
+.trend-unlock-button { min-height: 50px; margin-top: 28px; padding: 0 24px; background: var(--acid); border: 0; color: var(--forest); font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
+.user-center { min-height: 70vh; padding-top: calc(150px + env(safe-area-inset-top, 0px)); }
+.user-center h1 { margin-top: 16px; font-size: clamp(42px, 6vw, 76px); letter-spacing: -.05em; }
+.user-center-account { display: flex; align-items: center; gap: 20px; max-width: 680px; margin-top: 42px; padding: 26px; border: 1px solid var(--line-light); }
+.user-center-account > span { font-size: 34px; }
+.user-center-account strong { color: var(--acid); font-size: 18px; overflow-wrap: anywhere; }
+.user-center-account p { margin-top: 8px; font-size: 12px; line-height: 1.8; opacity: .65; }
+.user-center-checkin-link { display: inline-block; margin-top: 28px; padding: 14px 24px; background: var(--acid); color: var(--forest); font-size: 14px; font-weight: 800; text-decoration: none; }
+@media (max-width: 760px) {
+  .user-center-label { display: none; }
+  .user-center-link { padding: 7px 10px; opacity: .85; }
+  .sync-modal-milestone-visual { height: 120px; margin: -28px -22px 22px; }
+  .user-center { padding-top: calc(120px + env(safe-area-inset-top, 0px)); }
+  .user-center-account { padding: 20px; }
 }

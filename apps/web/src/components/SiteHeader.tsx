@@ -42,11 +42,15 @@ export function SiteHeader() {
       <nav className="desktop-nav" aria-label="页面导航">
         {desktopItems}
       </nav>
-      {configured && (
+      {configured && (email ? (
+        <Link className="sync-status-pill is-synced user-center-link" to="/user-center" aria-label="用户中心">
+          <span aria-hidden="true">👤</span><span className="user-center-label">用户中心</span>
+        </Link>
+      ) : (
         <button
           type="button"
-          className={`sync-status-pill${email ? " is-synced" : ""}`}
-          aria-label={email ? "已同步，查看跨设备同步" : "未同步，绑定邮箱"}
+          className="sync-status-pill"
+          aria-label="未同步，绑定邮箱"
           onClick={() => {
             if (pathname.startsWith("/check-in")) {
               const panel = document.getElementById("sync-panel");
@@ -61,9 +65,9 @@ export function SiteHeader() {
             }
           }}
         >
-          {email ? "已同步" : "绑定邮箱"}
+          绑定邮箱
         </button>
-      )}
+      ))}
       <span className="header-note">餐前营养伴侣</span>
       <button
         type="button"

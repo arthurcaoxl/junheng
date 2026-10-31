@@ -1,6 +1,12 @@
 export type SyncMode = "bind" | "restore";
 
+export type SyncOpenOptions = {
+  milestone?: boolean;
+  posterUrl?: string;
+  onSuccess?: () => void;
+};
+
 /** 各同步入口通过统一事件请求打卡页打开绑定/恢复弹窗。 */
-export function openSyncModal(mode: SyncMode): void {
-  window.dispatchEvent(new CustomEvent("junheng-open-sync", { detail: { mode } }));
+export function openSyncModal(mode: SyncMode, options: SyncOpenOptions = {}): void {
+  window.dispatchEvent(new CustomEvent("junheng-open-sync", { detail: { mode, ...options } }));
 }

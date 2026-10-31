@@ -21,8 +21,16 @@ function seedRecords() {
 }
 
 describe("v1.4.1 interface refinement", () => {
-  beforeEach(() => window.localStorage.clear());
-  afterEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    window.localStorage.clear();
+    // 本组只验证历史图表与海报渲染，明确关闭同步以隔离 D7 转化拦截。
+    vi.stubEnv("VITE_SUPABASE_URL", "");
+    vi.stubEnv("VITE_SUPABASE_ANON_KEY", "");
+  });
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
 
   it("places the selected plate ring outside the clipped plate", async () => {
     const user = userEvent.setup();
