@@ -11,7 +11,7 @@ export type CheckInState = {
   userCode: string;
   startDate: string;
   records: Record<string, DayRecord>;
-  clothesWeight?: string; // 全局默认衣物重量（kg），缺省 "0"
+  clothesWeight?: string; // 晨起衣物扣减默认值（kg）；新用户 "0.5"，旧数据缺省仍按 "0"
 };
 
 export function emptyDay(): DayRecord {
@@ -88,7 +88,7 @@ export function hasContent(day: DayRecord | undefined): day is DayRecord {
 }
 
 export function createFreshState(): CheckInState {
-  return { schema: 3, userCode: generateUserCode(), startDate: todayKey(), records: {} };
+  return { schema: 3, userCode: generateUserCode(), startDate: todayKey(), records: {}, clothesWeight: "0.5" };
 }
 
 function migrateLegacyDays(days: Partial<DayRecord>[]): CheckInState {

@@ -73,6 +73,8 @@ export function SevenDayCheckIn() {
   const [posterUrl, setPosterUrl] = useState("");
   const [posterError, setPosterError] = useState(false);
   const [showExtraNodes, setShowExtraNodes] = useState(false);
+  const [editingClothes, setEditingClothes] = useState(false);
+  const [clothesDraft, setClothesDraft] = useState("0");
   const [trendUnlocked, setTrendUnlocked] = useState(false);
   const { configured: syncConfigured, email: syncEmail } = useSyncStatus();
   const [toastDays, setToastDays] = useState<number | null>(null);
@@ -83,7 +85,7 @@ export function SevenDayCheckIn() {
   const activeIndex = Math.max(diffDays(state.startDate, activeDate), 0);
   const current = state.records[activeDate] ?? emptyDay();
   const stats = getCampStats(state);
-  const requiresMilestoneBinding = syncConfigured && !syncEmail && stats.recordedDays >= 7;
+  const requiresMilestoneBinding = syncConfigured && !syncEmail && stats.elapsedDays >= 7;
 
   const commitState = (next: CheckInState) => {
     setState(next);
@@ -138,6 +140,24 @@ export function SevenDayCheckIn() {
     });
   };
   const representative = representativeFromNodes(current.weights, effectiveClothes);
+
+  const beginClothesEdit = () => {
+    setClothesDraft(state.clothesWeight ?? "0");
+    setEditingClothes(true);
+  };
+
+  const confirmClothesEdit = () => {
+    const clothesWeight = String(clothesKg(clothesDraft));
+    let next: CheckInState = { ...state, clothesWeight };
+    // 设置确认后立即作用于今天，历史日期仍保留各自快照。
+    if (activeDate === today && current.weights) {
+      const nextDay = { ...current, clothes: clothesWeight };
+      nextDay.weight = deriveWeightCache(nextDay);
+      next = { ...next, records: { ...state.records, [activeDate]: nextDay } };
+    }
+    commitState(next);
+    setEditingClothes(false);
+  };
 
   const updateMeal = (mealIndex: number, checked: boolean) => {
     updateDay({ meals: current.meals.map((value, index) => index === mealIndex ? checked : value) });
@@ -286,32 +306,43 @@ export function SevenDayCheckIn() {
           <strong>{recordedItems}<span> / 8 项已记录</span></strong>
         </div>
         <div className="body-metrics">
-          <details className="clothes-settings clothes-inline">
-            <summary>👕 默认衣物重量：{state.clothesWeight ?? "0"} kg <span>修改</span></summary>
-            <div className="clothes-settings-body">
-              <label htmlFor="clothes-weight">衣物重量（kg）</label>
-              <input
-                id="clothes-weight"
-                name="clothesWeight"
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.1"
-                value={state.clothesWeight ?? "0"}
-                onChange={(event) => commitState({ ...state, clothesWeight: event.target.value })}
-              />
-              <div className="clothes-chips" role="group" aria-label="常用衣物重量">
-                {["0", "0.5", "0.8", "1.0"].map((value) => (
-                  <button key={value} type="button" onClick={() => commitState({ ...state, clothesWeight: value })}>{value} kg</button>
-                ))}
+          <div className="clothes-settings clothes-inline">
+            {editingClothes ? (
+              <div className="clothes-settings-body clothes-editing">
+                <label htmlFor="clothes-weight">衣物重量（kg）</label>
+                <input
+                  id="clothes-weight"
+                  name="clothesWeight"
+                  type="number"
+                  inputMode="decimal"
+                  min="0"
+                  step="0.1"
+                  value={clothesDraft}
+                  onChange={(event) => setClothesDraft(event.target.value)}
+                  autoFocus
+                />
+                <div className="clothes-chips" role="group" aria-label="常用衣物重量">
+                  {["0", "0.5", "0.8", "1.0"].map((value) => (
+                    <button key={value} type="button" onClick={() => setClothesDraft(value)}>{value} kg</button>
+                  ))}
+                </div>
+                <div className="clothes-edit-actions">
+                  <button type="button" className="clothes-confirm" onClick={confirmClothesEdit}>确认</button>
+                  <button type="button" onClick={() => setEditingClothes(false)}>取消</button>
+                </div>
               </div>
-            </div>
-            <p>穿衣物称重时自动扣除（通常 0.3–1.0 kg）。仅影响之后新填的记录，已保存的当天记录不受影响。</p>
-          </details>
+            ) : (
+              <div className="clothes-settings-view">
+                <span>晨起称重衣物扣减：默认 {state.clothesWeight ?? "0"} kg（可调整）</span>
+                <button type="button" onClick={beginClothesEdit}>修改</button>
+              </div>
+            )}
+            <p>仅晨起空腹记录会扣除该重量。建议晨起穿轻便睡衣测量。</p>
+          </div>
           <div className="metrics-input-grid">
             {WEIGHT_NODES.filter((meta) => meta.key === "morning" || showExtraNodes || nodeValue(meta.key)).map((meta) => {
               const value = nodeValue(meta.key);
-              const net = netWeight(value, effectiveClothes);
+              const net = netWeight(value, meta.key === "morning" ? effectiveClothes : "0");
               return (
                 <div className="weight-node" key={meta.key}>
                   <label>
@@ -327,11 +358,10 @@ export function SevenDayCheckIn() {
                       onChange={(event) => updateNode(meta.key, event.target.value)}
                     />
                   </label>
-                  {value.trim() !== "" && (
-                    net !== null
-                      ? <p className="weight-net">净重 {net.toFixed(1)} kg{clothesKg(effectiveClothes) > 0 ? `（已扣衣物 ${clothesKg(effectiveClothes)} kg）` : ""}</p>
-                      : <p className="weight-net-warning" role="alert">请检查数值：净重需 ≥ 20 kg（称重 − 衣物）。</p>
+                  {meta.key === "morning" && value.trim() !== "" && net !== null && (
+                    <p className="weight-net">{clothesKg(effectiveClothes) > 0 ? `已扣除衣物 ${clothesKg(effectiveClothes)} kg，当前净重 ${net.toFixed(1)} kg` : `当前净重 ${net.toFixed(1)} kg`}</p>
                   )}
+                  {value.trim() !== "" && net === null && <p className="weight-net-warning" role="alert">请检查数值：有效体重需 ≥ 20 kg。</p>}
                 </div>
               );
             })}
@@ -340,20 +370,19 @@ export function SevenDayCheckIn() {
             </div>
           </div>
           {!showExtraNodes && !nodeValue("noon") && !nodeValue("evening") && (
-            <button type="button" className="weight-add-nodes" onClick={() => setShowExtraNodes(true)}>＋ 添加中午 / 晚间记录（可选）</button>
+            <button type="button" className="weight-add-nodes" onClick={() => setShowExtraNodes(true)}>+ 记录中午/晚间体重（选填）</button>
           )}
           {representative.value !== null && (
             <div className="weight-summary">
-              <strong>今日{representative.used.length > 1 ? "基准" : ""}体重：{representative.value} kg</strong>
+              <strong>今日{representative.used.length === 1 && representative.used[0]?.node === "morning" ? "" : "参考"}体重：{representative.value.toFixed(1)} kg</strong>
               <span>
-                {representative.used.length > 1
-                  ? `按 ${representative.used.map((item) => `${WEIGHT_NODES.find((meta) => meta.key === item.node)?.label.slice(0, 2)} ${Math.round(item.ratio * 100)}%`).join(" · ")} 加权，已扣衣物`
-                  : representative.used[0]?.node === "morning" ? "早晨空腹记录" : "单节点记录"}
+                {representative.used.length === 1 && representative.used[0]?.node === "morning"
+                  ? clothesKg(effectiveClothes) > 0 ? "（已扣除衣物）" : "早晨空腹记录"
+                  : "系统已结合您全天的水分波动综合计算，建议主要参考早晨的空腹数据。"}
               </span>
-              {representative.nonFastingOnly && <span className="weight-nonfasting">*含晚间/非空腹记录，水分波动较大，建议以早晨空腹为准。</span>}
             </div>
           )}
-          <p className="body-metrics-note">建议尽量在相近时间、相近状态下测量；单日波动不等于趋势。趋势图按早晚加权、扣除衣物后的基准体重展示。</p>
+          <p className="body-metrics-note">建议每天晨起空腹、穿相近衣物测量；单日波动不等于趋势。</p>
         </div>
         <div className="check-in-groups">
           <fieldset><legend>每餐打卡</legend>{["早餐前已饮用", "午餐前已饮用", "晚餐前已饮用"].map((label, index) => <label key={label}><input type="checkbox" checked={current.meals[index]} onChange={(event) => updateMeal(index, event.target.checked)} /><span>{label}</span></label>)}</fieldset>
@@ -375,7 +404,7 @@ export function SevenDayCheckIn() {
         <RecordTrends records={buildWindowRecords(state)} />
       ) : (
         <section className="record-trends record-trends-locked" aria-label="21 天身体记录趋势">
-          <div className="record-trends-heading"><span>MY 21-DAY RECORD</span><h3>真实记录，看得见。</h3><p>您已积累 7 天记录。绑定邮箱后即可查看个人趋势，并确保换设备后记录不丢失。</p></div>
+          <div className="record-trends-heading"><span>MY 21-DAY RECORD</span><h3>真实记录，看得见。</h3><p>专属健康趋势已经生成。绑定邮箱后即可查看，换手机或清理缓存也能恢复记录。</p></div>
           <button type="button" className="trend-unlock-button" onClick={requestTrends}>查看趋势图</button>
         </section>
       )}

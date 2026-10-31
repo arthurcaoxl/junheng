@@ -76,7 +76,7 @@ describe("storage-v3 多节点桥接", () => {
     });
     const lines = csv.trim().split("\n");
     expect(lines[1]).toContain("65"); // 旧数据原值
-    expect(lines[2]).toContain("60.5"); // 净重 60/62 按 75/25 加权
+    expect(lines[2]).toContain("60.7"); // 早晨净重 60、晚间裸重 62.8，按 75/25 加权
     expect(lines[2]).not.toContain("99"); // 派生缓存不被采用
   });
 });

@@ -106,11 +106,11 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, p
           </div>
         )}
         <h2 id="sync-modal-title">
-          {milestone ? "🎉 恭喜完成 7 天打卡！您的专属健康趋势已生成。" : mode === "bind" ? "绑定邮箱，换手机/电脑接着打卡" : "在新设备恢复数据"}
+          {milestone ? "🎉 太棒了！您已坚持记录 7 天，专属的健康趋势已经生成！" : mode === "bind" ? "绑定邮箱，换手机/电脑接着打卡" : "在新设备恢复数据"}
         </h2>
         <p className="sync-modal-sub">
           {milestone
-            ? "为了永久保存您的打卡数据和专属海报（换设备不丢失），请绑定邮箱。"
+            ? "为了防止数据丢失（换手机/清缓存），请绑定邮箱永久保存。登录后自动为您展开成果。"
             : mode === "bind"
               ? "输入邮箱接收 6–8 位数字验证码。绑定后，您的打卡记录会自动备份到云端，换手机或电脑登录即可恢复。"
               : "输入已绑定的邮箱接收验证码。登录后，云端记录会恢复到本机；本机原记录会自动备份。"}

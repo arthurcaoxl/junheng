@@ -89,10 +89,10 @@ describe("representativeFromNodes 权重分配", () => {
     expect(eveningOnly.nonFastingOnly).toBe(true);
   });
 
-  it("所有节点先扣衣物再加权", () => {
+  it("仅早晨扣衣物，中晚直接视为净重再加权", () => {
     const result = representativeFromNodes({ morning: "60.8", evening: "62.8" }, "0.8");
-    // 净重 60 与 62 → 60*.75 + 62*.25 = 60.5
-    expect(result.value).toBe(60.5);
+    // 早晨净重 60，晚间裸重 62.8 → 60*.75 + 62.8*.25 = 60.7
+    expect(result.value).toBe(60.7);
   });
 
   it("异常节点被剔除后按剩余节点重归一化", () => {

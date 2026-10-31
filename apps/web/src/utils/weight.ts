@@ -61,11 +61,11 @@ export type RepresentativeResult = {
 
 /**
  * 综合代表体重：基础权重 早60/中20/晚20，缺失节点按剩余权重等比重归一化。
- * 不做固定时段补偿偏移；无有效节点返回 value=null。
+ * 衣物仅扣早晨；中晚输入直接视为裸重。无有效节点返回 value=null。
  */
 export function representativeFromNodes(weights: NodeWeights | undefined, clothes: unknown): RepresentativeResult {
   const entries = WEIGHT_NODES.flatMap((meta) => {
-    const net = netWeight(weights?.[meta.key], clothes);
+    const net = netWeight(weights?.[meta.key], meta.key === "morning" ? clothes : "0");
     return net === null ? [] : [{ node: meta.key, net, base: meta.ratio }];
   });
   if (!entries.length) return { value: null, used: [], nonFastingOnly: false };

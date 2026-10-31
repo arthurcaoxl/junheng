@@ -17,6 +17,13 @@ function seedRecordedDays(count: number, leaveTodayEmpty = false) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ schema: 3, userCode: "JH-TEST1", startDate, records }));
 }
 
+function seedCalendarDay(day: number, recordedDays: number) {
+  const startDate = addDays(todayKey(), -(day - 1));
+  const recordedDay = { ...emptyDay(), weight: "65", waist: "82", water: true };
+  const records = Object.fromEntries(Array.from({ length: recordedDays }, (_, index) => [addDays(startDate, index), recordedDay]));
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify({ schema: 3, userCode: "JH-TEST1", startDate, records, clothesWeight: "0.5" }));
+}
+
 function mockPosterCanvas() {
   const context = {
     fillRect: vi.fn(), fillText: vi.fn(), beginPath: vi.fn(), moveTo: vi.fn(),
@@ -142,6 +149,22 @@ describe("sync panel", () => {
       expect(window.localStorage.getItem("junheng-sync-toast-snooze")).not.toBeNull();
     });
 
+    it("gates calendar day 7 even with fewer records and keeps saving after dismissal", async () => {
+      mockPosterCanvas();
+      seedCalendarDay(7, 1);
+      const user = userEvent.setup();
+      renderCheckIn();
+      await user.click(screen.getByRole("button", { name: "导出记录海报" }));
+      expect(screen.getByRole("dialog", { name: /太棒了！您已坚持记录 7 天/ })).toBeInTheDocument();
+      await user.click(screen.getByRole("button", { name: "暂不，返回打卡" }));
+
+      await user.type(screen.getByLabelText("早晨体重（空腹）"), "68");
+      const saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}");
+      expect(saved.records[todayKey()].weights.morning).toBe("68");
+      expect(saved.records[todayKey()].weight).toBe("67.5");
+      expect(screen.queryByRole("img", { name: "21 天健康记录海报预览" })).not.toBeInTheDocument();
+    });
+
     it("blocks an anonymous day-7 poster export without allowing Escape or overlay dismissal", async () => {
       mockPosterCanvas();
       seedRecordedDays(7);
@@ -149,8 +172,8 @@ describe("sync panel", () => {
       renderCheckIn();
       await user.click(screen.getByRole("button", { name: "导出记录海报" }));
 
-      const dialog = screen.getByRole("dialog", { name: /恭喜完成 7 天打卡/ });
-      expect(dialog).toHaveTextContent("为了永久保存您的打卡数据和专属海报（换设备不丢失），请绑定邮箱。");
+      const dialog = screen.getByRole("dialog", { name: /太棒了！您已坚持记录 7 天/ });
+      expect(dialog).toHaveTextContent("为了防止数据丢失（换手机/清缓存），请绑定邮箱永久保存。登录后自动为您展开成果。");
       expect(screen.getByRole("img", { name: "7 天健康趋势海报预览" })).toBeInTheDocument();
       expect(screen.queryByRole("img", { name: "21 天健康记录海报预览" })).not.toBeInTheDocument();
       await user.keyboard("{Escape}");
@@ -182,7 +205,7 @@ describe("sync panel", () => {
       renderCheckIn();
       expect(screen.queryByRole("img", { name: "体重趋势图" })).not.toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: "查看趋势图" }));
-      expect(screen.getByRole("dialog", { name: /恭喜完成 7 天打卡/ })).toBeInTheDocument();
+      expect(screen.getByRole("dialog", { name: /太棒了！您已坚持记录 7 天/ })).toBeInTheDocument();
       await bindFromMilestone("trend@example.com");
 
       expect(await screen.findByRole("img", { name: "体重趋势图" })).toBeInTheDocument();

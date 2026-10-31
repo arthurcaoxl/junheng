@@ -17,8 +17,16 @@ function renderApp(route = "/") {
 }
 
 describe("priority lifestyle sections", () => {
-  beforeEach(() => window.localStorage.clear());
-  afterEach(() => vi.restoreAllMocks());
+  beforeEach(() => {
+    window.localStorage.clear();
+    // 本文件验证前台展示，不接入真实 Supabase；D7 拦截由 sync-panel 专项覆盖。
+    vi.stubEnv("VITE_SUPABASE_URL", "");
+    vi.stubEnv("VITE_SUPABASE_ANON_KEY", "");
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.restoreAllMocks();
+  });
 
   it("renders lifestyle guidance with the 21-day check-in last", () => {
     renderApp();
@@ -126,7 +134,7 @@ describe("priority lifestyle sections", () => {
     const saved = JSON.parse(window.localStorage.getItem("junheng-checkin-v3") ?? "{}");
     expect(saved.schema).toBe(3);
     expect(saved.userCode).toMatch(/^JH-/);
-    expect(saved.records[todayKey()].weight).toBe("65.4");
+    expect(saved.records[todayKey()].weight).toBe("64.9"); // 新用户默认扣除晨起衣物 0.5 kg
     expect(saved.records[todayKey()].waist).toBe("82");
     first.unmount();
     renderApp("/check-in");
@@ -166,8 +174,8 @@ describe("priority lifestyle sections", () => {
     await user.type(within(checkIn).getByLabelText("腰围（cm）"), "80.5");
     expect(within(checkIn).getByRole("img", { name: "体重趋势图" })).toBeInTheDocument();
     expect(within(checkIn).getByRole("img", { name: "腰围趋势图" })).toBeInTheDocument();
-    expect(within(checkIn).getByText("65.4 kg")).toBeInTheDocument();
-    expect(within(checkIn).getByText("64.8 kg")).toBeInTheDocument();
+    expect(within(checkIn).getByText("64.9 kg")).toBeInTheDocument();
+    expect(within(checkIn).getByText("64.3 kg")).toBeInTheDocument();
     expect(within(checkIn).getByText("82 cm")).toBeInTheDocument();
     expect(within(checkIn).getByText("80.5 cm")).toBeInTheDocument();
     first.unmount();
@@ -266,6 +274,6 @@ describe("priority lifestyle sections", () => {
     const csv = await blob.text();
     const state = JSON.parse(window.localStorage.getItem("junheng-checkin-v3") ?? "{}");
     expect(csv).toContain("user_code,record_date,day_index,weight_kg,waist_cm");
-    expect(csv).toContain(`${state.userCode},${todayKey()},1,65.4,,1,0,0,0,0,0`);
+    expect(csv).toContain(`${state.userCode},${todayKey()},1,64.9,,1,0,0,0,0,0`);
   });
 });
