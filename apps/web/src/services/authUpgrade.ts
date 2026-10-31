@@ -9,6 +9,18 @@ export async function upgradeToPermanentAccount(email: string): Promise<void> {
     if (error.status === 429 || /rate|limit/i.test(error.message)) {
       throw new Error("发送太频繁，请 1 分钟后再试。");
     }
+    // 目标邮箱已被其他账号占用（例如曾在管理后台或其他设备用该邮箱登录过），
+    // Supabase 拒绝换绑；此前统一报"绑定请求失败"掩盖了真实原因。
+    if (error.code === "email_exists" || /already.*(registered|been)|email_exists|duplicate/i.test(error.message)) {
+      throw new Error("该邮箱已被其他账号占用，无法直接换绑。请先用该邮箱登录恢复原账号，或联系运营方协助合并账号。");
+    }
+    // 脱敏诊断：只保留状态码/错误码/邮箱域名，便于定位 SMTP 或配置问题
+    console.error("Email change request failed", {
+      status: error.status,
+      code: error.code,
+      emailDomain: email.split("@")[1] ?? "",
+      message: error.message,
+    });
     throw new Error("绑定请求失败，请检查邮箱地址或稍后重试。");
   }
 }
