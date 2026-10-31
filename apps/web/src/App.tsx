@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { Navigate, Route, Routes, useLocation } from "react-router";
@@ -17,7 +17,13 @@ gsap.registerPlugin(ScrollTrigger);
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => {
-    window.scrollTo(0, 0);
+    // 禁止浏览器在前进/后退时自动恢复旧滚动位置
+    if ("scrollRestoration" in window.history) window.history.scrollRestoration = "manual";
+  }, []);
+  useLayoutEffect(() => {
+    // 必须在绘制前同步回到顶部：html 设有 scroll-behavior: smooth，
+    // 若沿用平滑滚动，从首页深滚动位置跳转会让用户先看到新页面底部（页脚）。
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [pathname]);
   return null;
 }

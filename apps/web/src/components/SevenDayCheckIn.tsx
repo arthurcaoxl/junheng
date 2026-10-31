@@ -196,10 +196,9 @@ export function SevenDayCheckIn() {
     <section className="check-in section-pad" id="check-in" data-theme="forest" aria-labelledby="check-in-title">
       <div className="section-index"><span>18</span><span>21-DAY CHECK-IN</span></div>
       <header className="check-in-heading">
-        <p className="eyebrow">不追赶固定数字，先看见自己的变化</p>
+        <p className="eyebrow">每日一分钟，记录你的身体数据</p>
         <h2 id="check-in-title">21 天，构建你的脂代谢稳态。</h2>
         <p>第 1 天建立基线，第 21 天回看趋势。记录体重、腰围与每餐执行情况。</p>
-        <p className="check-in-persistence">感受到的减脂，坚持方能长期健康。</p>
         <p className="camp-range">本期周期：{state.startDate} 至 {stats.endDate} · 修改后自动保存，无需注册</p>
       </header>
       <WaterFluctuation />

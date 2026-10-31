@@ -52,7 +52,7 @@ describe("priority lifestyle sections", () => {
     expect(screen.getByRole("heading", { name: /餐桌不只在家的厨房/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "配合运动更高效，可执行的三件事。" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "21 天，构建你的脂代谢稳态。" })).toBeInTheDocument();
-    expect(screen.getByText("感受到的减脂，坚持方能长期健康。")).toBeInTheDocument();
+    expect(screen.queryByText("感受到的减脂，坚持方能长期健康。")).not.toBeInTheDocument();
     expect(navigation.find((item) => item.id === "check-in")?.label).toBe("21 天打卡");
   });
 
