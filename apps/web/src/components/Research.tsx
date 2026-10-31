@@ -17,6 +17,8 @@ export function Research() {
           <div><dt>科学性审查</dt><dd>经医院临床研究学术委员会审查批准（批件号 Hsy-2025043，2025-12-03）</dd></div>
           <div><dt>研究周期</dt><dd>跟踪审查频率 12 个月，研究进展以正式报告为准</dd></div>
         </dl>
+        <p className="research-evidence-label">四川大学华西第四医院｜科学性审查批件 Hsy-2025043</p>
+        <a className="research-evidence-button" href="/images/clinical/ethics-approval.png" target="_blank" rel="noreferrer">查看循证依据 <span aria-hidden="true">↗</span></a>
         <a className="research-doc-link" href="/images/clinical/ethics-approval.png" target="_blank" rel="noreferrer">
           <img src="/images/clinical/ethics-approval.png" alt="四川大学华西第四医院科学性审查批件" loading="lazy" decoding="async" />
           <span>查看科学性审查批件 ↗</span>

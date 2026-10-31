@@ -70,7 +70,8 @@ describe("v1.4 science, plate and personal records", () => {
 
   it("uses precise nutrition copy without unverified scores or guaranteed outcomes", () => {
     renderApp();
-    expect(screen.getByText("定向酶解带来小分子菌糖肽，叠加菌菇来源的麦角硫因——宏量营养之上，多一层菌物活性物质。")).toBeInTheDocument();
+    expect(screen.getByText(/定向酶解带来小分子菌糖肽/)).toBeInTheDocument();
+    expect(screen.getByText(/宏量营养之上，多一层菌物活性物质/)).toBeInTheDocument();
     expect(screen.getByText(/动植物蛋白搭配，丰富必需氨基酸来源/)).toBeInTheDocument();
     expect(screen.getByText(/PDCAAS.*满分 1.0/)).toBeInTheDocument();
     expect(screen.getByText(/具体评分需依据产品实际检测/)).toBeInTheDocument();

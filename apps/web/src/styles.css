@@ -1187,3 +1187,9 @@ section { scroll-margin-top: 78px; }
   .user-center { padding-top: calc(120px + env(safe-area-inset-top, 0px)); }
   .user-center-account { padding: 20px; }
 }
+
+/* 内容信任展示：专业词解释、真实批件入口与科普脚注可读性 */
+.plain-language-note { margin-top: 14px; font-size: 12px; line-height: 1.8; opacity: .68; }
+.research-evidence-label { margin-top: 22px; font-size: 13px; font-weight: 750; line-height: 1.8; }
+.research-evidence-button { display: inline-flex; gap: 8px; margin-top: 14px; padding: 13px 20px; background: var(--forest); color: var(--paper); font-size: 14px; font-weight: 800; text-decoration: none; }
+.plate-note, .water-note { font-size: 12px; line-height: 1.8; opacity: .68; }

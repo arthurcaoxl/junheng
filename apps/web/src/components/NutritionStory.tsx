@@ -16,6 +16,7 @@ export function NutritionStory() {
           <strong>23</strong>
           <h3>种菌菇精华</h3>
           <p>定向酶解带来小分子菌糖肽，叠加菌菇来源的麦角硫因——宏量营养之上，多一层菌物活性物质。</p>
+          <p className="plain-language-note">宏量营养：基础供能营养素（碳水、蛋白、脂肪）。小分子菌糖肽：经定向酶解处理的菌物营养成分。麦角硫因：菌菇来源的特色营养成分，常见于抗氧化营养研究。</p>
           <div className="ingredient-tags" aria-label="23 种菌菇配料">
             {mushroomNames.map((name) => <span key={name}>{name}</span>)}
           </div>

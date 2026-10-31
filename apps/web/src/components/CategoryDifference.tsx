@@ -20,6 +20,7 @@ export function CategoryDifference() {
         <p className="eyebrow">不是同一种产品，换一套说辞</p>
         <h2 id="difference-title">不是“更好的<span className="no-break">代餐</span>”，<br />是宏量营养 ×<br className="mobile-break" /> 活性菌物营养<br className="desktop-break" /><span className="no-break">协同的新路径。</span></h2>
         <p>不替代正常三餐，而是把营养补充放到餐前。差异来自配方逻辑、工艺积累与使用场景，而不是一句更响亮的承诺。</p>
+        <p className="plain-language-note">宏量营养＝基础供能营养素（碳水、蛋白、脂肪）。</p>
       </header>
       <div className="difference-comparison">
         {comparison.map((item, columnIndex) => (

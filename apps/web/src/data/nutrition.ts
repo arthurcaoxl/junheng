@@ -104,6 +104,6 @@ export const activeNutrition = [
 ] as const;
 
 export const mechanismPaths = [
-  { name: "小分子菌糖肽", english: "SMALL-MOLECULE GLYCOPEPTIDES", description: "从原料处理到营养释放，关注消化吸收过程。", steps: ["原料处理", "营养释放", "消化吸收"] },
-  { name: "麦角硫因", english: "ERGOTHIONEINE", description: "认识菌菇来源特色成分及抗氧化营养研究。", steps: ["菌菇来源", "特色成分", "抗氧化营养研究"] },
+  { name: "小分子菌糖肽", english: "SMALL-MOLECULE GLYCOPEPTIDES", description: "经定向酶解处理的菌物营养成分，关注营养释放与消化吸收过程。", steps: ["原料处理", "营养释放", "消化吸收"] },
+  { name: "麦角硫因", english: "ERGOTHIONEINE", description: "菌菇来源的特色营养成分，常见于抗氧化营养研究；不替代充足睡眠和均衡饮食。", steps: ["菌菇来源", "特色成分", "抗氧化营养研究"] },
 ] as const;
