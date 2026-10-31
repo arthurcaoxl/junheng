@@ -62,7 +62,7 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
   };
 
   const sendCode = () => run(async () => {
-    if (mode === "bind") await upgradeToPermanentAccount(email);
+    if (mode === "bind" || mode === "change-email") await upgradeToPermanentAccount(email);
     else await sendLoginCode(email);
     setPhase("code");
     setNotice("验证码已发送，请查收邮件（含垃圾邮件）。");
@@ -70,10 +70,13 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
   });
 
   const submitCode = () => run(async () => {
-    if (mode === "bind") {
+    if (mode === "bind" || mode === "change-email") {
       await confirmEmailUpgrade(email, code);
-      // 原地升级保留匿名 auth.uid；历史记录仍归属同一用户。
-      await syncToCloud();
+      // 原地升级保留 auth.uid；修改邮箱也只有同一账号验证成功后才广播。
+      const syncResult = await syncToCloud();
+      if (mode === "change-email" && syncResult !== "synced") {
+        throw new Error("邮箱已验证，但云端数据同步未完成，请检查网络后重试。");
+      }
       window.dispatchEvent(new CustomEvent("junheng-sync-changed", { detail: { email } }));
       onSuccess?.();
       onClose();
@@ -109,7 +112,7 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
         <h2 id="sync-modal-title">
           {milestone
             ? milestoneKind === "poster" ? "🎉 您的专属健康海报已生成！" : "🎉 太棒了！您已坚持记录 7 天，专属的健康趋势已经生成！"
-            : mode === "bind" ? "绑定邮箱，换手机/电脑接着打卡" : "在新设备恢复数据"}
+            : mode === "bind" ? "绑定邮箱，换手机/电脑接着打卡" : mode === "change-email" ? "修改登录邮箱" : "在新设备恢复数据"}
         </h2>
         <p className="sync-modal-sub">
           {milestone
@@ -118,7 +121,9 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
               : "为了防止数据丢失（换手机/清缓存），请绑定邮箱永久保存。登录后自动为您展开成果。"
             : mode === "bind"
               ? "输入邮箱接收 6–8 位数字验证码。绑定后，您的打卡记录会自动备份到云端，换手机或电脑登录即可恢复。"
-              : "输入已绑定的邮箱接收验证码。登录后，云端记录会恢复到本机；本机原记录会自动备份。"}
+              : mode === "change-email"
+                ? "输入新邮箱接收验证码。验证与云端同步成功后才会更新登录邮箱，账号身份和营员代码保持不变。"
+                : "输入已绑定的邮箱接收验证码。登录后，云端记录会恢复到本机；本机原记录会自动备份。"}
         </p>
 
         {phase === "email" ? (
@@ -134,7 +139,7 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
               autoFocus
             />
             <button type="button" className="sync-modal-primary" disabled={busy || cooldown > 0 || !email.includes("@")} onClick={sendCode}>
-              {busy ? "发送中…" : cooldown > 0 ? `重发（${cooldown}s）` : milestone && milestoneKind === "poster" ? "立即绑定并查看海报" : mode === "bind" ? "获取邮箱验证码" : "发送登录验证码"}
+              {busy ? "发送中…" : cooldown > 0 ? `重发（${cooldown}s）` : milestone && milestoneKind === "poster" ? "立即绑定并查看海报" : mode === "bind" ? "获取邮箱验证码" : mode === "change-email" ? "发送修改验证码" : "发送登录验证码"}
             </button>
           </>
         ) : (
@@ -150,7 +155,7 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
             />
             <p className="sync-modal-hint">{OTP_INPUT_HINT}</p>
             <button type="button" className="sync-modal-primary" disabled={busy || !code.trim()} onClick={submitCode}>
-              {busy ? "验证中…" : milestone && milestoneKind === "poster" ? "完成绑定并查看海报" : mode === "bind" ? "完成绑定" : "登录并恢复数据"}
+              {busy ? "验证中…" : milestone && milestoneKind === "poster" ? "完成绑定并查看海报" : mode === "bind" ? "完成绑定" : mode === "change-email" ? "确认修改邮箱" : "登录并恢复数据"}
             </button>
           </>
         )}

@@ -1190,6 +1190,14 @@ section { scroll-margin-top: 78px; }
 .check-in-assets-link { display: inline-flex; margin-top: 42px; padding: 15px 24px; border: 1px solid var(--acid); color: var(--acid); font-size: 14px; font-weight: 800; text-decoration: none; }
 .check-in-assets-link:hover { background: var(--acid); color: var(--forest); }
 .user-center-checkin-link { display: inline-block; margin-top: 28px; padding: 14px 24px; background: var(--acid); color: var(--forest); font-size: 14px; font-weight: 800; text-decoration: none; }
+.account-security { margin-top: 56px; padding: 30px; border: 1px solid var(--line-light); }
+.account-security > div:first-child > span { color: var(--acid); font-size: 9px; letter-spacing: .16em; }
+.account-security h2 { margin-top: 10px; font-size: 26px; }
+.account-security p { margin-top: 12px; font-size: 12px; line-height: 1.8; opacity: .65; }
+.account-security-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 24px; }
+.account-security-actions button { min-height: 44px; padding: 10px 20px; border: 1px solid var(--line-light); background: transparent; color: var(--paper); font: inherit; font-size: 13px; cursor: pointer; }
+.account-security-actions button:first-child { border-color: var(--acid); color: var(--acid); }
+.account-security-actions button:hover { border-color: var(--acid); }
 @media (max-width: 760px) {
   .user-center-label { display: none; }
   .user-center-link { padding: 7px 10px; opacity: .85; }

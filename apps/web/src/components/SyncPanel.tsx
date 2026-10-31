@@ -19,7 +19,7 @@ export function SyncPanel() {
     if (!configured) return;
     const onOpen = (event: Event) => {
       const detail = (event as CustomEvent<SyncOpenOptions & { mode?: SyncMode }>).detail;
-      setMode(detail?.mode === "restore" ? "restore" : "bind");
+      setMode(detail?.mode === "restore" || detail?.mode === "change-email" ? detail.mode : "bind");
       setMilestone(Boolean(detail?.milestone));
       setMilestoneKind(detail?.milestoneKind === "poster" ? "poster" : "trend");
       setPosterUrl(detail?.posterUrl ?? "");

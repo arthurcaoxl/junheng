@@ -1,4 +1,4 @@
-export type SyncMode = "bind" | "restore";
+export type SyncMode = "bind" | "restore" | "change-email";
 export type SyncMilestoneKind = "poster" | "trend";
 
 export type SyncOpenOptions = {

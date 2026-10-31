@@ -2,6 +2,7 @@ import { Link } from "react-router";
 import { useUserCenterData } from "../hooks/useUserCenterData";
 import { HealthStats } from "../components/user-center/HealthStats";
 import { PersonalAssets } from "../components/user-center/PersonalAssets";
+import { AccountSecurity } from "../components/user-center/AccountSecurity";
 import { SyncPanel } from "../components/SyncPanel";
 
 export default function UserCenter() {
@@ -32,6 +33,7 @@ export default function UserCenter() {
         endDate={stats.endDate}
         requiresMilestoneBinding={configured && !email && stats.elapsedDays >= 7}
       />
+      <AccountSecurity configured={configured} email={email} />
       <SyncPanel />
       <Link className="user-center-checkin-link" to="/check-in">继续打卡</Link>
     </section>
