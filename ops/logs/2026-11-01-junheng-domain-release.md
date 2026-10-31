@@ -37,4 +37,10 @@
 
 旧域名首页及 `/check-in/index.html` 仍返回 HTTP 200，过渡期老用户仍可回到旧地址处理本机数据绑定与备份。由于 `localStorage` 和 Supabase SDK 会话按 origin 隔离，新域名不会自动继承旧域名的本机数据或登录状态。
 
-本次 CLI 操作只完成网站发布与平台 slug 绑定，未修改 Supabase Auth 的 Site URL 或 Redirect URLs。
+## Supabase 真实登录验证
+
+- 2026-11-01：所有者在新域名 `https://junheng.ok.kimi.link` 完成真实邮箱 OTP 登录。
+- 登录后成功进入 `/user-center`，页面展示“我的脂代谢追踪档案”、已绑定邮箱、营员代码与核心体重指标。
+- 验证截图只保留在本地工作区，不进入 Git；为减少个人信息留痕，本日志不记录截图中的邮箱及营员代码。
+
+本次 CLI 操作只完成网站发布与平台 slug 绑定，未修改 Supabase Auth 的 Site URL 或 Redirect URLs；后续如需收紧或迁移 Auth 白名单，应另建 Supabase 配置变更记录。
