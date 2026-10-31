@@ -67,7 +67,9 @@ describe("priority lifestyle sections", () => {
     renderApp("/check-in");
     const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
     expect(within(checkIn).getByRole("heading", { name: "水分是体重波动的关键" })).toBeInTheDocument();
-    expect(within(checkIn).getByText(/早晚.*约 2 kg/)).toBeInTheDocument();
+    expect(within(checkIn).getAllByText(/早晚.*约 2 kg/).length).toBeGreaterThan(0);
+    expect(within(checkIn).getByText(/早晚相差约 2 kg 的情况可能出现，不必因单次读数焦虑/)).toBeInTheDocument();
+    expect(within(checkIn).getByText(/重点看 21 天的总体趋势/)).toBeInTheDocument();
     expect(within(checkIn).getAllByText(/60%–70/).length).toBeGreaterThan(0);
     expect(within(checkIn).getAllByText(/不等于脂肪变化/).length).toBeGreaterThan(0);
     expect(within(checkIn).getByText(/高盐饮食、经期及饮酒/)).toBeInTheDocument();

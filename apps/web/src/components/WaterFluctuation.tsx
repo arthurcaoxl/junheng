@@ -104,7 +104,7 @@ export function WaterFluctuation() {
 
   return (
     <section className="water-fluctuation" aria-labelledby="water-fluctuation-title">
-      <div className="water-fluctuation-heading"><span>WATER & WEIGHT</span><h3 id="water-fluctuation-title">水分是体重波动的关键</h3><p>先理解体重为什么起伏，再决定如何记录。不必因一次上下波动，极端节食或过量饮水。</p></div>
+      <div className="water-fluctuation-heading"><span>WATER & WEIGHT</span><h3 id="water-fluctuation-title">水分是体重波动的关键</h3><p>早晚相差约 2 kg 的情况可能出现，不必因单次读数焦虑。重点看 21 天的总体趋势，不纠结单日数字。</p></div>
       <div className="water-facts">
         {waterFacts.map((fact) => <article key={fact.value}><strong>{fact.value}</strong><h4>{fact.title}</h4><p>{fact.text}</p></article>)}
       </div>
