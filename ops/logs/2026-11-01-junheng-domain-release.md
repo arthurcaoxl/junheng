@@ -44,3 +44,14 @@
 - 验证截图只保留在本地工作区，不进入 Git；为减少个人信息留痕，本日志不记录截图中的邮箱及营员代码。
 
 本次 CLI 操作只完成网站发布与平台 slug 绑定，未修改 Supabase Auth 的 Site URL 或 Redirect URLs；后续如需收紧或迁移 Auth 白名单，应另建 Supabase 配置变更记录。
+
+## 旧域名强制跳转发布
+
+- 日期：2026-11-01
+- 代码提交：`0b0a114 feat: 增加旧域名强制跳转`
+- 发布版本 ID：`1a19443b-0212-8f0e-8000-0000b98bb7ec`
+- 发布前验证：190 项 Vitest 测试、ESLint、生产构建及 `kimix website validate static` 全部通过。
+- 发布内容：仅在精确匹配 `rtrzqrxly4mlo.ok.kimi.link` 时执行 `location.replace()`，并保留当前路径与查询参数；`localhost`、`127.0.0.1` 及其他域名均不触发。
+- 线上验证：Kimi 内置浏览器访问 `https://rtrzqrxly4mlo.ok.kimi.link/check-in/index.html?day=7` 后，地址自动切换为 `https://junheng.ok.kimi.link/check-in/index.html?day=7`，页面标题正常且未停留在跳转提示。
+- 新域名首页、打卡页、用户中心与 H5 深链均返回 HTTP 200。
+- 注意：托管服务器仍会向旧域名返回静态 HTML 200；真正的强制跳转由入口 JavaScript 完成，因此不使用浏览器的纯 `curl` 请求不会看到跳转。
