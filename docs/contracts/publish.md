@@ -5,7 +5,7 @@
 - 当前版本：`v1.9.0`
 - 发布方式：在获所有者明确授权的 Kimi 会话中使用 `kimix website publish`
 - 网站 ID：`1a170fd8-b362-873e-8000-0000c5bec604`
-- 线上地址：`https://rtrzqrxly4mlo.ok.kimi.link`
+- 线上地址：`https://junheng.ok.kimi.link`
 - CI、本地构建和预览均不具有发布权限。
 
 ## 静态托管特性（v1.7.2 验证）
@@ -14,7 +14,7 @@
 
 - 站点 `base` 必须为绝对路径 `/`（`vite.config.ts`），相对路径在子目录入口会断；
 - 每个客户端路由需在构建产物中有对应静态入口：`postbuild` 会将 `index.html` 复制为 `dist/check-in/index.html`；
-- 打卡页公开深链形式为 `https://rtrzqrxly4mlo.ok.kimi.link/check-in/index.html`，站内链接仍用客户端路由 `/check-in`；
+- 打卡页公开深链形式为 `https://junheng.ok.kimi.link/check-in/index.html`，站内链接仍用客户端路由 `/check-in`；
 - 管理后台深链 `/admin/check-in/index.html` 同理由 `postbuild` 生成（v1.9.0 起）；
 - 未来新增顶层路由时，必须同步 `postbuild` 复制规则并在发布后验证深链。
 

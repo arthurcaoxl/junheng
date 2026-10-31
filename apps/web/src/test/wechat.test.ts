@@ -13,7 +13,7 @@ describe("WeChat browser readiness", () => {
   it("provides absolute sharing metadata and a local share image", () => {
     expect(html).toContain('property="og:title"');
     expect(html).toContain('property="og:description"');
-    expect(html).toContain('content="https://rtrzqrxly4mlo.ok.kimi.link/images/wechat-share.jpg"');
+    expect(html).toContain('content="https://junheng.ok.kimi.link/images/wechat-share.jpg"');
     expect(html).toContain('property="og:image:width" content="1200"');
     expect(html).toContain('property="og:image:height" content="630"');
     expect(shareImageUrl).toContain("wechat-share");
@@ -21,15 +21,15 @@ describe("WeChat browser readiness", () => {
 
   it("preloads the hero and keeps the canonical cloud address", () => {
     expect(html).toContain('rel="preload" as="image" href="/images/hero.webp"');
-    expect(html).toContain('rel="canonical" href="https://rtrzqrxly4mlo.ok.kimi.link/"');
+    expect(html).toContain('rel="canonical" href="https://junheng.ok.kimi.link/"');
   });
 });
 
 describe("standalone WeChat H5", () => {
   it("provides a lightweight independent document with sharing metadata", () => {
     expect(h5).toContain("viewport-fit=cover");
-    expect(h5).toContain('rel="canonical" href="https://rtrzqrxly4mlo.ok.kimi.link/h5/index.html"');
-    expect(h5).toContain('property="og:url" content="https://rtrzqrxly4mlo.ok.kimi.link/h5/index.html"');
+    expect(h5).toContain('rel="canonical" href="https://junheng.ok.kimi.link/h5/index.html"');
+    expect(h5).toContain('property="og:url" content="https://junheng.ok.kimi.link/h5/index.html"');
     expect(h5).not.toContain("<script");
     expect(h5.length).toBeLessThan(30000);
   });

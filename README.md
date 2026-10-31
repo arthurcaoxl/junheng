@@ -48,4 +48,4 @@ assets-archive/        素材出处清单，不含原始素材
 
 CI 在每次 push 时执行 `npm ci`、lint、98 项测试和生产构建；CI 不发布网站。
 
-线上入口：官网 `https://rtrzqrxly4mlo.ok.kimi.link`；管理后台 `/admin/check-in`（管理员邮箱 OTP 登录，白名单见 `services/supabase/README.md`）。
+线上入口：官网 `https://junheng.ok.kimi.link`；管理后台 `/admin/check-in`（管理员邮箱 OTP 登录，白名单见 `services/supabase/README.md`）。
