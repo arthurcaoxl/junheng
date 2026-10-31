@@ -1,5 +1,9 @@
 export const siteConfig = {
   brand: "菌衡计划",
+  headerBrand: "菌衡计划 | 脂代谢研究所",
+  platform: "菌衡计划·脂代谢研究所",
+  platformEnglish: "FUNGIBLEND LIPID METABOLISM RESEARCH INSTITUTE",
+  platformDisclaimer: "注：菌衡计划·脂代谢研究所为本品牌内部健康管理研究平台，非医疗或国家级学术机构。相关数据与成分科普不作为医疗诊断或治疗依据。",
   product: "菌衡膳食粉",
   slogan: "餐前伴侣助力脂代谢",
   healthStatement: "健康体重管理",

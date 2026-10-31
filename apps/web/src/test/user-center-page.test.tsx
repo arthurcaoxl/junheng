@@ -59,6 +59,8 @@ describe("用户中心本机档案与资产", () => {
     expect(within(stats).getByText("核心体重指标变化")).toBeInTheDocument();
     expect(within(stats).getByText("-0.6 kg")).toBeInTheDocument();
     expect(screen.queryByText(/核心脂质指标变化/)).not.toBeInTheDocument();
+    const userCenter = screen.getByRole("region", { name: "我的脂代谢追踪档案" });
+    expect(within(userCenter).getByText("注：菌衡计划·脂代谢研究所为本品牌内部健康管理研究平台，非医疗或国家级学术机构。相关数据与成分科普不作为医疗诊断或治疗依据。")).toBeInTheDocument();
   });
 
   it("少于两条有效体重时显示统一空态", () => {

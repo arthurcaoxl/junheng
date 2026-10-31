@@ -47,7 +47,7 @@ section { scroll-margin-top: 78px; }
 .site-shell[data-active-theme="forest"] .site-header { background: rgba(7, 28, 20, .96); color: var(--paper); border-color: var(--line-light); }
 .brand-mark { display: inline-flex; align-items: center; gap: 11px; width: max-content; }
 .brand-symbol { width: 36px; height: 36px; border: 1px solid currentColor; border-radius: 50%; display: grid; place-items: center; font-size: 18px; font-weight: 800; }
-.brand-mark strong { display: block; font-size: 16px; letter-spacing: .13em; }
+.brand-mark strong { display: block; font-size: 16px; letter-spacing: .06em; }
 .brand-mark small { display: block; margin-top: 3px; font-size: 7px; letter-spacing: .28em; opacity: .58; }
 .desktop-nav { display: flex; justify-self: center; align-items: center; gap: clamp(18px, 2.1vw, 34px); }
 .desktop-nav a { position: relative; padding: 10px 0; font-size: 11px; font-weight: 650; letter-spacing: .06em; opacity: .6; }
@@ -354,6 +354,8 @@ section { scroll-margin-top: 78px; }
 .footer-bottom > div span { margin-top: 9px; font-size: 9px; opacity: .55; }
 .footer-bottom p { max-width: 520px; font-size: 10px; line-height: 1.8; opacity: .5; }
 .footer-bottom a { font-size: 11px; }
+.platform-disclaimer { max-width: 960px; margin-top: 20px; color: inherit; font-size: 10px; line-height: 1.8; opacity: .48; }
+.user-center-disclaimer { margin-top: 36px; }
 
 @media (max-width: 1180px) {
   .header-note { display: none; }
@@ -375,8 +377,10 @@ section { scroll-margin-top: 78px; }
 @media (max-width: 760px) {
   section { scroll-margin-top: 68px; scroll-margin-top: calc(68px + env(safe-area-inset-top, 0px)); }
   .site-header { height: 68px; height: calc(68px + env(safe-area-inset-top, 0px)); padding: 0 20px; padding: calc(8px + env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px)) 0 max(20px, env(safe-area-inset-left, 0px)); grid-template-columns: minmax(0, 1fr) auto auto; column-gap: 8px; }
-  .brand-symbol { width: 32px; height: 32px; font-size: 16px; }
-  .brand-mark strong { font-size: 14px; }
+  .brand-symbol { width: 32px; height: 32px; flex: 0 0 auto; font-size: 16px; }
+  .brand-mark { gap: 8px; }
+  .brand-mark strong { font-size: 11px; line-height: 1.35; letter-spacing: .02em; }
+  .brand-mark small { display: none; }
   .desktop-nav { display: none; }
   .mobile-menu-button { width: 44px; height: 44px; padding: 12px 8px; display: flex; flex-direction: column; justify-content: center; gap: 7px; border: 0; background: transparent; cursor: pointer; }
   .mobile-menu-button span { display: block; width: 25px; height: 2px; background: currentColor; }
@@ -506,6 +510,11 @@ section { scroll-margin-top: 78px; }
 .perspective-values > div { padding: 20px 0; display: grid; grid-template-columns: 1fr 1.35fr; gap: 22px; border-top: 1px solid var(--line-dark); }
 .perspective-values dt { font-size: 13px; font-weight: 750; }
 .perspective-values dd { color: var(--muted); font-size: 12px; line-height: 1.75; }
+.management-principles { grid-column: 1 / 13; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 26px; margin-top: 72px; }
+.management-principles article { padding: 30px; border: 1px solid var(--line-dark); background: rgb(7 28 20 / 3%); }
+.management-principles article > span { color: var(--forest); font-size: 10px; font-weight: 800; letter-spacing: .16em; opacity: .55; }
+.management-principles h3 { margin-top: 28px; font-size: clamp(24px, 2.2vw, 34px); letter-spacing: -.04em; }
+.management-principles p { margin-top: 18px; color: var(--muted); font-size: 13px; line-height: 1.9; }
 
 .difference { background: var(--forest); color: var(--paper); }
 .difference-heading { max-width: 1120px; margin: 66px 0 76px; }
@@ -762,6 +771,9 @@ section { scroll-margin-top: 78px; }
   .perspective-body { padding-top: 46px; }
   .perspective-heading h2, .difference-heading h2, .plate-copy h2, .scene-heading h2, .movement-heading h2, .check-in-heading h2 { font-size: clamp(43px, 12.8vw, 62px); }
   .perspective-values > div { grid-template-columns: 1fr; gap: 10px; }
+  .management-principles { grid-template-columns: 1fr; gap: 16px; margin-top: 48px; }
+  .management-principles article { padding: 26px 22px; }
+  .management-principles h3 { margin-top: 20px; }
   .difference-heading, .scene-heading, .check-in-heading { margin: 0 0 52px; }
   .difference-comparison { grid-template-columns: 1fr; }
   .difference-column { min-height: auto; padding: 28px 22px; }

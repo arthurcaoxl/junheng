@@ -1,3 +1,4 @@
+import { siteConfig } from "../config/site";
 import type { DayRecord } from "../types/checkin";
 import { formatTrendValue, selectTrendLabelDays } from "./trend";
 import { getRepresentativeWeight } from "./weight";
@@ -80,7 +81,7 @@ export function createRecordPoster(records: DayRecord[], recordName = "", camp?:
   context.fillStyle = "#C6FF36";
   context.fillRect(0, 0, WIDTH, 20);
   context.font = "600 28px sans-serif";
-  context.fillText("菌衡计划×心脑健康减脂营", 70, 100);
+  context.fillText(siteConfig.platformEnglish, 70, 100);
   context.fillStyle = "#F3F1E8";
   context.font = "700 72px sans-serif";
   context.fillText("我的 21 天健康记录", 70, 210);
@@ -126,5 +127,7 @@ export function createRecordPoster(records: DayRecord[], recordName = "", camp?:
   context.font = "22px sans-serif";
   context.fillText("仅为个人健康记录，不代表固定减重目标或产品功效。", 70, 1790);
   context.fillText("本海报由本人主动生成，仅供个人健康管理参考。", 70, 1835);
+  context.fillStyle = "#C6FF36";
+  context.fillText(`加入${siteConfig.platform}，用真实记录陪伴长期健康管理。`, 70, 1880);
   return canvas.toDataURL("image/png");
 }

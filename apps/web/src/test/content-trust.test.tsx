@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router";
 import { describe, expect, it } from "vitest";
 import App from "../App";
@@ -25,5 +25,17 @@ describe("职场内容与信任展示", () => {
     const evidence = screen.getByRole("link", { name: /查看循证依据/ });
     expect(evidence).toHaveAttribute("href", "/images/clinical/ethics-approval.png");
     expect(screen.getByText(/四川大学华西第四医院｜科学性审查批件 Hsy-2025043/)).toBeInTheDocument();
+  });
+
+  it("展示三大核心原则且不使用确定性功效表述", () => {
+    renderHome();
+    const principles = screen.getByRole("region", { name: "科学体重管理的三大核心原则" });
+    expect(within(principles).getByRole("heading", { name: "热量平衡" })).toBeInTheDocument();
+    expect(within(principles).getByText("不挨饿、不断碳水，在营养均衡前提下保持温和热量缺口，让饮食管理更容易长期坚持。")).toBeInTheDocument();
+    expect(within(principles).getByRole("heading", { name: "营养均衡" })).toBeInTheDocument();
+    expect(within(principles).getByText("脂肪代谢需要多种营养参与。23 种菌菇、双蛋白与 6 种维生素，作为日常膳食的营养补充。")).toBeInTheDocument();
+    expect(within(principles).getByRole("heading", { name: "脂代谢调节" })).toBeInTheDocument();
+    expect(within(principles).getByText("关注久坐、应酬等生活场景下的脂质代谢管理，通过菌菇与维生素矩阵补充营养，配合饮食、运动与长期记录。")).toBeInTheDocument();
+    expect(within(principles).queryByText(/修复.*代谢|激活线粒体|重塑易瘦体质/)).not.toBeInTheDocument();
   });
 });

@@ -4,6 +4,7 @@ import { HealthStats } from "../components/user-center/HealthStats";
 import { PersonalAssets } from "../components/user-center/PersonalAssets";
 import { AccountSecurity } from "../components/user-center/AccountSecurity";
 import { SyncPanel } from "../components/SyncPanel";
+import { siteConfig } from "../config/site";
 
 export default function UserCenter() {
   const { state, recordName, records, stats, configured, email, ready } = useUserCenterData();
@@ -36,6 +37,7 @@ export default function UserCenter() {
       <AccountSecurity configured={configured} email={email} />
       <SyncPanel />
       <Link className="user-center-checkin-link" to="/check-in">继续打卡</Link>
+      <p className="platform-disclaimer user-center-disclaimer">{siteConfig.platformDisclaimer}</p>
     </section>
   );
 }
