@@ -45,7 +45,7 @@ describe("v1.4.1 interface refinement", () => {
 
   it("uses two wide stacked charts with three-week day labels", () => {
     seedRecords();
-    renderApp("/check-in");
+    renderApp("/user-center");
     const trends = screen.getByRole("region", { name: "21 天身体记录趋势" });
     expect(trends.querySelector(".trend-grid-stacked")).toBeInTheDocument();
     for (const label of ["体重趋势图", "腰围趋势图"]) {
@@ -71,7 +71,7 @@ describe("v1.4.1 interface refinement", () => {
       meals: [false, false, false], water: false, movement: false, sleep: false,
     }));
     window.localStorage.setItem("junheng-checkin-v2", JSON.stringify(records));
-    renderApp("/check-in");
+    renderApp("/user-center");
     const chart = screen.getByRole("img", { name: "体重趋势图" });
     const labels = [...chart.querySelectorAll(".trend-value")].map((label) => label.textContent);
     expect(labels.length).toBeLessThanOrEqual(5);
@@ -97,6 +97,7 @@ describe("v1.4.1 interface refinement", () => {
     renderApp("/check-in");
     await user.type(screen.getByLabelText("姓名或网名"), "小菌");
     expect(screen.getByText("海报署名：小菌")).toBeInTheDocument();
+    await user.click(screen.getByRole("link", { name: "前往用户中心查看个人资产" }));
     await user.click(screen.getByRole("button", { name: "导出记录海报" }));
     expect(posterCanvases[0]?.width).toBe(1080);
     expect(posterCanvases[0]?.height).toBe(1920);
