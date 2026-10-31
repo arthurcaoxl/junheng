@@ -7,7 +7,7 @@ import { navigation, siteConfig } from "../config/site";
 import { addDays, todayKey } from "../utils/checkin";
 
 function setCampStart(offsetDays: number) {
-  const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
+  const checkIn = screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" });
   fireEvent.change(within(checkIn).getByLabelText("开营日期"), { target: { value: addDays(todayKey(), offsetDays) } });
   return checkIn;
 }
@@ -51,7 +51,7 @@ describe("priority lifestyle sections", () => {
     expect(screen.getByRole("heading", { name: /211 饮食法/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: /餐桌不只在家的厨房/ })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "配合运动更高效，可执行的三件事。" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "21 天，看见自己的节奏。" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "21 天，构建你的脂代谢稳态。" })).toBeInTheDocument();
     expect(screen.getByText("感受到的减脂，坚持方能长期健康。")).toBeInTheDocument();
     expect(navigation.find((item) => item.id === "check-in")?.label).toBe("21 天打卡");
   });
@@ -59,13 +59,18 @@ describe("priority lifestyle sections", () => {
   it("links the home check-in entry to the dedicated check-in page", () => {
     renderApp();
     const entry = screen.getByRole("region", { name: "21 天打卡入口" });
+    const checkInLinks = screen.getAllByRole("link", { name: "进入 21 天打卡 →" });
+    expect(checkInLinks).toHaveLength(2);
+    expect(checkInLinks[0]).toHaveClass("hero-checkin-link");
+    expect(checkInLinks[0]).toHaveAttribute("href", "/check-in");
     expect(within(entry).getByRole("link", { name: "进入 21 天打卡 →" })).toHaveAttribute("href", "/check-in");
     expect(screen.queryByRole("tablist", { name: "21 天打卡日期" })).not.toBeInTheDocument();
   });
 
   it("explains water-related weight fluctuation on the dedicated check-in page", () => {
     renderApp("/check-in");
-    const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
+    const checkIn = screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" });
+    expect(within(checkIn).getByText("第 1 天建立基线，第 21 天回看趋势。记录体重、腰围与每餐执行情况。")).toBeInTheDocument();
     expect(within(checkIn).getByRole("heading", { name: "水分是体重波动的关键" })).toBeInTheDocument();
     expect(within(checkIn).getAllByText(/早晚.*约 2 kg/).length).toBeGreaterThan(0);
     expect(within(checkIn).getByText(/早晚相差约 2 kg 的情况可能出现，不必因单次读数焦虑/)).toBeInTheDocument();
@@ -126,7 +131,7 @@ describe("priority lifestyle sections", () => {
   it("stores 21-day check-ins locally and restores them after rerender", async () => {
     const user = userEvent.setup();
     const first = renderApp("/check-in");
-    const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
+    const checkIn = screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" });
     expect(within(checkIn).getAllByRole("tab")).toHaveLength(21);
     await user.type(within(checkIn).getByLabelText("早晨体重（空腹）"), "65.4");
     await user.type(within(checkIn).getByLabelText("腰围（cm）"), "82");
@@ -140,7 +145,7 @@ describe("priority lifestyle sections", () => {
     expect(saved.records[todayKey()].waist).toBe("82");
     first.unmount();
     renderApp("/check-in");
-    const restored = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
+    const restored = screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" });
     expect(within(restored).getByLabelText("早晨体重（空腹）")).toHaveValue(65.4);
     expect(within(restored).getByLabelText("腰围（cm）")).toHaveValue(82);
     expect(within(restored).getByRole("checkbox", { name: "早餐前已饮用" })).toBeChecked();
@@ -153,7 +158,7 @@ describe("priority lifestyle sections", () => {
     window.localStorage.setItem("junheng-seven-day-checkin-v1", JSON.stringify(Array.from({ length: 7 }, () => oldDay)));
     const user = userEvent.setup();
     renderApp("/check-in");
-    const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
+    const checkIn = screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" });
     expect(within(checkIn).getByLabelText("早晨体重（空腹）")).toHaveValue(65.4);
     await user.type(within(checkIn).getByLabelText("早晨体重（空腹）"), "0");
     const migrated = JSON.parse(window.localStorage.getItem("junheng-checkin-v3") ?? "{}");
@@ -199,7 +204,7 @@ describe("priority lifestyle sections", () => {
     vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/png;base64,poster");
     const user = userEvent.setup();
     renderApp("/check-in");
-    const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
+    const checkIn = screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" });
     await user.type(within(checkIn).getByLabelText("早晨体重（空腹）"), "65.4");
     await user.click(within(checkIn).getByRole("link", { name: "查看我的脂代谢报告" }));
     const userCenter = screen.getByRole("region", { name: "我的脂代谢追踪档案" });
@@ -230,7 +235,7 @@ describe("priority lifestyle sections", () => {
     const user = userEvent.setup();
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("blocked"); });
     renderApp("/check-in");
-    const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
+    const checkIn = screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" });
     await user.click(within(checkIn).getByRole("checkbox", { name: "完成适量饮水" }));
     expect(within(checkIn).getByRole("checkbox", { name: "完成适量饮水" })).toBeChecked();
     expect(within(checkIn).getByText(/当前浏览器无法保存/)).toBeInTheDocument();
@@ -260,7 +265,7 @@ describe("priority lifestyle sections", () => {
       schema: 3, userCode: "JH-TEST1", startDate: yesterday, records: { [yesterday]: recordedDay },
     }));
     renderApp("/check-in");
-    const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
+    const checkIn = screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" });
 
     expect(within(checkIn).getByRole("tab", { name: /第 1 天/ })).toHaveAttribute("data-has-content", "true");
     expect(within(checkIn).getByRole("tab", { name: /第 1 天/ }).querySelector(".day-tab-status")).toBeInTheDocument();
@@ -291,7 +296,7 @@ describe("priority lifestyle sections", () => {
     const createObjectURL = vi.spyOn(URL, "createObjectURL");
     const user = userEvent.setup();
     renderApp("/check-in");
-    const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
+    const checkIn = screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" });
     await user.type(within(checkIn).getByLabelText("早晨体重（空腹）"), "65.4");
     await user.click(within(checkIn).getByRole("checkbox", { name: "早餐前已饮用" }));
     await user.click(within(checkIn).getByRole("link", { name: "查看我的脂代谢报告" }));

@@ -102,11 +102,17 @@ export async function sendLoginCode(email: string): Promise<void> {
     if (error) throw error;
     lastSentAt.set(key, Date.now());
   } catch (error) {
-    const e = error as { status?: number; message?: string };
+    const e = error as { status?: number; code?: string; message?: string };
     if (e.status === 429 || /rate|limit|60 seconds|security/i.test(e.message ?? "")) {
       lastSentAt.set(key, Date.now()); // 服务端也在冷却，本地同步计时
       throw new Error("发送太频繁，请 1 分钟后再试（种子期 QQ 邮箱有日发送限额，连续测试请间隔更久）。");
     }
+    console.error("OTP delivery failed", {
+      status: e.status,
+      code: e.code,
+      emailDomain: key.split("@")[1] ?? "unknown",
+      message: e.message,
+    });
     throw new Error("验证码发送失败，请检查邮箱地址或网络后重试。");
   }
 }

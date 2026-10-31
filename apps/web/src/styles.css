@@ -86,6 +86,7 @@ section { scroll-margin-top: 78px; }
 .hero-subtitle { width: max-content; max-width: 100%; margin-top: 36px; padding: 9px 12px; background: var(--acid); color: var(--forest); font-size: clamp(19px, 1.55vw, 27px); font-weight: 800; line-height: 1.45; letter-spacing: -.025em; }
 .hero-intro { max-width: 520px; margin-top: 24px; font-size: 14px; line-height: 1.9; opacity: .72; }
 .product-category { width: max-content; margin-top: 24px; padding: 8px 12px; border: 1px solid var(--line-light); font-size: 10px; letter-spacing: .12em; }
+.hero-checkin-link { display: none; }
 .hero-media { position: relative; z-index: 1; width: 100%; justify-self: end; }
 .hero-media::before { content: "23\A FUNGI\A BLEND"; white-space: pre; position: absolute; z-index: 3; top: -54px; right: 0; color: var(--acid); font-size: 10px; font-weight: 800; line-height: 1.5; letter-spacing: .14em; text-align: right; }
 .hero-media img { width: 100%; height: min(67vh, 700px); height: min(67svh, 700px); object-fit: cover; object-position: 50% 40%; background: #e6e5d5; }
@@ -408,6 +409,7 @@ section { scroll-margin-top: 78px; }
   .hero-subtitle { width: auto; margin-top: 26px; padding: 9px 10px; font-size: clamp(17px, 5.1vw, 23px); line-height: 1.6; }
   .hero-intro { margin-top: 20px; font-size: 13px; }
   .product-category { margin-top: 20px; font-size: 9px; }
+  .hero-checkin-link { width: 100%; min-height: 52px; margin-top: 28px; padding: 14px 18px; display: flex; align-items: center; justify-content: center; background: var(--acid); color: var(--forest); font-size: 15px; font-weight: 800; letter-spacing: .04em; }
   .hero-media { width: 94%; margin-left: auto; }
   .hero-media::before { top: -42px; }
   .hero-media img { height: 58vh; height: 58svh; min-height: 430px; }

@@ -11,7 +11,7 @@ function renderAt(route: string) {
 describe("check-in routing", () => {
   it("serves the check-in flow on its own route without the home narrative", () => {
     renderAt("/check-in");
-    expect(screen.getByRole("region", { name: "21 天，看见自己的节奏。" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" })).toBeInTheDocument();
     expect(screen.getByRole("tablist", { name: "21 天打卡日期" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "返回首页" })).toHaveAttribute("href", "/");
     expect(screen.queryByRole("heading", { name: "餐前伴侣助力脂代谢健康体重管理" })).not.toBeInTheDocument();
@@ -19,15 +19,18 @@ describe("check-in routing", () => {
 
   it("serves the check-in flow on the static-host deep-link path", () => {
     renderAt("/check-in/index.html");
-    expect(screen.getByRole("region", { name: "21 天，看见自己的节奏。" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "返回首页" })).toHaveAttribute("href", "/");
   });
 
   it("serves the full narrative on the home route without the check-in form", () => {
     renderAt("/");
     expect(screen.getByRole("heading", { name: "餐前伴侣助力脂代谢健康体重管理" })).toBeInTheDocument();
-    expect(screen.queryByRole("region", { name: "21 天，看见自己的节奏。" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("region", { name: "21 天，构建你的脂代谢稳态。" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tablist", { name: "21 天打卡日期" })).not.toBeInTheDocument();
+    const checkInLinks = screen.getAllByRole("link", { name: "进入 21 天打卡 →" });
+    expect(checkInLinks).toHaveLength(2);
+    expect(checkInLinks[0]).toHaveClass("hero-checkin-link");
   });
 
   it("redirects unknown routes back to the home page", () => {
@@ -40,8 +43,8 @@ describe("check-in routing", () => {
     window.scrollTo = scrollTo;
     const user = userEvent.setup();
     renderAt("/");
-    await user.click(screen.getByRole("link", { name: "进入 21 天打卡 →" }));
-    expect(screen.getByRole("region", { name: "21 天，看见自己的节奏。" })).toBeInTheDocument();
+    await user.click(screen.getAllByRole("link", { name: "进入 21 天打卡 →" }).at(-1) as HTMLElement);
+    expect(screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" })).toBeInTheDocument();
     expect(scrollTo).toHaveBeenCalledWith(0, 0);
   });
 });

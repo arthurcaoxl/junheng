@@ -157,6 +157,23 @@ describe("checkinSync with mocked supabase", () => {
     await expect(sendLoginCode("limited@example.com")).rejects.toThrow(/发送太频繁/);
   });
 
+  it("logs sanitized OTP delivery errors for diagnosis without exposing the email", async () => {
+    const client = getSupabase();
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    (client.auth.signInWithOtp as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      error: { status: 500, message: "SMTP relay rejected" },
+    });
+
+    await expect(sendLoginCode("camper@example.com")).rejects.toThrow(/验证码发送失败/);
+
+    expect(consoleError).toHaveBeenCalledWith("OTP delivery failed", {
+      status: 500,
+      code: undefined,
+      emailDomain: "example.com",
+      message: "SMTP relay rejected",
+    });
+  });
+
   it("restores cloud data with a local backup on a new device", async () => {
     writeV3Snapshot(validSnapshot);
     const client = getSupabase();

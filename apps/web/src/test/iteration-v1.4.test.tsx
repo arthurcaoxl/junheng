@@ -14,7 +14,7 @@ describe("v1.4 science, plate and personal records", () => {
 
   it("explains the 24-hour weight timeline and three water switches without absolute claims", () => {
     renderApp("/check-in");
-    const checkIn = screen.getByRole("region", { name: "21 天，看见自己的节奏。" });
+    const checkIn = screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" });
     expect(within(checkIn).getByRole("heading", { name: "一天 24 小时：体重的“真实时间轴”" })).toBeInTheDocument();
     expect(within(checkIn).getByRole("heading", { name: "早晨 7:00–8:00" })).toBeInTheDocument();
     expect(within(checkIn).getByRole("heading", { name: "中午 12:00–14:00" })).toBeInTheDocument();
