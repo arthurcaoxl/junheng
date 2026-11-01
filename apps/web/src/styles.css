@@ -405,7 +405,7 @@ section { scroll-margin-top: 78px; }
   .hero::before { inset: 68px 20px 0; inset: calc(68px + env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px)) 0 max(20px, env(safe-area-inset-left, 0px)); }
   .hero-watermark { right: -28vw; top: 32%; bottom: auto; font-size: 110vw; }
   .hero .eyebrow { margin-bottom: 28px; font-size: 8px; }
-  .hero h1 { font-size: clamp(50px, 15.2vw, 74px); line-height: 1.05; }
+  .hero h1 { font-size: clamp(36px, 11.2vw, 74px); line-height: 1.05; }
   .hero-subtitle { width: auto; margin-top: 26px; padding: 9px 10px; font-size: clamp(17px, 5.1vw, 23px); line-height: 1.6; }
   .hero-intro { margin-top: 20px; font-size: 13px; }
   .product-category { margin-top: 20px; font-size: 9px; }
