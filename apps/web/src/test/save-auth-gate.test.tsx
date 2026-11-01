@@ -50,7 +50,7 @@ describe("保存打卡强制登录", () => {
 
     await user.type(screen.getByLabelText("邮箱地址"), "save@example.com");
     await user.click(screen.getByRole("button", { name: "获取邮箱验证码" }));
-    await user.type(await screen.findByLabelText("邮箱验证码"), "12345678");
+    await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
     await user.click(screen.getByRole("button", { name: "完成绑定" }));
 
     expect(await screen.findByText(/已绑定邮箱：save@example.com/)).toBeInTheDocument();

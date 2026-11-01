@@ -72,6 +72,22 @@ describe("admin check-in page", () => {
     expect(client.rpc).toHaveBeenCalledWith("admin_checkin_overview");
   });
 
+  it("验证码不足 6 位时禁用提交按钮，满 6 位解除禁用", async () => {
+    const user = userEvent.setup();
+    renderAdmin();
+    await user.type(screen.getByLabelText("管理员邮箱"), "gate-admin@example.com");
+    await user.click(screen.getByRole("button", { name: "获取管理员验证码" }));
+    const codeInput = await screen.findByLabelText("邮箱验证码");
+    const submit = screen.getByRole("button", { name: "登录并查看统计" });
+
+    await user.type(codeInput, "12345");
+    expect(submit).toBeDisabled();
+    expect(getSupabase().auth.verifyOtp).not.toHaveBeenCalled();
+
+    await user.type(codeInput, "6");
+    expect(submit).toBeEnabled();
+  });
+
   it("shows a friendly whitelist error for a non-admin email", async () => {
     const user = userEvent.setup();
     const client = getSupabase();

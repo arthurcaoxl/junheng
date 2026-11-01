@@ -21,19 +21,21 @@ const validSnapshot = {
 };
 
 describe("otp helpers", () => {
-  it("accepts both 6-digit (local) and 8-digit (prod) codes", () => {
+  it("accepts exactly 6-digit codes and rejects other lengths", () => {
     expect(isValidOtpCode("123456")).toBe(true);
-    expect(isValidOtpCode("12345678")).toBe(true);
     expect(isValidOtpCode("12345")).toBe(false);
+    expect(isValidOtpCode("1234567")).toBe(false);
+    expect(isValidOtpCode("12345678")).toBe(false);
     expect(isValidOtpCode("123456789")).toBe(false);
     expect(isValidOtpCode("abcdef")).toBe(false);
   });
 
   it("normalizes pasted codes with spaces or dashes", () => {
-    expect(normalizeOtpInput(" 1234 5678 ")).toBe("12345678");
+    expect(normalizeOtpInput(" 1234 56 ")).toBe("123456");
     expect(normalizeOtpInput("123-456")).toBe("123456");
-    expect(normalizeOtpInput("1234567890")).toBe("12345678");
-    expect(OTP_INPUT_PROPS.pattern).toBe("[0-9]{6,8}");
+    expect(normalizeOtpInput("1234567890")).toBe("123456");
+    expect(OTP_INPUT_PROPS.pattern).toBe("[0-9]{6}");
+    expect(OTP_INPUT_PROPS.maxLength).toBe(6);
   });
 });
 
@@ -185,7 +187,7 @@ describe("checkinSync with mocked supabase", () => {
     const query = client.from("checkin_sync") as unknown as { maybeSingle: ReturnType<typeof vi.fn> };
     const cloudRow = { user_code: "JH-CLOUD", start_date: "2026-09-20", records: validSnapshot.records };
     query.maybeSingle.mockResolvedValueOnce({ data: cloudRow, error: null });
-    await expect(loginWithEmail("user@example.com", "12345678")).resolves.toBe("cloud-restored");
+    await expect(loginWithEmail("user@example.com", "123456")).resolves.toBe("cloud-restored");
     expect(readV3Snapshot().userCode).toBe("JH-CLOUD");
     const backups = Object.keys(window.localStorage).filter((k) => k.startsWith("junheng-v3-backup-"));
     expect(backups).toHaveLength(1);

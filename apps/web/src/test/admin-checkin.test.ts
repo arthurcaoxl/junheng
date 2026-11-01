@@ -108,10 +108,10 @@ describe("admin login with email OTP", () => {
       error: null,
     });
 
-    await expect(verifyAdminLogin("admin@example.com", " 1234 5678 ")).resolves.toMatchObject([
+    await expect(verifyAdminLogin("admin@example.com", " 1234 56 ")).resolves.toMatchObject([
       { email: "camper@example.com", userCode: "JH-AAAAA", recordedDays: 1 },
     ]);
-    expect(client.auth.verifyOtp).toHaveBeenCalledWith({ email: "admin@example.com", token: "12345678", type: "email" });
+    expect(client.auth.verifyOtp).toHaveBeenCalledWith({ email: "admin@example.com", token: "123456", type: "email" });
     expect(client.rpc).toHaveBeenCalledWith("admin_checkin_overview");
   });
 
@@ -133,7 +133,7 @@ describe("admin login with email OTP", () => {
       error: null,
     });
 
-    await expect(verifyAdminLogin("admin@example.com", "12345678")).resolves.toMatchObject([
+    await expect(verifyAdminLogin("admin@example.com", "123456")).resolves.toMatchObject([
       { userCode: "JH-KEHUJ", recordedDays: 1 },
     ]);
   });

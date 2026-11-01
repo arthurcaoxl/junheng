@@ -38,7 +38,7 @@ async function bindFromMilestone(email = "seven@example.com") {
   const user = userEvent.setup();
   await user.type(screen.getByLabelText("邮箱地址"), email);
   await user.click(screen.getByRole("button", { name: /获取邮箱验证码|立即绑定并查看海报/ }));
-  await user.type(await screen.findByLabelText("邮箱验证码"), "12345678");
+  await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
   await user.click(screen.getByRole("button", { name: /完成绑定/ }));
 }
 
@@ -96,7 +96,7 @@ describe("sync panel", () => {
       seedRecordedDays(1);
       renderCheckIn();
       await user.click(screen.getByRole("button", { name: "绑定邮箱，接着打卡" }));
-      expect(screen.getByText(/输入邮箱接收 6–8 位数字验证码/)).toBeInTheDocument();
+      expect(screen.getByText(/输入邮箱接收 6 位数字验证码/)).toBeInTheDocument();
       await user.type(screen.getByLabelText("邮箱地址"), "bind@example.com");
       await user.click(screen.getByRole("button", { name: "获取邮箱验证码" }));
       expect(await screen.findByText(/验证码已发送/)).toBeInTheDocument();
@@ -104,9 +104,9 @@ describe("sync panel", () => {
       const client = getSupabase();
       expect(client.auth.updateUser).toHaveBeenCalledWith({ email: "bind@example.com" });
 
-      await user.type(screen.getByLabelText("邮箱验证码"), "12345678");
+      await user.type(screen.getByLabelText("邮箱验证码"), "123456");
       await user.click(screen.getByRole("button", { name: "完成绑定" }));
-      expect(client.auth.verifyOtp).toHaveBeenCalledWith({ email: "bind@example.com", token: "12345678", type: "email_change" });
+      expect(client.auth.verifyOtp).toHaveBeenCalledWith({ email: "bind@example.com", token: "123456", type: "email_change" });
 
       expect(await screen.findByText(/已绑定邮箱：bind@example.com。打卡记录会自动备份到云端。/)).toBeInTheDocument();
       expect(screen.getByRole("link", { name: "用户中心" })).toHaveAttribute("href", "/user-center");
@@ -120,6 +120,23 @@ describe("sync panel", () => {
       await user.click(screen.getByRole("button", { name: "立即备份到云端" }));
       expect(await screen.findByText("本机打卡记录已备份到云端。")).toBeInTheDocument();
       expect(query.insert).toHaveBeenCalledTimes(2);
+    });
+
+    it("验证码不足 6 位时禁用提交，满 6 位解除禁用", async () => {
+      const user = userEvent.setup();
+      renderCheckIn();
+      await user.click(screen.getByRole("button", { name: "绑定邮箱，接着打卡" }));
+      await user.type(screen.getByLabelText("邮箱地址"), "gate@example.com");
+      await user.click(screen.getByRole("button", { name: "获取邮箱验证码" }));
+      const codeInput = await screen.findByLabelText("邮箱验证码");
+      const submit = screen.getByRole("button", { name: "完成绑定" });
+
+      await user.type(codeInput, "12345");
+      expect(submit).toBeDisabled();
+      expect(getSupabase().auth.verifyOtp).not.toHaveBeenCalled();
+
+      await user.type(codeInput, "6");
+      expect(submit).toBeEnabled();
     });
 
     it("seeds local data to the cloud when restoring on a new device with no cloud row", async () => {
@@ -218,7 +235,7 @@ describe("sync panel", () => {
 
       expect(await screen.findByRole("img", { name: "21 天健康记录海报预览" })).toHaveAttribute("src", "data:image/png;base64,poster");
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-      expect(getSupabase().auth.verifyOtp).toHaveBeenCalledWith({ email: "seven@example.com", token: "12345678", type: "email_change" });
+      expect(getSupabase().auth.verifyOtp).toHaveBeenCalledWith({ email: "seven@example.com", token: "123456", type: "email_change" });
     });
 
     it("gates day-7 trends and reveals the original charts after binding", async () => {

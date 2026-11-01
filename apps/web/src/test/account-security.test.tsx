@@ -54,7 +54,7 @@ describe("账号安全", () => {
       expect(screen.getByText("old@example.com")).toBeInTheDocument();
       await user.type(screen.getByLabelText("邮箱地址"), "new@example.com");
       await user.click(screen.getByRole("button", { name: "发送修改验证码" }));
-      await user.type(await screen.findByLabelText("邮箱验证码"), "12345678");
+      await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
       await user.click(screen.getByRole("button", { name: "确认修改邮箱" }));
 
       expect(await screen.findByRole("alert")).toHaveTextContent("验证码不正确或已过期");
@@ -69,7 +69,7 @@ describe("账号安全", () => {
       await user.type(screen.getByLabelText("邮箱地址"), "new@example.com");
       await user.click(screen.getByRole("button", { name: "发送修改验证码" }));
       expect(screen.getByText("old@example.com")).toBeInTheDocument();
-      await user.type(await screen.findByLabelText("邮箱验证码"), "12345678");
+      await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
       await user.click(screen.getByRole("button", { name: "确认修改邮箱" }));
 
       expect(await screen.findByText("邮箱修改成功，云端数据已同步")).toBeInTheDocument();
@@ -77,7 +77,7 @@ describe("账号安全", () => {
       expect(screen.queryByText("old@example.com")).not.toBeInTheDocument();
       expect(screen.getByText("JH-WQAKS")).toBeInTheDocument();
       expect(getSupabase().auth.updateUser).toHaveBeenCalledWith({ email: "new@example.com" });
-      expect(getSupabase().auth.verifyOtp).toHaveBeenCalledWith({ email: "new@example.com", token: "12345678", type: "email_change" });
+      expect(getSupabase().auth.verifyOtp).toHaveBeenCalledWith({ email: "new@example.com", token: "123456", type: "email_change" });
     });
 
     it("服务端邮箱未真正更新时提示换绑未生效，不广播成功", async () => {
@@ -89,7 +89,7 @@ describe("账号安全", () => {
       await user.click(await screen.findByRole("button", { name: "修改邮箱" }));
       await user.type(screen.getByLabelText("邮箱地址"), "new@example.com");
       await user.click(screen.getByRole("button", { name: "发送修改验证码" }));
-      await user.type(await screen.findByLabelText("邮箱验证码"), "12345678");
+      await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
       await user.click(screen.getByRole("button", { name: "确认修改邮箱" }));
 
       // verifyOtp 成功但服务端仍是旧邮箱：明确报错，绝不假成功

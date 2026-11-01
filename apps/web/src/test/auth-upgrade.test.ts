@@ -69,21 +69,21 @@ describe("confirmEmailUpgrade 服务端邮箱强制核对（杜绝假成功）",
     (getSupabase().auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       data: { user: { email: "new@example.com" } }, error: null,
     });
-    await expect(confirmEmailUpgrade("new@example.com", "12345678")).resolves.toBeUndefined();
+    await expect(confirmEmailUpgrade("new@example.com", "123456")).resolves.toBeUndefined();
   });
 
   it("verifyOtp 成功但服务端仍是旧邮箱时抛出换绑未生效", async () => {
     (getSupabase().auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       data: { user: { email: "old@example.com" } }, error: null,
     });
-    await expect(confirmEmailUpgrade("new@example.com", "12345678")).rejects.toThrow(/换绑未生效/);
+    await expect(confirmEmailUpgrade("new@example.com", "123456")).rejects.toThrow(/换绑未生效/);
   });
 
   it("拿不到服务端用户（邮箱未知）时同样不允许报成功", async () => {
     (getSupabase().auth.getUser as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
       data: { user: null }, error: null,
     });
-    await expect(confirmEmailUpgrade("new@example.com", "12345678")).rejects.toThrow(/换绑未生效/);
+    await expect(confirmEmailUpgrade("new@example.com", "123456")).rejects.toThrow(/换绑未生效/);
   });
 
   it("验证码错误时抛出友好提示", async () => {
