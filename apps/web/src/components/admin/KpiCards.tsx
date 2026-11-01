@@ -11,7 +11,7 @@ function formatChange(value: number | null): string {
 
 export default function KpiCards({ kpis }: { kpis: CampKpis }) {
   const cards = [
-    { label: "总营员数", value: `${kpis.totalCampers} 人`, note: "已备份到云端" },
+    { label: "体验官总数", value: `${kpis.totalCampers} 人`, note: "已备份到云端" },
     {
       label: "绑定邮箱比例",
       value: formatPercent(kpis.boundRate),

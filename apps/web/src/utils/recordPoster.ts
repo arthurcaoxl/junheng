@@ -89,10 +89,10 @@ export function createRecordPoster(records: DayRecord[], recordName = "", camp?:
   context.fillText("看见自己的节奏，不追赶固定数字。", 70, 270);
   context.fillStyle = "#C6FF36";
   context.font = "600 30px sans-serif";
-  context.fillText(`记录人：${recordName.trim() || "健康营员"}`, 70, 318);
+  context.fillText(`记录人：${recordName.trim() || "健康体验官"}`, 70, 318);
   if (camp) {
     context.font = "24px sans-serif";
-    context.fillText(`营员代码：${camp.userCode}`, 560, 318);
+    context.fillText(`体验官代码：${camp.userCode}`, 560, 318);
     context.fillText(`周期：${camp.startDate} 至 ${camp.endDate}`, 70, 1605);
   }
   context.fillStyle = "#C6FF36";

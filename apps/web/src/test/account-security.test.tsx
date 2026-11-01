@@ -62,7 +62,7 @@ describe("账号安全", () => {
       expect(screen.queryByText("邮箱修改成功，云端数据已同步")).not.toBeInTheDocument();
     });
 
-    it("验证与云端同步成功后广播新邮箱且营员代码不变", async () => {
+    it("验证与云端同步成功后广播新邮箱且体验官代码不变", async () => {
       const user = userEvent.setup();
       renderUserCenter();
       await user.click(await screen.findByRole("button", { name: "修改邮箱" }));
@@ -98,7 +98,7 @@ describe("账号安全", () => {
       expect(screen.getByText("old@example.com")).toBeInTheDocument();
     });
 
-    it("退出登录保留本机 v3、营员代码和云端数据", async () => {
+    it("退出登录保留本机 v3、体验官代码和云端数据", async () => {
       const before = window.localStorage.getItem(STORAGE_KEY);
       const user = userEvent.setup();
       renderUserCenter();

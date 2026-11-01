@@ -106,7 +106,7 @@ async function runInitialMerge(uid: string): Promise<InitialMergeResult> {
     await writeCloudSnapshot(uid, merged, cloud.userCode);
   }
   if (cloud.userCode !== local.userCode) {
-    writeV3Snapshot({ ...local, userCode: cloud.userCode }); // 仅对齐营员代码，不回填云端日期
+    writeV3Snapshot({ ...local, userCode: cloud.userCode }); // 仅对齐体验官代码，不回填云端日期
   }
   return "local-merged";
 }
@@ -134,7 +134,7 @@ export function ensureInitialMerge(): Promise<InitialMergeResult> {
 async function uploadCurrentSnapshot(uid: string): Promise<void> {
   const v3 = readV3SnapshotStrict();
   const client = getSupabase();
-  // 营员代码终身唯一：云端已有记录时以云端 user_code 为准，绝不覆盖
+  // 体验官代码终身唯一：云端已有记录时以云端 user_code 为准，绝不覆盖
   const { data: existing, error: lookupError } = await client
     .from("checkin_sync")
     .select("user_code")

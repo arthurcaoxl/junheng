@@ -91,7 +91,7 @@ export default function CamperDrawer({ camper, initialTab = "detail", onClose }:
           <button ref={closeRef} type="button" className="admin-secondary" onClick={onClose}>关闭</button>
         </div>
 
-        <div className="admin-tabs" role="tablist" aria-label="营员详情视图">
+        <div className="admin-tabs" role="tablist" aria-label="体验官详情视图">
           {TABS.map((item) => (
             <button
               key={item.key}
@@ -151,7 +151,7 @@ export default function CamperDrawer({ camper, initialTab = "detail", onClose }:
                 </tbody>
               </table>
             </div>
-            <p className="admin-hint">体重/腰围变化相对该营员首条有效记录；「—」表示当天未打卡或未填写。</p>
+            <p className="admin-hint">体重/腰围变化相对该体验官首条有效记录；「—」表示当天未打卡或未填写。</p>
           </div>
         )}
 
@@ -165,10 +165,10 @@ export default function CamperDrawer({ camper, initialTab = "detail", onClose }:
           <div role="tabpanel" aria-label="打卡海报" className="admin-poster-panel">
             {posterUrl ? (
               <>
-                <img className="admin-poster-preview" src={posterUrl} alt={`营员 ${camper.userCode} 的 21 天打卡海报预览`} />
+                <img className="admin-poster-preview" src={posterUrl} alt={`体验官 ${camper.userCode} 的 21 天打卡海报预览`} />
                 <div className="admin-poster-actions">
                   <button type="button" className="admin-primary admin-poster-download" onClick={downloadPoster}>下载 PNG 海报</button>
-                  <p className="admin-hint">与营员前台看到的是同一套海报样式，可直接保存后发给本人。</p>
+                  <p className="admin-hint">与体验官前台看到的是同一套海报样式，可直接保存后发给本人。</p>
                 </div>
               </>
             ) : <p className="admin-error" role="alert">当前浏览器无法生成海报，请换用 Chrome / Safari 重试。</p>}

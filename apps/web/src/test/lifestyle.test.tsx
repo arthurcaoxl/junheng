@@ -285,7 +285,7 @@ describe("priority lifestyle sections", () => {
     const checkIn = setCampStart(-25);
     expect(within(checkIn).getByText(/本期 21 天已结营/)).toBeInTheDocument();
     expect(within(checkIn).getByText(/坚持记录 0 天/)).toBeInTheDocument();
-    // 营员代码终身唯一：不存在任何重新生成入口
+    // 体验官代码终身唯一：不存在任何重新生成入口
     const codeBefore = within(checkIn).getByText(/^JH-/).textContent;
     expect(within(checkIn).queryByRole("button", { name: "重新生成" })).not.toBeInTheDocument();
     expect(within(checkIn).getByText("这是您的专属健康 ID，生成后不可更改。它会出现在您的打卡海报上，导出的 CSV 数据也会带上它，方便您随时归档和查看自己的健康记录。")).toBeInTheDocument();

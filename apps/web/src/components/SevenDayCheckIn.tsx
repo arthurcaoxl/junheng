@@ -212,11 +212,11 @@ export function SevenDayCheckIn() {
       <div className="record-identity">
         <label htmlFor="record-name">姓名或网名</label>
         <input id="record-name" name="recordName" type="text" autoComplete="nickname" maxLength={30} placeholder="真实姓名或网名都可以（选填）" value={recordName} onChange={(event) => updateName(event.target.value)} />
-        <p className="poster-identity-note">海报署名：{recordName.trim() || "健康营员"}</p>
+        <p className="poster-identity-note">海报署名：{recordName.trim() || "健康体验官"}</p>
         <label htmlFor="camp-start-date">开营日期</label>
         <input id="camp-start-date" name="campStartDate" type="date" value={state.startDate} onChange={(event) => updateStartDate(event.target.value)} />
         <p>调整开营日会重排第 1–21 天的日期；窗口外的记录不会在打卡日历、趋势和海报中显示，但仍按真实日期保留。</p>
-        <span className="record-code-label">营员代码</span>
+        <span className="record-code-label">体验官代码</span>
         <div className="record-code"><strong>{state.userCode}</strong></div>
         <p>这是您的专属健康 ID，生成后不可更改。它会出现在您的打卡海报上，导出的 CSV 数据也会带上它，方便您随时归档和查看自己的健康记录。</p>
       </div>

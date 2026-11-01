@@ -19,7 +19,7 @@ export default function UserCenter() {
         <span aria-hidden="true">👤</span>
         <div>
           <strong>{recordName.trim() || "脂代谢研究所会员"}</strong>
-          <p>营员代码：<span>{state.userCode}</span></p>
+          <p>体验官代码：<span>{state.userCode}</span></p>
           <p>{email ?? (ready ? "当前设备尚未绑定邮箱" : "正在读取账号状态…")}</p>
         </div>
       </div>

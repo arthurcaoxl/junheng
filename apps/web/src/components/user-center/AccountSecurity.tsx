@@ -38,7 +38,7 @@ export function AccountSecurity({ configured, email }: { configured: boolean; em
       <div>
         <span>ACCOUNT SECURITY</span>
         <h2 id="account-security-title">账号安全</h2>
-        <p>修改邮箱不会改变账号身份或营员代码；退出登录不会删除本机与云端记录。</p>
+        <p>修改邮箱不会改变账号身份或体验官代码；退出登录不会删除本机与云端记录。</p>
       </div>
       {email && (
         <div className="account-security-actions">

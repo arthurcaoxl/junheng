@@ -107,7 +107,7 @@ export default function AdminCheckInPage() {
     setCampers(rows);
     setLoggedEmail(email);
     setPhase("ready");
-    setNotice(rows.length ? "统计数据已更新。" : "管理员验证成功，目前还没有已备份的营员记录。");
+    setNotice(rows.length ? "统计数据已更新。" : "管理员验证成功，目前还没有已备份的体验官记录。");
   });
 
   const exportCsv = () => {
@@ -136,7 +136,7 @@ export default function AdminCheckInPage() {
         <section className="admin-shell admin-login-card" aria-labelledby="admin-login-title">
           <p className="admin-eyebrow">ADMIN · CHECK-IN ANALYTICS</p>
           <h1 id="admin-login-title">打卡统计管理</h1>
-          <p className="admin-intro">管理员邮箱验证后，可查看已备份营员趋势。普通用户无法访问他人数据。</p>
+          <p className="admin-intro">管理员邮箱验证后，可查看已备份体验官趋势。普通用户无法访问他人数据。</p>
 
           <label htmlFor="admin-email">管理员邮箱</label>
           <input
@@ -200,7 +200,7 @@ export default function AdminCheckInPage() {
 
         <section className="admin-block" aria-labelledby="admin-campers-title">
           <div className="admin-block-heading">
-            <h2 id="admin-campers-title">已备份营员</h2>
+            <h2 id="admin-campers-title">已备份体验官</h2>
             <span>点击任意一行查看个人每日明细</span>
           </div>
           <CamperTable

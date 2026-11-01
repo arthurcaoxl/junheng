@@ -77,7 +77,7 @@ export function buildCampKpis(campers: AdminCamper[], today: string): CampKpis {
   };
 }
 
-/** 单个营员 D1–D21 明细：无记录的日子保留空行，变化率相对各自首条有效记录。 */
+/** 单个体验官 D1–D21 明细：无记录的日子保留空行，变化率相对各自首条有效记录。 */
 export function buildCamperDays(camper: AdminCamper): CamperDayDetail[] {
   const weightBaseline = firstMetric(camper, "weight");
   const waistBaseline = firstMetric(camper, "waist");

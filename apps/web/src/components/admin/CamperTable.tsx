@@ -25,7 +25,7 @@ export default function CamperTable({ campers, filter, today, onFilterChange, on
   const visible = filterCampers(campers, filter, today);
   return (
     <>
-      <div className="admin-filters" role="group" aria-label="营员筛选">
+      <div className="admin-filters" role="group" aria-label="体验官筛选">
         {FILTERS.map((item) => (
           <button
             key={item.key}
@@ -40,11 +40,11 @@ export default function CamperTable({ campers, filter, today, onFilterChange, on
         <span className="admin-filter-count">{visible.length} / {campers.length} 人</span>
       </div>
       {visible.length ? (
-        <div className="admin-table-wrap" tabIndex={0} aria-label="营员列表，可横向滚动；点击行查看个人明细">
+        <div className="admin-table-wrap" tabIndex={0} aria-label="体验官列表，可横向滚动；点击行查看个人明细">
           <table className="admin-table admin-camper-table">
             <thead>
               <tr>
-                <th>营员代码</th>
+                <th>体验官代码</th>
                 <th>邮箱</th>
                 <th>开营日期</th>
                 <th>累计打卡</th>
@@ -60,7 +60,7 @@ export default function CamperTable({ campers, filter, today, onFilterChange, on
                   className="admin-camper-row"
                   tabIndex={0}
                   role="button"
-                  aria-label={`查看营员 ${camper.userCode} 的每日明细`}
+                  aria-label={`查看体验官 ${camper.userCode} 的每日明细`}
                   onClick={() => onSelect(camper)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
@@ -78,7 +78,7 @@ export default function CamperTable({ campers, filter, today, onFilterChange, on
                     <button
                       type="button"
                       className="admin-poster-shortcut"
-                      aria-label={`为营员 ${camper.userCode} 生成海报`}
+                      aria-label={`为体验官 ${camper.userCode} 生成海报`}
                       onClick={(event) => {
                         event.stopPropagation();
                         onPoster(camper);
@@ -94,7 +94,7 @@ export default function CamperTable({ campers, filter, today, onFilterChange, on
             </tbody>
           </table>
         </div>
-      ) : <p className="admin-empty">该筛选条件下暂无营员。</p>}
+      ) : <p className="admin-empty">该筛选条件下暂无体验官。</p>}
     </>
   );
 }

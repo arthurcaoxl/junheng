@@ -135,7 +135,7 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
             : mode === "bind"
               ? "输入邮箱接收 6–8 位数字验证码。绑定后，您的打卡记录会自动备份到云端，换手机或电脑登录即可恢复。"
               : mode === "change-email"
-                ? "输入新邮箱接收验证码。验证与云端同步成功后才会更新登录邮箱，账号身份和营员代码保持不变。"
+                ? "输入新邮箱接收验证码。验证与云端同步成功后才会更新登录邮箱，账号身份和体验官代码保持不变。"
                 : "输入已绑定的邮箱接收验证码。登录后，云端记录会恢复到本机；本机原记录会自动备份。"}
         </p>
         {!milestone && mode === "restore" && (

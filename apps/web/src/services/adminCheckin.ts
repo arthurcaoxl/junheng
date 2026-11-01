@@ -104,7 +104,7 @@ function toCampers(rows: unknown): AdminCamper[] {
   });
 }
 
-/** 管理员邮箱验证码第一步，直接复用营员跨设备登录的发送逻辑与限流提示。 */
+/** 管理员邮箱验证码第一步，直接复用体验官跨设备登录的发送逻辑与限流提示。 */
 export async function sendAdminLoginCode(email: string): Promise<void> {
   await sendLoginCode(email);
 }
@@ -196,7 +196,7 @@ function csvCell(value: string | number): string {
   return `"${String(value).replaceAll('"', '""')}"`;
 }
 
-/** 脱敏导出：只含营员代码与打卡指标，不含 UID、邮箱等账户字段。 */
+/** 脱敏导出：只含体验官代码与打卡指标，不含 UID、邮箱等账户字段。 */
 export function buildAdminCsv(campers: AdminCamper[]): string {
   const headers = ["camper_code", "record_date", "camp_day", "weight_kg", "waist_cm", "meal_breakfast", "meal_lunch", "meal_dinner", "water", "movement", "sleep"];
   const rows = campers.flatMap((camper) => Object.entries(camper.records)

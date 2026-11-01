@@ -106,7 +106,7 @@ describe("checkinSync with mocked supabase", () => {
       error: null,
     });
     await expect(syncToCloud()).resolves.toBe("synced");
-    // 更新载荷不含 user_code，营员代码终身以云端为准
+    // 更新载荷不含 user_code，体验官代码终身以云端为准
     const [payload] = query.update.mock.calls[0];
     expect(payload).not.toHaveProperty("user_code");
     expect(payload).toMatchObject({ start_date: "2026-10-01", records: validSnapshot.records });

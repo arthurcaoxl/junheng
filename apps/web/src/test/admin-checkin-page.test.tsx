@@ -122,7 +122,7 @@ describe("admin check-in page", () => {
     await user.click(screen.getByRole("button", { name: "登录并查看统计" }));
 
     // KPI 看板
-    expect(await screen.findByText("总营员数")).toBeInTheDocument();
+    expect(await screen.findByText("体验官总数")).toBeInTheDocument();
     expect(screen.getByText("绑定邮箱比例")).toBeInTheDocument();
     expect(screen.getByText("今日打卡人数")).toBeInTheDocument();
     expect(screen.getByText("全营平均体重变化")).toBeInTheDocument();
@@ -134,8 +134,8 @@ describe("admin check-in page", () => {
     expect(screen.getByText("JH-GUEST2")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "全部" }));
 
-    // 下钻 Drawer：点击营员行，查看个人明细
-    await user.click(screen.getByRole("button", { name: "查看营员 JH-ADMIN1 的每日明细" }));
+    // 下钻 Drawer：点击体验官行，查看个人明细
+    await user.click(screen.getByRole("button", { name: "查看体验官 JH-ADMIN1 的每日明细" }));
     const drawer = await screen.findByRole("dialog");
     expect(within(drawer).getByText("JH-ADMIN1")).toBeInTheDocument();
     expect(within(drawer).getByText(/camper@example.com · 开营 2026-10-01/)).toBeInTheDocument();
@@ -150,10 +150,10 @@ describe("admin check-in page", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
 
     // 列表快捷操作：一键生成海报，直接落在海报 Tab
-    await user.click(screen.getByRole("button", { name: "为营员 JH-ADMIN1 生成海报" }));
+    await user.click(screen.getByRole("button", { name: "为体验官 JH-ADMIN1 生成海报" }));
     const posterDrawer = await screen.findByRole("dialog");
     expect(within(posterDrawer).getByRole("tab", { name: "打卡海报" })).toHaveAttribute("aria-selected", "true");
-    expect(within(posterDrawer).getByAltText("营员 JH-ADMIN1 的 21 天打卡海报预览")).toHaveAttribute("src", "data:image/png;base64,poster");
+    expect(within(posterDrawer).getByAltText("体验官 JH-ADMIN1 的 21 天打卡海报预览")).toHaveAttribute("src", "data:image/png;base64,poster");
     expect(within(posterDrawer).getByRole("button", { name: "下载 PNG 海报" })).toBeEnabled();
     const { createRecordPoster } = await import("../utils/recordPoster");
     expect(createRecordPoster).toHaveBeenCalledWith(
@@ -189,7 +189,7 @@ describe("admin check-in page", () => {
     await user.click(screen.getByRole("button", { name: "获取管理员验证码" }));
     await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
     await user.click(screen.getByRole("button", { name: "登录并查看统计" }));
-    await user.click(await screen.findByRole("button", { name: "查看营员 JH-KEHUJ 的每日明细" }));
+    await user.click(await screen.findByRole("button", { name: "查看体验官 JH-KEHUJ 的每日明细" }));
 
     const drawer = await screen.findByRole("dialog");
     expect(within(drawer).getByText(/本期累计 1 天 · 窗口外 2 天/)).toBeInTheDocument();

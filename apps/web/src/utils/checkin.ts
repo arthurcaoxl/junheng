@@ -141,7 +141,7 @@ export function loadState(): CheckInState {
   }
   const fresh = createFreshState();
   try {
-    // 立即持久化，保证首次访问生成的营员代码在后续访问中保持稳定
+    // 立即持久化，保证首次访问生成的体验官代码在后续访问中保持稳定
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(fresh));
   } catch {
     // 存储不可用时仅保留内存态

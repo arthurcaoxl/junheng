@@ -78,7 +78,7 @@ describe("按日期键补全式首次合并", () => {
     expect(Object.keys(readV3Snapshot().records)).toEqual(["2026-10-02"]);
   });
 
-  it("本地记录与云端一致时无需上传，也绝不在对齐营员代码时回填云端日期", async () => {
+  it("本地记录与云端一致时无需上传，也绝不在对齐体验官代码时回填云端日期", async () => {
     const local = snapshot("2026-10-01", { "2026-10-02": day("same") });
     const cloud = snapshot("2026-10-01", {
       "2026-10-01": day("cloud-only"),

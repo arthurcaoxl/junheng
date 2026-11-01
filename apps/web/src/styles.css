@@ -919,7 +919,7 @@ section { scroll-margin-top: 78px; }
   .section-footnote { grid-template-columns: 64px 1fr; margin-top: 54px; }
 }
 
-/* v1.7.0 · 日期制打卡 + 营员代码 */
+/* v1.7.0 · 日期制打卡 + 体验官代码 */
 .camp-range { margin-top: 14px; color: var(--acid); font-size: 12px; letter-spacing: .04em; }
 .record-identity input[type="date"] { color-scheme: light; }
 .record-code-label { color: var(--acid); font-size: 12px; font-weight: 750; }

@@ -28,7 +28,7 @@ await page.waitForTimeout(600);
 await page.evaluate(() => document.getElementById("check-in").scrollIntoView({ behavior: "instant" }));
 await page.waitForTimeout(800);
 await page.screenshot({ path: "validation-v1.7.0/camp-complete.png" });
-// 海报导出（含营员代码与周期）
+// 海报导出（含体验官代码与周期）
 await page.locator("#record-name").fill("小菌");
 await page.getByRole("button", { name: "导出记录海报" }).click();
 await page.waitForTimeout(800);
