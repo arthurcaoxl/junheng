@@ -115,6 +115,29 @@ describe("admin login with email OTP", () => {
     expect(client.rpc).toHaveBeenCalledWith("admin_checkin_overview");
   });
 
+  it("counts only the current 21-day window after the start date moves", async () => {
+    const client = getSupabase();
+    (client.rpc as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      data: [{
+        auth_user_id: "uid-a",
+        email: "camper@example.com",
+        user_code: "JH-KEHUJ",
+        start_date: "2026-11-01",
+        records: {
+          "2026-10-30": { weight: "69.1", waist: "96", meals: [false, false, false], water: false, movement: false, sleep: false },
+          "2026-10-31": { weight: "68.9", waist: "95.5", meals: [false, false, false], water: false, movement: false, sleep: false },
+          "2026-11-01": { weight: "68.7", waist: "95", meals: [false, false, false], water: false, movement: false, sleep: false },
+        },
+        updated_at: "2026-11-01T10:00:00.000Z",
+      }],
+      error: null,
+    });
+
+    await expect(verifyAdminLogin("admin@example.com", "12345678")).resolves.toMatchObject([
+      { userCode: "JH-KEHUJ", recordedDays: 1 },
+    ]);
+  });
+
   it("maps a whitelist rejection to a friendly message without changing data", async () => {
     const client = getSupabase();
     (client.rpc as ReturnType<typeof vi.fn>).mockRejectedValueOnce({ code: "P0001", message: "当前邮箱不是管理员" });

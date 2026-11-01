@@ -94,6 +94,14 @@ export function buildCamperDays(camper: AdminCamper): CamperDayDetail[] {
   });
 }
 
+/** 当前 21 天窗口外的有效记录日期，用于解释累计口径并避免历史数据“消失”。 */
+export function getOutOfWindowRecordDates(camper: AdminCamper): string[] {
+  const windowDates = new Set(getWindowDates(camper.startDate));
+  return Object.keys(camper.records)
+    .filter((date) => !windowDates.has(date) && hasContent(camper.records[date]))
+    .sort();
+}
+
 /** 快捷筛选：全部 / 未绑定邮箱 / 今天与昨天连续两天都未打卡（含从未打卡）。 */
 export function filterCampers(campers: AdminCamper[], filter: CamperFilter, today: string): AdminCamper[] {
   if (!isDateKey(today)) return campers;

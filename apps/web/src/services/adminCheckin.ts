@@ -88,14 +88,18 @@ function toCampers(rows: unknown): AdminCamper[] {
       typeof item.updated_at !== "string"
     ) return [];
     const records = normalizeRecords(item.records);
+    const startDate = item.start_date;
     return [{
       authUserId: item.auth_user_id,
       email: typeof item.email === "string" ? item.email : "未绑定邮箱",
       userCode: item.user_code,
-      startDate: item.start_date,
+      startDate,
       updatedAt: item.updated_at,
       records,
-      recordedDays: Object.values(records).filter(hasRecord).length,
+      recordedDays: Object.entries(records).filter(([date, record]) => {
+        const campDay = diffDays(startDate, date) + 1;
+        return campDay >= 1 && campDay <= TOTAL_DAYS && hasRecord(record);
+      }).length,
     }];
   });
 }

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { AdminCamper } from "../../services/adminCheckin";
-import { buildCamperDays, toWindowRecords } from "../../utils/adminMetrics";
+import { buildCamperDays, getOutOfWindowRecordDates, toWindowRecords } from "../../utils/adminMetrics";
 import { addDays, TOTAL_DAYS } from "../../utils/checkin";
 import { createRecordPoster } from "../../utils/recordPoster";
 import { getRepresentativeWeight } from "../../utils/weight";
@@ -34,6 +34,7 @@ export default function CamperDrawer({ camper, initialTab = "detail", onClose }:
   const [tab, setTab] = useState<CamperDrawerTab>(initialTab);
   const days = useMemo(() => (camper ? buildCamperDays(camper) : []), [camper]);
   const windowRecords = useMemo(() => (camper ? toWindowRecords(camper) : []), [camper]);
+  const outOfWindowDates = useMemo(() => (camper ? getOutOfWindowRecordDates(camper) : []), [camper]);
 
   // 与前台共用同一套海报绘制逻辑，仅在打开海报 Tab 时生成
   const posterUrl = useMemo(() => {
@@ -82,7 +83,10 @@ export default function CamperDrawer({ camper, initialTab = "detail", onClose }:
           <div>
             <p className="admin-eyebrow">CAMPER DETAIL</p>
             <h2 id="admin-drawer-title">{camper.userCode}</h2>
-            <p className="admin-drawer-sub">{camper.email} · 开营 {camper.startDate} · 累计 {camper.recordedDays} 天</p>
+            <p className="admin-drawer-sub">
+              {camper.email} · 开营 {camper.startDate} · 本期累计 {camper.recordedDays} 天
+              {outOfWindowDates.length > 0 && ` · 窗口外 ${outOfWindowDates.length} 天`}
+            </p>
           </div>
           <button ref={closeRef} type="button" className="admin-secondary" onClick={onClose}>关闭</button>
         </div>
@@ -104,6 +108,11 @@ export default function CamperDrawer({ camper, initialTab = "detail", onClose }:
 
         {tab === "detail" && (
           <div role="tabpanel" aria-label="数据明细">
+            {outOfWindowDates.length > 0 && (
+              <p className="admin-hint" role="status">
+                当前窗口外另有 {outOfWindowDates.length} 天有效记录（{outOfWindowDates.join("、")}）。数据仍保留；下方明细、个人趋势与海报仅展示本期 21 天。
+              </p>
+            )}
             <div className="admin-table-wrap admin-drawer-table-wrap" tabIndex={0} aria-label="个人 D1 至 D21 明细，可横向滚动">
               <table className="admin-table admin-drawer-table">
                 <thead>

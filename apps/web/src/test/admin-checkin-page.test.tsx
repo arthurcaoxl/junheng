@@ -164,4 +164,38 @@ describe("admin check-in page", () => {
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
+
+  it("separates current-window totals from out-of-window history", async () => {
+    const user = userEvent.setup();
+    const client = getSupabase();
+    (client.rpc as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      data: [{
+        auth_user_id: "private-uid-1",
+        email: "camper@example.com",
+        user_code: "JH-KEHUJ",
+        start_date: "2026-11-01",
+        records: {
+          "2026-10-30": { weight: "69.1", waist: "96", meals: [false, false, false], water: false, movement: false, sleep: false },
+          "2026-10-31": { weight: "68.9", waist: "95.5", meals: [false, false, false], water: false, movement: false, sleep: false },
+          "2026-11-01": { weight: "68.7", waist: "95", meals: [false, false, false], water: false, movement: false, sleep: false },
+        },
+        updated_at: "2026-11-01T10:00:00.000Z",
+      }],
+      error: null,
+    });
+    renderAdmin();
+
+    await user.type(screen.getByLabelText("管理员邮箱"), "history-admin@example.com");
+    await user.click(screen.getByRole("button", { name: "获取管理员验证码" }));
+    await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
+    await user.click(screen.getByRole("button", { name: "登录并查看统计" }));
+    await user.click(await screen.findByRole("button", { name: "查看营员 JH-KEHUJ 的每日明细" }));
+
+    const drawer = await screen.findByRole("dialog");
+    expect(within(drawer).getByText(/本期累计 1 天 · 窗口外 2 天/)).toBeInTheDocument();
+    const detail = within(drawer).getByRole("tabpanel", { name: "数据明细" });
+    expect(detail).toHaveTextContent("当前窗口外另有 2 天有效记录");
+    expect(detail).toHaveTextContent("2026-10-30、2026-10-31");
+    expect(detail).toHaveTextContent("下方明细、个人趋势与海报仅展示本期 21 天");
+  });
 });

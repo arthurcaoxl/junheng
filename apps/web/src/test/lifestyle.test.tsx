@@ -271,6 +271,7 @@ describe("priority lifestyle sections", () => {
     expect(within(checkIn).getByRole("tab", { name: /第 1 天/ }).querySelector(".day-tab-status")).toBeInTheDocument();
     expect(within(checkIn).getByRole("tab", { name: /第 2 天/ })).toHaveAttribute("data-has-content", "false");
     expect(within(checkIn).getByRole("tab", { name: /第 2 天/ }).querySelector(".day-tab-status")).not.toBeInTheDocument();
+    expect(within(checkIn).getByText(/窗口外的记录不会在打卡日历、趋势和海报中显示/)).toBeInTheDocument();
 
     fireEvent.change(within(checkIn).getByLabelText("开营日期"), { target: { value: addDays(todayKey(), -2) } });
     expect(within(checkIn).getByRole("tab", { name: /第 1 天/ })).toHaveAttribute("data-has-content", "false");
