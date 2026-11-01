@@ -40,7 +40,7 @@ export function requestCheckinSave(
   return "login-required";
 }
 
-/** 第一步：匿名账户原地绑定邮箱，"Email Change"模板发 6–8 位数字码（模板已无链接）。 */
+/** 第一步：匿名账户原地绑定邮箱，"Email Change"模板发 6 位数字码（模板已无链接）。 */
 export async function upgradeToPermanentAccount(email: string): Promise<void> {
   await ensureSession();
   const { error } = await getSupabase().auth.updateUser({ email });

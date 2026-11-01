@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { confirmEmailUpgrade, upgradeToPermanentAccount } from "../services/authUpgrade";
 import { loginWithEmail, resendRemainingSeconds, sendLoginCode, syncToCloud } from "../services/checkinSync";
-import { OTP_INPUT_HINT, OTP_INPUT_PROPS } from "../services/otp";
+import { isValidOtpCode, OTP_INPUT_HINT, OTP_INPUT_PROPS } from "../services/otp";
 import type { SyncMilestoneKind, SyncMode } from "../services/syncUi";
 
 type SyncModalProps = {
@@ -133,7 +133,7 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
                 ? "绑定邮箱即可永久保存这份会员成长纪念（换手机不丢失）。登录后将自动为您展开证书。"
                 : "为了防止数据丢失（换手机/清缓存），请绑定邮箱永久保存。登录后自动为您展开成果。"
             : mode === "bind"
-              ? "输入邮箱接收 6–8 位数字验证码。绑定后，您的打卡记录会自动备份到云端，换手机或电脑登录即可恢复。"
+              ? "输入邮箱接收 6 位数字验证码。绑定后，您的打卡记录会自动备份到云端，换手机或电脑登录即可恢复。"
               : mode === "change-email"
                 ? "输入新邮箱接收验证码。验证与云端同步成功后才会更新登录邮箱，账号身份和体验官代码保持不变。"
                 : "输入已绑定的邮箱接收验证码。登录后，云端记录会恢复到本机；本机原记录会自动备份。"}
@@ -164,13 +164,13 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
             <input
               id="sync-modal-code"
               {...OTP_INPUT_PROPS}
-              placeholder="6–8 位数字"
+              placeholder="6 位数字"
               value={code}
               onChange={(event) => setCode(event.target.value)}
               autoFocus
             />
             <p className="sync-modal-hint">{OTP_INPUT_HINT}</p>
-            <button type="button" className="sync-modal-primary" disabled={busy || !code.trim()} onClick={submitCode}>
+            <button type="button" className="sync-modal-primary" disabled={busy || !isValidOtpCode(code)} onClick={submitCode}>
               {busy ? "验证中…" : milestone && milestoneKind === "poster" ? "完成绑定并查看海报" : milestone && milestoneKind === "certificate" ? "完成绑定并查看证书" : mode === "bind" ? "完成绑定" : mode === "change-email" ? "确认修改邮箱" : "登录并恢复数据"}
             </button>
           </>

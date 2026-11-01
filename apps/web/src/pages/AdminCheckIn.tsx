@@ -10,7 +10,7 @@ import {
   type AdminCamper,
 } from "../services/adminCheckin";
 import { resendRemainingSeconds } from "../services/checkinSync";
-import { OTP_INPUT_HINT, OTP_INPUT_PROPS } from "../services/otp";
+import { isValidOtpCode, OTP_INPUT_HINT, OTP_INPUT_PROPS } from "../services/otp";
 import { buildCampKpis, type CamperFilter } from "../utils/adminMetrics";
 import { todayKey } from "../utils/checkin";
 import KpiCards from "../components/admin/KpiCards";
@@ -154,7 +154,7 @@ export default function AdminCheckInPage() {
               <input
                 id="admin-code"
                 {...OTP_INPUT_PROPS}
-                placeholder="6–8 位数字"
+                placeholder="6 位数字"
                 value={code}
                 onChange={(event) => setCode(event.target.value)}
                 autoFocus
@@ -168,7 +168,7 @@ export default function AdminCheckInPage() {
               {busy ? "发送中…" : cooldown > 0 ? `重发（${cooldown}s）` : "获取管理员验证码"}
             </button>
           ) : (
-            <button type="button" className="admin-primary" disabled={busy || !code.trim()} onClick={submitCode}>
+            <button type="button" className="admin-primary" disabled={busy || !isValidOtpCode(code)} onClick={submitCode}>
               {busy ? "验证中…" : "登录并查看统计"}
             </button>
           )}

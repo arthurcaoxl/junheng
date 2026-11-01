@@ -276,7 +276,7 @@ export type RestoreSource = InitialMergeResult;
 
 /** 验码登录后统一走首次合并：本地非空补全云端，只有本地为空才恢复云端。 */
 export async function loginWithEmail(email: string, token: string): Promise<RestoreSource> {
-  const code = normalizeOtpInput(token); // 6 或 8 位都接受，由服务端校验
+  const code = normalizeOtpInput(token); // 6 位数字，位数门禁已在 UI 层拦截，最终由服务端校验
   const { error } = await getSupabase().auth.verifyOtp({ email, token: code, type: "email" });
   if (error) throw new Error("验证码不正确或已过期，请重新获取。");
   return ensureInitialMerge(); // cloud-restored 时由 UI reload 完成水合
