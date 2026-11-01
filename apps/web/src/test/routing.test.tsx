@@ -17,7 +17,7 @@ describe("check-in routing", () => {
     expect(screen.queryByText("感受到的减脂，坚持方能长期健康。")).not.toBeInTheDocument();
     expect(screen.getByRole("tablist", { name: "21 天打卡日期" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "返回首页" })).toHaveAttribute("href", "/");
-    expect(screen.queryByRole("heading", { name: "餐前精准膳食，重塑脂代谢平衡。" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "餐前精准膳食，助力脂代谢平衡。" })).not.toBeInTheDocument();
   });
 
   it("serves the check-in flow on the static-host deep-link path", () => {
@@ -28,7 +28,7 @@ describe("check-in routing", () => {
 
   it("serves the full narrative on the home route without the check-in form", () => {
     renderAt("/");
-    expect(screen.getByRole("heading", { name: "餐前精准膳食，重塑脂代谢平衡。" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "餐前精准膳食，助力脂代谢平衡。" })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "21 天，构建你的脂代谢稳态。" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tablist", { name: "21 天打卡日期" })).not.toBeInTheDocument();
     const checkInLinks = screen.getAllByRole("link", { name: "进入 21 天打卡 →" });
@@ -38,7 +38,7 @@ describe("check-in routing", () => {
 
   it("redirects unknown routes back to the home page", () => {
     renderAt("/no-such-page");
-    expect(screen.getByRole("heading", { name: "餐前精准膳食，重塑脂代谢平衡。" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "餐前精准膳食，助力脂代谢平衡。" })).toBeInTheDocument();
   });
 
   it("resets scroll position when navigating to the check-in page", async () => {
