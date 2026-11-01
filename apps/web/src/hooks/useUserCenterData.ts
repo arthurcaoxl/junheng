@@ -14,11 +14,11 @@ function loadRecordName() {
 
 /** 用户中心只读取 v3 本机档案，不维护第二份打卡记录或同步状态。 */
 export function useUserCenterData() {
-  const [state] = useState(loadState);
+  const [state, setState] = useState(loadState);
   const [recordName] = useState(loadRecordName);
   const sync = useSyncStatus();
   const records = buildWindowRecords(state);
   const stats = getCampStats(state);
 
-  return { state, recordName, records, stats, ...sync };
+  return { state, setState, recordName, records, stats, ...sync };
 }

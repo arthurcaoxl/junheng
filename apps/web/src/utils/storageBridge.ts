@@ -39,6 +39,8 @@ export function validateV3Snapshot(input: unknown): CheckInState {
     startDate: s.startDate,
     records,
     ...(typeof s.clothesWeight === "string" ? { clothesWeight: s.clothesWeight } : {}),
+    ...(typeof s.heightCm === "string" ? { heightCm: s.heightCm } : {}),
+    ...(typeof s.initialWeightKg === "string" ? { initialWeightKg: s.initialWeightKg } : {}),
   };
 }
 

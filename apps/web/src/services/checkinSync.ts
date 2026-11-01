@@ -12,11 +12,17 @@ export type SyncResult = "synced" | "offline";
 export type InitialMergeResult = "already-merged" | "cloud-restored" | "local-seeded" | "local-merged" | "empty";
 
 export const MERGED_FLAG_KEY = "junheng-checkin-merged-flag";
-const MERGED_DATA_VERSION = "junheng-checkin-v3";
+const MERGED_DATA_VERSION = "junheng-checkin-v3-profile-v1";
 
 type MergedFlag = { dataVersion: string; mergedAt: string };
 type MergedFlags = Record<string, MergedFlag>;
-type CloudRow = { user_code: string; start_date: string; records: CheckInState["records"] };
+type CloudRow = {
+  user_code: string;
+  start_date: string;
+  records: CheckInState["records"];
+  height_cm?: string | number | null;
+  initial_weight_kg?: string | number | null;
+};
 
 const inFlightMerges = new Map<string, Promise<InitialMergeResult>>();
 
@@ -39,16 +45,29 @@ function markMerged(uid: string): void {
   window.localStorage.setItem(MERGED_FLAG_KEY, JSON.stringify(flags));
 }
 
+function cloudProfileText(value: unknown): string | undefined {
+  if (typeof value === "string" && value.trim()) return value;
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  return undefined;
+}
+
 async function readCloudSnapshot(uid: string): Promise<CheckInState | null> {
   const { data, error } = await getSupabase()
     .from("checkin_sync")
-    .select("user_code,start_date,records")
+    .select("user_code,start_date,records,height_cm,initial_weight_kg")
     .eq("auth_user_id", uid)
     .maybeSingle();
   if (error) throw new Error("云端数据读取失败，请稍后重试。");
   if (!data) return null;
   const row = data as CloudRow;
-  return validateV3Snapshot({ schema: 3, userCode: row.user_code, startDate: row.start_date, records: row.records });
+  return validateV3Snapshot({
+    schema: 3,
+    userCode: row.user_code,
+    startDate: row.start_date,
+    records: row.records,
+    heightCm: cloudProfileText(row.height_cm),
+    initialWeightKg: cloudProfileText(row.initial_weight_kg),
+  });
 }
 
 async function writeCloudSnapshot(uid: string, state: CheckInState, cloudUserCode: string | null): Promise<void> {
@@ -57,6 +76,8 @@ async function writeCloudSnapshot(uid: string, state: CheckInState, cloudUserCod
     const { error } = await client.from("checkin_sync").update({
       start_date: state.startDate,
       records: state.records,
+      height_cm: state.heightCm ?? null,
+      initial_weight_kg: state.initialWeightKg ?? null,
       updated_at: new Date().toISOString(),
     }).eq("auth_user_id", uid);
     if (error) throw new Error("云端数据写入失败，请稍后重试。");
@@ -71,20 +92,39 @@ async function writeCloudSnapshot(uid: string, state: CheckInState, cloudUserCod
     user_code: state.userCode,
     start_date: state.startDate,
     records: state.records,
+    height_cm: state.heightCm ?? null,
+    initial_weight_kg: state.initialWeightKg ?? null,
     updated_at: new Date().toISOString(),
   });
   if (error) throw new Error("云端数据写入失败，请稍后重试。");
+}
+
+function hasProfileDifference(a: CheckInState, b: CheckInState): boolean {
+  return a.heightCm !== b.heightCm || a.initialWeightKg !== b.initialWeightKg;
 }
 
 async function runInitialMerge(uid: string): Promise<InitialMergeResult> {
   const local = readV3SnapshotStrict();
   const cloud = await readCloudSnapshot(uid);
   const hasLocalRecords = Object.keys(local.records).length > 0;
+  const hasLocalProfile = local.heightCm !== undefined || local.initialWeightKg !== undefined;
 
   if (!hasLocalRecords) {
-    if (!cloud) return "empty";
+    if (!cloud) {
+      if (!hasLocalProfile) return "empty";
+      await writeCloudSnapshot(uid, local, null);
+      return "local-seeded";
+    }
+    const restored = {
+      ...cloud,
+      heightCm: local.heightCm ?? cloud.heightCm,
+      initialWeightKg: local.initialWeightKg ?? cloud.initialWeightKg,
+    };
     backupLocalSnapshot();
-    writeV3Snapshot(cloud);
+    if (hasProfileDifference(restored, cloud)) {
+      await writeCloudSnapshot(uid, restored, cloud.userCode);
+    }
+    writeV3Snapshot(restored);
     return "cloud-restored";
   }
 
@@ -101,12 +141,15 @@ async function runInitialMerge(uid: string): Promise<InitialMergeResult> {
       recordsChanged = true;
     }
   });
-  const merged = { ...local, userCode: cloud.userCode, records };
-  if (recordsChanged || cloud.startDate !== local.startDate) {
+  const heightCm = local.heightCm ?? cloud.heightCm;
+  const initialWeightKg = local.initialWeightKg ?? cloud.initialWeightKg;
+  const merged = { ...local, userCode: cloud.userCode, heightCm, initialWeightKg, records };
+  if (recordsChanged || cloud.startDate !== local.startDate || hasProfileDifference(merged, cloud)) {
     await writeCloudSnapshot(uid, merged, cloud.userCode);
   }
-  if (cloud.userCode !== local.userCode) {
-    writeV3Snapshot({ ...local, userCode: cloud.userCode }); // 仅对齐体验官代码，不回填云端日期
+  if (cloud.userCode !== local.userCode || heightCm !== local.heightCm || initialWeightKg !== local.initialWeightKg) {
+    // 只对齐体验官代码和补全档案，绝不把云端日期回填到非空本地。
+    writeV3Snapshot({ ...local, userCode: cloud.userCode, heightCm, initialWeightKg });
   }
   return "local-merged";
 }

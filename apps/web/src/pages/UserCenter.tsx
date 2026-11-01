@@ -1,14 +1,24 @@
 import { Link } from "react-router";
 import { useUserCenterData } from "../hooks/useUserCenterData";
 import { HealthStats } from "../components/user-center/HealthStats";
+import { BmiTracker } from "../components/user-center/BmiTracker";
 import { PersonalAssets } from "../components/user-center/PersonalAssets";
 import { AccountSecurity } from "../components/user-center/AccountSecurity";
 import { SyncPanel } from "../components/SyncPanel";
 import { siteConfig } from "../config/site";
+import { scheduleSyncToCloud } from "../services/checkinSync";
+import { writeV3Snapshot } from "../utils/storageBridge";
+import type { CheckInState } from "../utils/checkin";
 
 export default function UserCenter() {
-  const { state, recordName, records, stats, configured, email, ready } = useUserCenterData();
+  const { state, setState, recordName, records, stats, configured, email, ready } = useUserCenterData();
   const memberTitle = email ? "研究员" : "脂代谢观察员";
+
+  const saveBmiProfile = (next: CheckInState) => {
+    writeV3Snapshot(next);
+    setState(next);
+    scheduleSyncToCloud();
+  };
 
   return (
     <section className="user-center section-pad" data-theme="forest" aria-labelledby="user-center-title">
@@ -28,6 +38,7 @@ export default function UserCenter() {
         <span>品牌会员称号，不代表科研或职业身份。</span>
       </div>
       <HealthStats records={records} recordedDays={stats.recordedDays} />
+      <BmiTracker state={state} onSave={saveBmiProfile} />
       <PersonalAssets
         state={state}
         records={records}

@@ -213,7 +213,7 @@ describe("priority lifestyle sections", () => {
     expect(within(userCenter).getByRole("link", { name: "下载 PNG 海报" })).toHaveAttribute("download", "菌衡计划-21天健康记录.png");
     expect(context.fillText).toHaveBeenCalledWith("菌衡计划 | 脂代谢研究所 × 心脑健康营", 70, 100, 940);
     expect(context.fillText).toHaveBeenCalledWith("我的脂代谢健康记录", 70, 210, 940);
-    expect(context.fillText).toHaveBeenCalledWith("0 / 63 次", 70, 1405);
+    expect(context.fillText).toHaveBeenCalledWith("餐前饮用 0/63次 · 饮水 0/21天 · 运动 0/21天 · 作息 0/21天", 70, 1220, 940);
     expect(within(userCenter).getByText(/支持微信内长按保存/)).toBeInTheDocument();
     expect(within(userCenter).getByText(/微信内可长按图片保存/)).toBeInTheDocument();
     expect(within(userCenter).getByText(/仅为个人健康记录，不代表固定减重目标或产品功效/)).toBeInTheDocument();

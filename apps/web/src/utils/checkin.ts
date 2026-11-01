@@ -12,6 +12,8 @@ export type CheckInState = {
   startDate: string;
   records: Record<string, DayRecord>;
   clothesWeight?: string; // 晨起衣物扣减默认值（kg）；新用户 "0.5"，旧数据缺省仍按 "0"
+  heightCm?: string; // 用户身高（cm）；缺省表示未完善基础档案
+  initialWeightKg?: string; // 自定义初始体重（kg）；缺省时从 D1 / 最早有效记录推导
 };
 
 export function emptyDay(): DayRecord {
@@ -117,6 +119,8 @@ function parseState(raw: string | null): CheckInState | null {
       startDate: parsed.startDate,
       records,
       ...(typeof parsed.clothesWeight === "string" ? { clothesWeight: parsed.clothesWeight } : {}),
+      ...(typeof parsed.heightCm === "string" ? { heightCm: parsed.heightCm } : {}),
+      ...(typeof parsed.initialWeightKg === "string" ? { initialWeightKg: parsed.initialWeightKg } : {}),
     };
   } catch {
     return null;
