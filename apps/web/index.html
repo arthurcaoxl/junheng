@@ -26,11 +26,21 @@
     <link rel="preload" as="image" href="/images/hero.webp" type="image/webp" fetchpriority="high" />
     <title>菌衡计划｜餐前伴侣，助力脂代谢</title>
     <style>
-      html,body{margin:0;background:#071c14}.boot-screen{box-sizing:border-box;min-height:100vh;padding:48px 24px;display:grid;place-content:center;gap:16px;background:#071c14;color:#f3f1e8;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;text-align:center}.boot-screen strong{font-size:28px;letter-spacing:.18em}.boot-screen span{color:#c8ff3d;font-size:16px;letter-spacing:.06em}
+      html,body{margin:0;background:#071c14}
+      .boot-screen{box-sizing:border-box;min-height:100vh;padding:48px 24px;display:grid;place-content:center;justify-items:center;gap:18px;background:#071c14;color:#f3f1e8;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Microsoft YaHei",sans-serif;text-align:center}
+      .boot-screen strong{font-size:28px;letter-spacing:.18em}
+      .boot-screen span{color:#c8ff3d;font-size:16px;letter-spacing:.06em}
+      .boot-emblem{display:block;width:44px;height:44px;border-radius:50%;border:2px solid rgba(200,255,61,.85);box-shadow:0 0 24px rgba(200,255,61,.35);animation:boot-pulse 1.6s ease-in-out infinite}
+      .boot-bar{width:180px;height:2px;margin-top:6px;border-radius:2px;background:rgba(243,241,232,.12);overflow:hidden}
+      .boot-bar i{display:block;width:42%;height:100%;border-radius:2px;background:#c8ff3d;animation:boot-slide 1.2s ease-in-out infinite}
+      .boot-screen em{font-style:normal;font-size:12px;letter-spacing:.22em;color:#9aa89f}
+      @keyframes boot-pulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.86);opacity:.55}}
+      @keyframes boot-slide{0%{transform:translateX(-110%)}100%{transform:translateX(430%)}}
+      @media (prefers-reduced-motion:reduce){.boot-emblem,.boot-bar i{animation:none}}
     </style>
   </head>
   <body>
-    <div id="root"><div class="boot-screen" aria-hidden="true"><strong>菌衡计划</strong><span>餐前伴侣，助力脂代谢</span></div></div>
+    <div id="root"><div class="boot-screen" role="status" aria-label="正在加载菌衡·脂代谢研究所"><i class="boot-emblem" aria-hidden="true"></i><strong>菌衡计划</strong><span>餐前伴侣，助力脂代谢</span><div class="boot-bar" aria-hidden="true"><i></i></div><em>正在加载菌衡·脂代谢研究所...</em></div></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
