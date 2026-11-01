@@ -81,7 +81,7 @@ section { scroll-margin-top: 78px; }
 .hero .eyebrow { margin-bottom: 38px; color: var(--acid); }
 .hero h1 { font-family: var(--display); font-size: clamp(68px, 7.6vw, 128px); font-weight: 900; letter-spacing: -.075em; line-height: 1.02; }
 .hero h1 span { display: block; white-space: nowrap; }
-.hero h1 .hero-title-primary { font-size: clamp(32px, 9vw, 108px); letter-spacing: -.065em; }
+.hero h1 .hero-title-primary { font-size: clamp(32px, 7vw, 88px); letter-spacing: -.065em; }
 .hero h1 span:last-child { color: var(--acid); }
 .hero-subtitle { width: max-content; max-width: 100%; margin-top: 36px; padding: 9px 12px; background: var(--acid); color: var(--forest); font-size: clamp(19px, 1.55vw, 27px); font-weight: 800; line-height: 1.45; letter-spacing: -.025em; }
 .hero-intro { max-width: 520px; margin-top: 24px; font-size: 14px; line-height: 1.9; opacity: .72; }

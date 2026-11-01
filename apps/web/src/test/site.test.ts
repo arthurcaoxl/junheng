@@ -4,7 +4,7 @@ import type { MealCheckIn, WaistRecord, WeightRecord } from "../types/check-in";
 
 describe("brand configuration", () => {
   it("keeps the approved slogan verbatim", () => {
-    expect(siteConfig.slogan).toBe("餐前精准膳食，");
+    expect(siteConfig.slogan).toBe("餐前一杯精准膳食，");
     expect(siteConfig.healthStatement).toBe("助力脂代谢平衡。");
     expect(siteConfig.subtitle).toBe("——23种菌菇精华 × 优质蛋白 × 复合维生素——");
   });
