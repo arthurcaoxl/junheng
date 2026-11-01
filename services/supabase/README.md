@@ -6,7 +6,7 @@
 
 1. 在 Supabase **SQL Editor** 执行 `migrations/` 下的 SQL（按文件名顺序）。
 2. `20261030100000_admin_checkin_overview.sql` 会创建：
-   - `checkin_sync`：营员打卡快照（若表已存在则幂等保留）
+   - `checkin_sync`：体验官打卡快照（若表已存在则幂等保留）
    - `camp_admins`：管理员邮箱白名单
    - 普通用户只能读写自己的 `checkin_sync` 行
    - 白名单管理员只读全部打卡快照

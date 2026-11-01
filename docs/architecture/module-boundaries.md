@@ -16,7 +16,7 @@
 | enrollment | 报名单、申请资料引用、价格快照、报名生命周期 | `SubmitEnrollment`、`StartReview`、`MarkEnrollmentPaymentPending`、`ConfirmEnrollment`、`CancelEnrollment` | `EnrollmentSubmitted`、`EnrollmentReviewStarted`、`EnrollmentPaymentPending`、`EnrollmentConfirmed` | 自行解释支付回调或审核决定 |
 | review | 审核单、决定、原因码、审核人 | `RequestReview`、`ApproveReview`、`RejectReview`、`RequestReviewInfo` | `ReviewRequested`、`ReviewApproved`、`ReviewRejected` | 直接创建支付或确认报名 |
 | payment | 服务端支付单、规范回调事实、退款状态 | `RequestPayment`、`ExpirePayment`、`RequestRefund` | `PaymentRequested`、`PaymentSucceeded`、`PaymentExpired`、`RefundCompleted` | 直接修改 enrollment；保存渠道字段到业务层 |
-| identity | 服务端营员、认证主体引用、权限状态 | `ProvisionCamper`、`SuspendCamper` | `CamperProvisioned`、`CamperSuspended` | 把 storage-v3 userCode 当登录账号 |
+| identity | 服务端体验官、认证主体引用、权限状态 | `ProvisionCamper`、`SuspendCamper` | `CamperProvisioned`、`CamperSuspended` | 把 storage-v3 userCode 当登录账号 |
 | camp-flow | 流程实例、策略快照、编排日志 | `StartFlow`、`CancelFlow`、`RetryFlowStep` | `FlowCompleted`、`FlowFailed` | 拥有或直接写业务实体状态 |
 
 完整命令及 `domain / internal / orchestration` 作用域以 `docs/contracts/command-catalog.json` 为准。

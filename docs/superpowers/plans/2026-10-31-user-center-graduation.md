@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- 不修改 `storage-v3` 字段、CSV 列、代表体重算法、营员代码或 Supabase 表结构。
+- 不修改 `storage-v3` 字段、CSV 列、代表体重算法、体验官代码或 Supabase 表结构。
 - 空昵称证书落款固定为“脂代谢研究所会员”。
 - 证书按 `Object.values(state.records).filter(hasContent).length >= 21` 解锁，文案只能写“累计”，不能写“连续”。
 - 证书编号为 `FUNGIBLEND-${state.startDate.slice(0, 4)}-${state.userCode.replace(/^JH-/, "")}`。
@@ -140,7 +140,7 @@ Run: `cd apps/web && npm test -- src/test/user-center-page.test.tsx src/test/lif
 
 - [ ] **Step 1: 写失败测试**
 
-覆盖：旧邮箱在验证前不变、失败后显示错误、成功同步后提示“邮箱修改成功，云端数据已同步”、营员代码不变、退出后本机 v3 不变并提示数据保留、未配置 Supabase 隐藏账号操作。
+覆盖：旧邮箱在验证前不变、失败后显示错误、成功同步后提示“邮箱修改成功，云端数据已同步”、体验官代码不变、退出后本机 v3 不变并提示数据保留、未配置 Supabase 隐藏账号操作。
 
 - [ ] **Step 2: 验证测试失败**
 

@@ -2,13 +2,13 @@
 
 ## 所有权
 
-identity 拥有未来服务端营员身份、认证主体引用和权限状态，不拥有报名、支付或本机打卡记录。
+identity 拥有未来服务端体验官身份、认证主体引用和权限状态，不拥有报名、支付或本机打卡记录。
 
 ## 实体
 
 | 字段 | 类型 / 规则 |
 | --- | --- |
-| `camperId` | `cam_` 前缀服务端营员 ID。 |
+| `camperId` | `cam_` 前缀服务端体验官 ID。 |
 | `enrollmentId` | 已确认报名的关联 ID。 |
 | `state` | `active / suspended / archived`。 |
 | `authSubjectRef` | 可选受限认证主体引用；不是 userCode。 |
@@ -17,7 +17,7 @@ identity 拥有未来服务端营员身份、认证主体引用和权限状态�
 
 ## 命令与事件
 
-- `ProvisionCamper` → `CamperProvisioned`：只接受已确认 enrollment；同一 enrollment 幂等，只能有一个有效营员身份。
+- `ProvisionCamper` → `CamperProvisioned`：只接受已确认 enrollment；同一 enrollment 幂等，只能有一个有效体验官身份。
 - `SuspendCamper` / `RestoreCamper`：active ↔ suspended，权限变更需审计。
 - `ArchiveCamper`：归档身份，不删除历史报名或支付。
 

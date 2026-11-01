@@ -9,7 +9,7 @@
 | 字段 | 类型 | 规则 |
 | --- | --- | --- |
 | `schema` | `3` | 固定版本号。 |
-| `userCode` | string | 匿名营员代码，格式见下文。 |
+| `userCode` | string | 匿名体验官代码，格式见下文。 |
 | `startDate` | string | 21 天窗口第 1 天，`YYYY-MM-DD`。 |
 | `records` | object | 以真实日期键索引 `DayRecord`；空记录可不保存。 |
 
@@ -77,7 +77,7 @@
 5. 迁移生成新的匿名 `userCode`，写入 v3 后返回；旧键不由读取逻辑删除。
 6. 存储不可用、JSON 损坏或 v3 字段无效时回退到全新 v3，并立即尝试持久化。
 
-## 营员代码
+## 体验官代码
 
 - 格式：`JH-XXXXX`，共 5 个随机字符。
 - 字符表：`ABCDEFGHJKMNPQRSTUVWXYZ23456789`。
@@ -99,9 +99,9 @@
 规则：
 
 1. 种子期同步为**云端覆盖本地/本地覆盖云端**的单向快照，不做逐日合并；本地留存始终保留。
-2. 服务端认证身份（Supabase uid）与本机 `userCode` 是两套标识；未来服务端营员身份另立 `identity-v1` 契约，不得把 `userCode` 当登录账号。
+2. 服务端认证身份（Supabase uid）与本机 `userCode` 是两套标识；未来服务端体验官身份另立 `identity-v1` 契约，不得把 `userCode` 当登录账号。
 3. 服务端时间戳使用 UTC ISO 8601，与本机 `YYYY-MM-DD` 日期键不冲突；未来服务端打卡必须另立契约，不得修改本 v3。
-4. RLS：营员只能读写自己 uid 的行；管理员经 `camp_admins` 白名单获得只读权限，走 `admin_checkin_overview()` RPC。
+4. RLS：体验官只能读写自己 uid 的行；管理员经 `camp_admins` 白名单获得只读权限，走 `admin_checkin_overview()` RPC。
 
 ## CSV 导出
 

@@ -3,7 +3,7 @@
 ## 标识与版本
 
 - 实体 ID 为不透明字符串，格式 `prefix_random`，前缀包括 `cmp`、`enr`、`rev`、`pay`、`flw`、`cam`、`evt`。
-- ID 不含姓名、手机号、营员代码或支付敏感信息；实现可选择 UUID、ULID 等生成方式。
+- ID 不含姓名、手机号、体验官代码或支付敏感信息；实现可选择 UUID、ULID 等生成方式。
 - 实体带整数 `version >= 1`。写命令必须携带 `expectedVersion`，不一致返回 `STATE_CONFLICT` 或模块专用冲突码。
 - 所有契约文件名中的 `v1` 表示主版本；破坏兼容性时必须升级主版本。
 

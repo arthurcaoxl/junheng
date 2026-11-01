@@ -39,7 +39,7 @@ enrollment 拥有报名单、交易上下文快照和报名生命周期，不拥
 - 同幂等键不同 payload 返回 `IDEMPOTENCY_CONFLICT`；重复提交不得占用两个名额。
 - ReserveSeat 与 SubmitEnrollment 使用同一关联幂等键，重复提交返回原预留和原报名。
 - ConfirmEnrollment 校验 expectedVersion 和当前状态；payment 不能直接调用数据库修改报名。
-- `EnrollmentConfirmed` 只表示报名确认，营员身份仍需独立 `ProvisionCamper`。
+- `EnrollmentConfirmed` 只表示报名确认，体验官身份仍需独立 `ProvisionCamper`。
 
 ## 事件 payload
 

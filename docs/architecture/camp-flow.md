@@ -95,7 +95,7 @@ EnrollmentSubmitted
 
 - 取消流程不等于取消所有业务实体；各模块通过独立命令完成可执行的取消。
 - 若取消先提交，晚到 `PaymentSucceeded` 不得触发 `ConfirmEnrollment`；记录支付事实并发起 `RequestRefund` 或人工对账。
-- 若 `EnrollmentConfirmed` 先提交，后续取消按已确认营员取消规则处理，不能删除历史事件或默认释放已确认名额。
+- 若 `EnrollmentConfirmed` 先提交，后续取消按已确认体验官取消规则处理，不能删除历史事件或默认释放已确认名额。
 - 支付过期后的晚到成功标记 `lateSuccess`，流程保持 cancelled/failed，不自动入营。
 - 审核并发只有一个决定成功；后续重复或冲突决定不改变已提交事实。
 
