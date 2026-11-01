@@ -72,6 +72,9 @@ export function SevenDayCheckIn() {
   const activeIndex = Math.max(diffDays(state.startDate, activeDate), 0);
   const current = state.records[activeDate] ?? emptyDay();
   const stats = getCampStats(state);
+  const actualDayIndex = diffDays(state.startDate, today) + 1; // 真实今天在本期第几天；回看历史日期不影响折叠阶段
+  const isNovice = actualDayIndex <= 2; // 破冰期：科普直接展示；熟练期：默认折叠，表单上移
+  const [isKnowledgeExpanded, setIsKnowledgeExpanded] = useState(false);
 
   const persistState = (next: CheckInState) => {
     setState(next);
@@ -208,7 +211,22 @@ export function SevenDayCheckIn() {
         <p>第 1 天建立基线，第 21 天回看趋势。记录体重、腰围与每餐执行情况。</p>
         <p className="camp-range">本期周期：{state.startDate} 至 {stats.endDate} · 修改后自动保存，无需注册</p>
       </header>
-      <WaterFluctuation />
+      <div className="knowledge-section-wrapper">
+        {!isNovice && (
+          <button
+            type="button"
+            className="water-panel-toggle knowledge-toggle"
+            aria-expanded={isKnowledgeExpanded}
+            aria-controls="knowledge-body"
+            onClick={() => setIsKnowledgeExpanded(!isKnowledgeExpanded)}
+          >
+            {isKnowledgeExpanded ? "收起健康科普 ↑" : "展开健康科普 ↓"}
+          </button>
+        )}
+        <div id="knowledge-body" hidden={!isNovice && !isKnowledgeExpanded}>
+          <WaterFluctuation />
+        </div>
+      </div>
       <div className="record-identity">
         <label htmlFor="record-name">姓名或网名</label>
         <input id="record-name" name="recordName" type="text" autoComplete="nickname" maxLength={30} placeholder="真实姓名或网名都可以（选填）" value={recordName} onChange={(event) => updateName(event.target.value)} />
