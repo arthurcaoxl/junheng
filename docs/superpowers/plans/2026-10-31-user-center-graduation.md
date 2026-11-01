@@ -38,7 +38,7 @@
 **Interfaces:**
 - Produces: `DayRecord`、`getPeriodWeightChange(records): number | null`、`getCertificateNumber(state): string`、`canGraduate(state): boolean`。
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 ```ts
 expect(getPeriodWeightChange([day("70"), day("69.4")])).toBeCloseTo(-0.6);
@@ -49,11 +49,11 @@ expect(canGraduate(twentyDays)).toBe(false);
 expect(canGraduate(twentyOneNonConsecutiveDays)).toBe(true);
 ```
 
-- [ ] **Step 2: 验证测试因模块不存在而失败**
+- [x] **Step 2: 验证测试因模块不存在而失败**
 
 Run: `cd apps/web && npm test -- src/test/user-center-metrics.test.ts src/test/graduation-certificate.test.ts`
 
-- [ ] **Step 3: 实现纯函数并移动 DayRecord 类型**
+- [x] **Step 3: 实现纯函数并移动 DayRecord 类型**
 
 ```ts
 export function getPeriodWeightChange(records: DayRecord[]): number | null {
@@ -67,11 +67,11 @@ export const getCertificateNumber = (state: CheckInState) =>
   `FUNGIBLEND-${state.startDate.slice(0, 4)}-${state.userCode.replace(/^JH-/, "")}`;
 ```
 
-- [ ] **Step 4: 运行纯函数测试和全量类型相关回归**
+- [x] **Step 4: 运行纯函数测试和全量类型相关回归**
 
 Run: `cd apps/web && npm test -- src/test/user-center-metrics.test.ts src/test/graduation-certificate.test.ts src/test/weight.test.ts src/test/lifestyle.test.tsx`
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 `git commit -m "feat: add user center and graduation metrics"`
 
@@ -95,15 +95,15 @@ Run: `cd apps/web && npm test -- src/test/user-center-metrics.test.ts src/test/g
 - Consumes: `loadState()`、`getCampStats()`、`buildWindowRecords()`、`getPeriodWeightChange()`。
 - Produces: 用户中心趋势、海报、CSV 和 D7 续作；打卡页仅保留 `/user-center` 资产入口。
 
-- [ ] **Step 1: 写页面失败测试**
+- [x] **Step 1: 写页面失败测试**
 
 覆盖：标题“我的脂代谢追踪档案”、观察员/研究员称号及说明、数据样本天数、核心体重指标变化正负值、不足两条时“记录满 2 天即可计算变化”、趋势与海报只在用户中心、CSV 下载、D7 匿名拦截与绑定后续作、未配置 Supabase 本机资产可用。
 
-- [ ] **Step 2: 验证新页面测试失败**
+- [x] **Step 2: 验证新页面测试失败**
 
 Run: `cd apps/web && npm test -- src/test/user-center-page.test.tsx`
 
-- [ ] **Step 3: 实现页面与资产组件**
+- [x] **Step 3: 实现页面与资产组件**
 
 `useUserCenterData` 仅在挂载时调用 `loadState()` 并读取 `junheng-checkin-name-v1`；`PersonalAssets` 接收 `records`、`state`、`recordName` 和 D7 状态。海报调用保持：
 
@@ -115,11 +115,11 @@ createRecordPoster(buildWindowRecords(state), recordName, {
 });
 ```
 
-- [ ] **Step 4: 更新迁移后的旧测试并运行相关回归**
+- [x] **Step 4: 更新迁移后的旧测试并运行相关回归**
 
 Run: `cd apps/web && npm test -- src/test/user-center-page.test.tsx src/test/lifestyle.test.tsx src/test/iteration-v1.4.test.tsx src/test/sync-panel.test.tsx src/test/routing.test.tsx`
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 `git commit -m "feat: move personal assets into user center"`
 
@@ -138,23 +138,23 @@ Run: `cd apps/web && npm test -- src/test/user-center-page.test.tsx src/test/lif
 - Consumes: `updateUser({ email })`、`verifyOtp({ type: "email_change" })`、`syncToCloud()`、`signOut()`。
 - Produces: `SyncMode` 新增 `change-email`；成功广播新邮箱，退出广播空邮箱。
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 覆盖：旧邮箱在验证前不变、失败后显示错误、成功同步后提示“邮箱修改成功，云端数据已同步”、体验官代码不变、退出后本机 v3 不变并提示数据保留、未配置 Supabase 隐藏账号操作。
 
-- [ ] **Step 2: 验证测试失败**
+- [x] **Step 2: 验证测试失败**
 
 Run: `cd apps/web && npm test -- src/test/account-security.test.tsx`
 
-- [ ] **Step 3: 扩展统一 SyncModal 与 AccountSecurity**
+- [x] **Step 3: 扩展统一 SyncModal 与 AccountSecurity**
 
 修改邮箱仍调用 `upgradeToPermanentAccount` 和 `confirmEmailUpgrade`；仅验证且 `syncToCloud()` 返回 `synced` 后广播成功。退出只有 `signOut()` 无错误才广播 `email: null`，不清理本地存储。
 
-- [ ] **Step 4: 运行账号与同步回归**
+- [x] **Step 4: 运行账号与同步回归**
 
 Run: `cd apps/web && npm test -- src/test/account-security.test.tsx src/test/sync-panel.test.tsx src/test/user-center-page.test.tsx`
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 `git commit -m "feat: add account security controls"`
 
@@ -173,23 +173,23 @@ Run: `cd apps/web && npm test -- src/test/account-security.test.tsx src/test/syn
 - Consumes: `canGraduate()`、`getCertificateNumber()`、D7 `onGate(action)`。
 - Produces: `createGraduationCertificate(state, recordName): string` 和 PNG 预览/下载。
 
-- [ ] **Step 1: 增加失败测试**
+- [x] **Step 1: 增加失败测试**
 
 覆盖：20 天禁用且显示 X/21、21 天可生成、非连续累计可生成、空昵称为“脂代谢研究所会员”、编号稳定、Canvas `getContext()` 返回 null 时显示错误且页面不崩溃、免责声明写入 Canvas。
 
-- [ ] **Step 2: 验证测试失败**
+- [x] **Step 2: 验证测试失败**
 
 Run: `cd apps/web && npm test -- src/test/graduation-certificate.test.ts src/test/user-center-page.test.tsx`
 
-- [ ] **Step 3: 实现 Canvas 与组件**
+- [x] **Step 3: 实现 Canvas 与组件**
 
 Canvas 使用米白纸底、低对比纹理、深墨绿/暗金细框、几何回纹、宋体标题、楷体姓名和仅含“会员纪念”的暗红方章。绘制标题、纪念语、编号和完整免责声明，不模拟官方印章。
 
-- [ ] **Step 4: 运行证书和资产回归**
+- [x] **Step 4: 运行证书和资产回归**
 
 Run: `cd apps/web && npm test -- src/test/graduation-certificate.test.ts src/test/user-center-page.test.tsx src/test/sync-panel.test.tsx`
 
-- [ ] **Step 5: 提交**
+- [x] **Step 5: 提交**
 
 `git commit -m "feat: add 21 day graduation certificate"`
 
@@ -210,24 +210,36 @@ Run: `cd apps/web && npm test -- src/test/graduation-certificate.test.ts src/tes
 **Interfaces:**
 - Produces: “菌衡计划 | 脂代谢研究所”、三项原则、全局升级免责声明、海报新顶部与底部文案。
 
-- [ ] **Step 1: 写失败测试**
+- [x] **Step 1: 写失败测试**
 
 断言 Header、Footer、三项原则、合规“脂代谢调节”文案、海报顶部英文和底部“加入菌衡计划·脂代谢研究所，用真实记录陪伴长期健康管理。”；禁止“修复代谢迟缓”“激活线粒体”“重塑易瘦体质”“核心脂质指标变化”。
 
-- [ ] **Step 2: 验证测试失败**
+- [x] **Step 2: 验证测试失败**
 
 Run: `cd apps/web && npm test -- src/test/content-trust.test.tsx src/test/app.test.tsx src/test/site.test.ts src/test/record-poster.test.ts`
 
-- [ ] **Step 3: 实现全局文案与响应式样式**
+- [x] **Step 3: 实现全局文案与响应式样式**
 
 Header 主标题替换，空间不足隐藏英文；Footer 与用户中心底部使用完整升级版声明；原则卡片使用现有森林色、米白和荧光绿，不增加依赖。
 
-- [ ] **Step 4: 全量验证**
+- [x] **Step 4: 全量验证**
 
 Run: `cd apps/web && npm test && npm run lint && npm run build`
 
 Expected: 原 137 项及新增测试全部通过，lint 无错误，build 与三个静态路由生成成功。
 
-- [ ] **Step 5: 提交并复核**
+- [x] **Step 5: 提交并复核**
 
 `git commit -m "feat: align lipid metabolism platform branding"`，随后 `git diff --check && git status --short --branch`。
+
+---
+
+## 追加迭代记录（2026-11-01，本计划之外新增）
+
+以下三项为当日追加迭代，不在原 Task 1–5 范围内，均已完成并推送至 `main`：
+
+- [x] **BMI 动态追踪模块**：`utils/bmi.ts`（WS/T 428—2013 判定，1 位小数，`-0` 归一）、目标差距横幅、分段量尺、recharts 趋势图、档案录入表单（Toast 反馈）。测试：`bmi.test.ts`、`bmi-target.test.ts`、`bmi-target-gap.test.tsx`、`bmi-tracker.test.tsx`。
+- [x] **本地存储与幂等云端同步**：`storage-v3` 增量扩展 `heightCm` / `initialWeightKg`（schema 仍为 3）；`merged_flag` 数据版本升级为 `junheng-checkin-v3-profile-v1`，老用户旧标记补跑一次档案兼容合并，云端档案绝不被本地空值覆盖；仅档案字段变化也触发云端同步。迁移：`20261101090000_checkin_bmi_profile.sql`。测试：`bmi-sync.test.ts`。
+- [x] **品牌术语升级**：全局「营员」统一替换为「体验官」（代码 40 处、文档 32 处）；仅改 UI 展示层，`userCode`、`camper_code`、Supabase 表字段等数据契约一律未动。
+
+最终验收：全量 249 项测试通过（37 个文件），`npm run lint` 与 `npm run build` 通过，工作区干净。
