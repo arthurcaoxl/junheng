@@ -670,8 +670,10 @@ section { scroll-margin-top: 78px; }
 .check-in-panel-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 30px; }
 .check-in-panel-heading > div > span { color: var(--acid); font-size: 10px; font-weight: 750; letter-spacing: .1em; }
 .check-in-panel-heading h3 { margin-top: 18px; font-size: clamp(26px, 3vw, 46px); letter-spacing: -.04em; }
-.check-in-panel-heading > strong { color: var(--acid); font-family: var(--display); font-size: 70px; line-height: .85; white-space: nowrap; }
-.check-in-panel-heading > strong > span { color: var(--paper); font-family: var(--sans); font-size: 11px; font-weight: 500; letter-spacing: 0; opacity: .55; }
+.check-in-panel-count { text-align: right; }
+.check-in-panel-count > strong { color: var(--acid); font-family: var(--display); font-size: 70px; line-height: .85; white-space: nowrap; }
+.check-in-panel-count > strong > span { color: var(--paper); font-family: var(--sans); font-size: 11px; font-weight: 500; letter-spacing: 0; opacity: .55; }
+.check-in-panel-note { margin: 8px 0 0; font-size: 11px; opacity: .55; }
 .body-metrics { display: grid; grid-template-columns: 1fr; gap: 22px; margin-top: 48px; padding: 30px 0; border-top: 1px solid var(--line-light); border-bottom: 1px solid var(--line-light); }
 .body-metrics label { display: grid; align-items: center; gap: 10px; font-size: 12px; font-weight: 700; }
 .body-metrics input { width: 100%; min-width: 0; min-height: 54px; padding: 10px 14px; border: 1px solid var(--line-light); border-radius: 0; background: var(--paper); color: var(--forest); font: inherit; font-size: 18px; }
@@ -848,7 +850,8 @@ section { scroll-margin-top: 78px; }
   .day-tabs button { min-height: 92px; padding: 16px 12px; }
   .check-in-panel { padding-top: 36px; }
   .check-in-panel-heading { display: block; }
-  .check-in-panel-heading > strong { display: block; margin-top: 32px; font-size: 56px; }
+  .check-in-panel-count { margin-top: 32px; text-align: left; }
+  .check-in-panel-count > strong { display: block; font-size: 56px; }
   .body-metrics { grid-template-columns: 1fr; gap: 18px; margin-top: 34px; }
   .body-metrics > p { grid-column: auto; }
   .check-in-groups { grid-template-columns: 1fr; gap: 34px; }

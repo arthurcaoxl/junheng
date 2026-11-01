@@ -273,8 +273,8 @@ export function SevenDayCheckIn() {
       </div>
       <div className="check-in-panel" role="tabpanel" id="day-panel" aria-labelledby={`day-tab-${activeDate}`}>
         <div className="check-in-panel-heading">
-          <div><span>第 {activeIndex + 1} 天 · {activeIndex === 0 ? "建立基线" : activeIndex === TOTAL_DAYS - 1 ? "回看趋势" : "保持记录"}（{formatShortDate(activeDate)}）</span><h3>今天，照顾好这些小事。</h3></div>
-          <strong>{recordedItems}<span> / 8 项已记录</span></strong>
+          <div><span>第 {activeIndex + 1} 天 · {activeIndex === 0 ? "建立基线" : activeIndex === TOTAL_DAYS - 1 ? "回看趋势" : "保持记录"}（{formatShortDate(activeDate)}）</span><h3>{actualDayIndex <= 1 ? "建立你的初始基线" : "记录今天的身体状态"}</h3></div>
+          <div className="check-in-panel-count"><strong>{recordedItems}<span> / 8 项已记录</span></strong><p className="check-in-panel-note">今天，照顾好这些小事。</p></div>
         </div>
         <div className="body-metrics">
           <div className="clothes-settings clothes-inline">
