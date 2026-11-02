@@ -97,16 +97,16 @@ describe("用户中心本机档案与报告", () => {
     expect(screen.queryByRole("img", { name: "体重趋势图" })).not.toBeInTheDocument();
   });
 
-  it("累计 20 天时证书保持锁定并显示进度", () => {
+  it("累计 20 天时见证保持锁定并显示进度", () => {
     seedState(Object.fromEntries(Array.from({ length: 20 }, (_, index) => [
       addDays("2026-01-01", index), { ...emptyDay(), weight: "70" },
     ])));
     renderAt();
-    expect(screen.getByRole("button", { name: "生成结业证书" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "生成我的见证" })).toBeDisabled();
     expect(screen.getByText(/当前进度 20\/21/)).toBeInTheDocument();
   });
 
-  it("非连续累计 21 天可生成证书，空昵称使用会员落款", async () => {
+  it("非连续累计 21 天可生成见证，空昵称使用会员落款", async () => {
     const context = mockPosterCanvas();
     const user = userEvent.setup();
     seedState(Object.fromEntries([
@@ -115,14 +115,14 @@ describe("用户中心本机档案与报告", () => {
     ]));
     renderAt();
 
-    await user.click(screen.getByRole("button", { name: "生成结业证书" }));
-    expect(screen.getByRole("img", { name: "21 天会员结业纪念证书预览" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "下载结业证书 PNG" })).toHaveAttribute("download", "菌衡计划-21天会员结业纪念证书.png");
+    await user.click(screen.getByRole("button", { name: "生成我的见证" }));
+    expect(screen.getByRole("img", { name: "21 天代谢重塑见证预览" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "下载见证 PNG" })).toHaveAttribute("download", "菌衡计划-21天代谢重塑见证.png");
     expect(context.fillText).toHaveBeenCalledWith("脂代谢研究所会员", expect.any(Number), expect.any(Number));
     expect(context.fillText).toHaveBeenCalledWith("FUNGIBLEND-2026-WQAKS", expect.any(Number), expect.any(Number));
   });
 
-  it("Canvas 不可用时仅提示证书错误，趋势和 CSV 仍可用", async () => {
+  it("Canvas 不可用时仅提示见证错误，趋势和 CSV 仍可用", async () => {
     vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(null);
     const user = userEvent.setup();
     seedState(Object.fromEntries(Array.from({ length: 21 }, (_, index) => [
@@ -130,10 +130,23 @@ describe("用户中心本机档案与报告", () => {
     ])));
     renderAt();
 
-    await user.click(screen.getByRole("button", { name: "生成结业证书" }));
-    expect(screen.getByRole("alert")).toHaveTextContent("当前浏览器无法生成结业证书");
+    await user.click(screen.getByRole("button", { name: "生成我的见证" }));
+    expect(screen.getByRole("alert")).toHaveTextContent("当前浏览器无法生成见证");
     expect(screen.getByRole("region", { name: "21 天身体记录趋势" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "导出完整数据 (CSV)" })).toBeEnabled();
+  });
+
+  it("没有身体测量值时显示友好提示且不生成空白见证", async () => {
+    const user = userEvent.setup();
+    seedState(Object.fromEntries(Array.from({ length: 21 }, (_, index) => [
+      addDays("2026-01-01", index), { ...emptyDay(), meals: [true, false, false] },
+    ])));
+    renderAt();
+
+    await user.click(screen.getByRole("button", { name: "生成我的见证" }));
+
+    expect(screen.getByRole("alert")).toHaveTextContent("暂时没有可用于生成见证的体重或腰围记录，请先完成记录。");
+    expect(screen.queryByRole("img", { name: "21 天代谢重塑见证预览" })).not.toBeInTheDocument();
   });
 });
 
@@ -169,23 +182,24 @@ describe("用户中心 D7 与绑定状态", () => {
     expect(await screen.findByRole("img", { name: "21 天健康记录海报预览" })).toBeInTheDocument();
   });
 
-  it("匿名 D7 生成证书先拦截，绑定成功后继续导出", async () => {
+  it("匿名 D7 生成见证先拦截，绑定成功后继续导出", async () => {
     (getSupabase().auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { session: null } });
     const startDate = addDays(todayKey(), -6);
     seedState(Object.fromEntries(Array.from({ length: 21 }, (_, index) => [
       addDays(startDate, index), { ...emptyDay(), weight: "70" },
     ])), startDate);
-    mockPosterCanvas();
+    const context = mockPosterCanvas();
     const user = userEvent.setup();
     renderAt();
 
-    await user.click(screen.getByRole("button", { name: "生成结业证书" }));
-    expect(screen.getByRole("dialog", { name: "🎉 您的会员结业纪念证书已生成！" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "生成我的见证" }));
+    expect(screen.getByRole("dialog", { name: "🎉 您的 21 天代谢重塑见证已生成！" })).toBeInTheDocument();
+    expect(context.fillText).toHaveBeenCalledWith("21 天代谢重塑见证", expect.any(Number), expect.any(Number));
     await user.type(screen.getByLabelText("邮箱地址"), "certificate@example.com");
-    await user.click(screen.getByRole("button", { name: "立即绑定并查看证书" }));
+    await user.click(screen.getByRole("button", { name: "立即绑定并查看见证" }));
     await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
-    await user.click(screen.getByRole("button", { name: "完成绑定并查看证书" }));
-    expect(await screen.findByRole("img", { name: "21 天会员结业纪念证书预览" })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "完成绑定并查看见证" }));
+    expect(await screen.findByRole("img", { name: "21 天代谢重塑见证预览" })).toBeInTheDocument();
   });
 
   it("已绑定邮箱显示研究员称号且资产不再拦截", async () => {
