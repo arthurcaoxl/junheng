@@ -87,6 +87,9 @@ async function writeCloudSnapshot(uid: string, state: CheckInState, cloudUserCod
     return;
   }
 
+  // 合规兜底：为用户建立云端档案时，若其从未有过授权表态，默认标记为未授权（false）。
+  // 未授权用户的数据因此绝不会被错误纳入研究/白皮书池；用户后续明确表态后由
+  // services/consent.ts 的 saveCloudConsent 独占更新该列，同步流程永不回写。
   const { error } = await client.from("checkin_sync").insert({
     auth_user_id: uid,
     user_code: state.userCode,
@@ -94,6 +97,7 @@ async function writeCloudSnapshot(uid: string, state: CheckInState, cloudUserCod
     records: state.records,
     height_cm: state.heightCm ?? null,
     initial_weight_kg: state.initialWeightKg ?? null,
+    consent_granted: false,
     updated_at: new Date().toISOString(),
   });
   if (error) throw new Error("云端数据写入失败，请稍后重试。");
@@ -280,21 +284,4 @@ export async function loginWithEmail(email: string, token: string): Promise<Rest
   const { error } = await getSupabase().auth.verifyOtp({ email, token: code, type: "email" });
   if (error) throw new Error("验证码不正确或已过期，请重新获取。");
   return ensureInitialMerge(); // cloud-restored 时由 UI reload 完成水合
-}
-
-/** 将用户明确授权写入其云端同步档案；匿名访客尚未建立 session 时仅保留本机授权。 */
-export async function grantResearchConsent(): Promise<void> {
-  const client = getSupabase();
-  const { data: { session }, error: sessionError } = await client.auth.getSession();
-  if (sessionError) throw new Error("授权状态同步失败，请稍后重试。");
-  const uid = session?.user.id;
-  if (!uid) return;
-
-  const consentAt = new Date().toISOString();
-  const { error } = await client.from("checkin_sync").update({
-    consent_granted: true,
-    consent_at: consentAt,
-    updated_at: consentAt,
-  }).eq("auth_user_id", uid);
-  if (error) throw new Error("授权状态同步失败，请稍后重试。");
 }

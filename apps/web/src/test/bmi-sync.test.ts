@@ -198,6 +198,7 @@ describe("BMI 基础档案幂等云端同步", () => {
       auth_user_id: "test-uid",
       height_cm: "170",
       initial_weight_kg: null,
+      consent_granted: false, // 合规兜底：建档即默认未授权，绝不进研究池
     }));
   });
 });

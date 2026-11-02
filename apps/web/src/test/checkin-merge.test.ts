@@ -117,6 +117,7 @@ describe("按日期键补全式首次合并", () => {
     expect(cloudQuery().insert).toHaveBeenCalledWith(expect.objectContaining({
       auth_user_id: "uid-a",
       records: local.records,
+      consent_granted: false, // 合规兜底：建档即默认未授权，绝不进研究池
     }));
     expect(readV3Snapshot()).toEqual(local);
   });
