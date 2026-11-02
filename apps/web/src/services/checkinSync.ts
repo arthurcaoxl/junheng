@@ -281,3 +281,20 @@ export async function loginWithEmail(email: string, token: string): Promise<Rest
   if (error) throw new Error("验证码不正确或已过期，请重新获取。");
   return ensureInitialMerge(); // cloud-restored 时由 UI reload 完成水合
 }
+
+/** 将用户明确授权写入其云端同步档案；匿名访客尚未建立 session 时仅保留本机授权。 */
+export async function grantResearchConsent(): Promise<void> {
+  const client = getSupabase();
+  const { data: { session }, error: sessionError } = await client.auth.getSession();
+  if (sessionError) throw new Error("授权状态同步失败，请稍后重试。");
+  const uid = session?.user.id;
+  if (!uid) return;
+
+  const consentAt = new Date().toISOString();
+  const { error } = await client.from("checkin_sync").update({
+    consent_granted: true,
+    consent_at: consentAt,
+    updated_at: consentAt,
+  }).eq("auth_user_id", uid);
+  if (error) throw new Error("授权状态同步失败，请稍后重试。");
+}

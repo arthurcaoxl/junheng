@@ -8,6 +8,8 @@ import Home from "./pages/Home";
 import CheckInPage from "./pages/CheckInPage";
 import AdminCheckInPage from "./pages/AdminCheckIn";
 import UserCenterPage from "./pages/UserCenter";
+import TermsPage from "./pages/TermsPage";
+import PrivacyPage from "./pages/PrivacyPage";
 import { useReducedMotion } from "./hooks/useReducedMotion";
 import { installSyncLifecycle } from "./services/checkinSync";
 import "./styles.css";
@@ -96,6 +98,10 @@ export default function App() {
           {/* 管理入口不进入公开导航；RLS 负责数据权限。 */}
           <Route path="/admin/check-in" element={<AdminCheckInPage />} />
           <Route path="/admin/check-in/index.html" element={<AdminCheckInPage />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/terms/index.html" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/privacy/index.html" element={<PrivacyPage />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

@@ -1,10 +1,13 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router";
+import { ConsentDialog } from "../components/ConsentDialog";
 import { SevenDayCheckIn } from "../components/SevenDayCheckIn";
 import { SyncPanel } from "../components/SyncPanel";
+import { hasGrantedConsent } from "../utils/consent";
 
 export default function CheckInPage() {
   const { hash } = useLocation();
+  const [consentGranted, setConsentGranted] = useState(hasGrantedConsent);
 
   useEffect(() => {
     if (hash === "#sync-panel") {
@@ -20,6 +23,7 @@ export default function CheckInPage() {
       </nav>
       <SevenDayCheckIn />
       <SyncPanel />
+      {!consentGranted && <ConsentDialog onGranted={() => setConsentGranted(true)} />}
     </div>
   );
 }
