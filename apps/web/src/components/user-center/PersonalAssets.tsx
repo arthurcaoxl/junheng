@@ -2,6 +2,7 @@ import { useState } from "react";
 import { RecordTrends } from "../RecordTrends";
 import { GraduationCert } from "../GraduationCert";
 import { createRecordPoster } from "../../utils/recordPoster";
+import { createGraduationCertificate } from "../../utils/graduationCertificate";
 import { exportCheckInCsv, type CheckInState } from "../../utils/checkin";
 import { openSyncModal, type SyncMilestoneKind } from "../../services/syncUi";
 import type { DayRecord } from "../../types/checkin";
@@ -35,9 +36,9 @@ export function PersonalAssets({ state, records, recordName, endDate, requiresMi
     }
   };
 
-  const openMilestoneBinding = (kind: SyncMilestoneKind, onSuccess: () => void) => {
+  const openMilestoneBinding = (kind: SyncMilestoneKind, onSuccess: () => void, buildPreview = buildPoster) => {
     let previewUrl = "";
-    try { previewUrl = buildPoster(); } catch { /* 无 Canvas 时仅降级头图 */ }
+    try { previewUrl = buildPreview(); } catch { /* 无 Canvas 时仅降级头图 */ }
     openSyncModal("bind", { milestone: true, milestoneKind: kind, posterUrl: previewUrl, onSuccess });
   };
 
@@ -52,8 +53,9 @@ export function PersonalAssets({ state, records, recordName, endDate, requiresMi
   };
 
   const requestCertificate = (action: () => void) => {
-    if (requiresMilestoneBinding) openMilestoneBinding("certificate", action);
-    else action();
+    if (requiresMilestoneBinding) {
+      openMilestoneBinding("certificate", action, () => createGraduationCertificate(state, recordName));
+    } else action();
   };
 
   const exportCsv = () => {

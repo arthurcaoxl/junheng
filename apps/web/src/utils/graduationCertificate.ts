@@ -1,5 +1,6 @@
 import type { CheckInState } from "./checkin";
 import { hasContent } from "./checkin";
+import { buildWitnessSummary, getWitnessVariant } from "./witness";
 
 export const GRADUATION_DAYS = 21;
 
@@ -22,6 +23,10 @@ const PAPER = "#F3EFE3";
 const INK = "#173C2E";
 const GOLD = "#A68A50";
 const RED = "#8B3A32";
+const REWARD_BACKGROUND = "#12362B";
+const REWARD_INK = "#A3E635";
+
+export const WITNESS_NO_DATA_MESSAGE = "暂时没有可用于生成见证的体重或腰围记录，请先完成记录。";
 
 function drawCorner(context: CanvasRenderingContext2D, x: number, y: number, xDirection: number, yDirection: number) {
   context.beginPath();
@@ -34,18 +39,27 @@ function drawCorner(context: CanvasRenderingContext2D, x: number, y: number, xDi
   context.stroke();
 }
 
-/** 新中式米白纸底会员纪念证书；不模拟官方印章或资质文件。 */
+/** 21 天代谢重塑见证：正向变化使用深绿奖励牌，其余使用米白鼓励牌。 */
 export function createGraduationCertificate(state: CheckInState, recordName = ""): string {
   if (!canGraduate(state)) throw new Error("累计有效记录不足 21 天");
+  const variant = getWitnessVariant(state.records);
+  const summary = buildWitnessSummary(state.records);
+  if (!summary.hasMeasurements) throw new Error(WITNESS_NO_DATA_MESSAGE);
+
+  const reward = variant === "reward";
+  const palette = reward
+    ? { background: REWARD_BACKGROUND, ink: REWARD_INK, accent: "#D8F99D", muted: "#D7E5DD", seal: REWARD_INK }
+    : { background: PAPER, ink: INK, accent: GOLD, muted: "#665F52", seal: RED };
+
   const canvas = document.createElement("canvas");
   canvas.width = WIDTH;
   canvas.height = HEIGHT;
   const context = canvas.getContext("2d");
-  if (!context) throw new Error("Canvas is unavailable");
+  if (!context) throw new Error("当前浏览器无法生成见证，请更换浏览器后重试。");
 
-  context.fillStyle = PAPER;
+  context.fillStyle = palette.background;
   context.fillRect(0, 0, WIDTH, HEIGHT);
-  context.strokeStyle = "rgba(23, 60, 46, 0.055)";
+  context.strokeStyle = reward ? "rgba(163, 230, 53, 0.08)" : "rgba(23, 60, 46, 0.055)";
   context.lineWidth = 1;
   for (let y = 24; y < HEIGHT; y += 28) {
     context.beginPath();
@@ -53,10 +67,10 @@ export function createGraduationCertificate(state: CheckInState, recordName = ""
     context.lineTo(WIDTH, y);
     context.stroke();
   }
-  context.strokeStyle = INK;
+  context.strokeStyle = palette.ink;
   context.lineWidth = 3;
   context.strokeRect(54, 54, WIDTH - 108, HEIGHT - 108);
-  context.strokeStyle = GOLD;
+  context.strokeStyle = palette.accent;
   context.lineWidth = 1.5;
   context.strokeRect(72, 72, WIDTH - 144, HEIGHT - 144);
   drawCorner(context, 94, 94, 1, 1);
@@ -65,52 +79,70 @@ export function createGraduationCertificate(state: CheckInState, recordName = ""
   drawCorner(context, WIDTH - 94, HEIGHT - 94, -1, -1);
 
   context.textAlign = "center";
-  context.fillStyle = GOLD;
+  context.fillStyle = palette.accent;
   context.font = "20px sans-serif";
   context.fillText("FUNGIBLEND LIPID METABOLISM RESEARCH INSTITUTE", WIDTH / 2, 150);
-  context.fillStyle = INK;
+  context.fillStyle = palette.ink;
   context.font = "30px 'Songti SC', SimSun, serif";
   context.fillText("菌衡计划 · 脂代谢研究所", WIDTH / 2, 215);
   context.font = "42px 'Songti SC', SimSun, serif";
-  context.fillText("21 天高阶脂代谢研究项目", WIDTH / 2, 330);
+  context.fillText("21 天 · 代谢重塑之旅", WIDTH / 2, 330);
   context.font = "700 68px 'Songti SC', SimSun, serif";
-  context.fillText("结业证书", WIDTH / 2, 425);
-  context.fillStyle = GOLD;
+  context.fillText("21 天代谢重塑见证", WIDTH / 2, 425);
+  context.fillStyle = palette.accent;
   context.font = "24px 'Songti SC', SimSun, serif";
-  context.fillText("会 员 成 长 纪 念", WIDTH / 2, 495);
+  context.fillText(reward ? "自 律 有 迹 · 改 变 可 见" : "坚 持 记 录 · 身 体 自 有 答 案", WIDTH / 2, 495);
   context.fillRect(400, 535, 400, 1);
 
   const displayName = (recordName.trim() || "脂代谢研究所会员").slice(0, 30);
-  context.fillStyle = INK;
+  context.fillStyle = palette.ink;
   context.font = `${displayName.length > 12 ? 38 : 54}px KaiTi, STKaiti, serif`;
-  context.fillText(displayName, WIDTH / 2, 710);
+  context.fillText(displayName, WIDTH / 2, 690);
   context.font = "28px 'Songti SC', SimSun, serif";
-  context.fillText("该会员已累计完成 21 天真实健康记录，", WIDTH / 2, 830);
-  context.fillText("以持续行动完成本期自我观察与成长。", WIDTH / 2, 880);
-  context.fillText("特发此证，以作纪念。", WIDTH / 2, 950);
+  if (reward) {
+    context.fillText("你用持续记录，见证了身体的积极变化。", WIDTH / 2, 800);
+    context.fillText("每一次如实记录，都让代谢趋势更加清晰。", WIDTH / 2, 850);
+  } else {
+    context.fillText("体重不是唯一的答案。", WIDTH / 2, 800);
+    context.fillText("21 天全程记录，代谢的真实曲线已被你看见。", WIDTH / 2, 850);
+  }
 
-  context.fillStyle = GOLD;
+  const measurements = [
+    reward && summary.weightDelta !== null && summary.weightDelta !== undefined
+      ? `累计减重 ${summary.weightDelta.toFixed(1)} kg`
+      : "",
+    summary.waistDelta !== null ? `腰围缩减 ${summary.waistDelta.toFixed(1)} cm` : "",
+  ].filter(Boolean).join(" · ");
+  if (measurements) {
+    context.fillStyle = palette.accent;
+    context.font = "700 30px 'Songti SC', SimSun, serif";
+    context.fillText(measurements, WIDTH / 2, 950);
+  }
+
+  context.fillStyle = palette.accent;
   context.font = "20px sans-serif";
-  context.fillText("证书编号", WIDTH / 2, 1050);
-  context.fillStyle = INK;
+  context.fillText("见证编号", WIDTH / 2, 1040);
+  context.fillStyle = palette.ink;
   context.font = "26px monospace";
-  context.fillText(getCertificateNumber(state), WIDTH / 2, 1100);
+  context.fillText(getCertificateNumber(state), WIDTH / 2, 1090);
+  context.font = "22px sans-serif";
+  context.fillText(`体验官代码 ${state.userCode}`, WIDTH / 2, 1140);
   context.font = "23px 'Songti SC', SimSun, serif";
-  context.fillText(`累计有效记录：${getLifetimeRecordedDays(state)} 天`, WIDTH / 2, 1160);
+  context.fillText(`累计有效记录：${getLifetimeRecordedDays(state)} 天`, WIDTH / 2, 1190);
 
-  context.strokeStyle = RED;
+  context.strokeStyle = palette.seal;
   context.lineWidth = 4;
   context.strokeRect(890, 1185, 112, 112);
-  context.fillStyle = RED;
+  context.fillStyle = palette.seal;
   context.font = "24px 'Songti SC', SimSun, serif";
-  context.fillText("会员纪念", 946, 1250);
-  context.fillStyle = INK;
+  context.fillText(reward ? "减重达成" : "坚持达成", 946, 1250);
+  context.fillStyle = palette.ink;
   context.font = "26px 'Songti SC', SimSun, serif";
   context.fillText("菌衡计划 · 脂代谢研究所", 500, 1260);
 
-  context.fillStyle = "#665F52";
+  context.fillStyle = palette.muted;
   context.font = "20px 'Songti SC', SimSun, serif";
-  context.fillText("本证书为品牌内部会员成长纪念，不属于学历、职业资格、科研身份或医疗证明。", WIDTH / 2, 1400);
+  context.fillText("本见证仅纪念自我管理过程，不代表学历、职业资格、医疗或科研身份。", WIDTH / 2, 1400);
   context.fillText("记录仅用于个人健康管理，不构成医疗诊断或治疗依据。", WIDTH / 2, 1442);
   return canvas.toDataURL("image/png");
 }
