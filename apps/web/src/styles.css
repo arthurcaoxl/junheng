@@ -1250,6 +1250,13 @@ section { scroll-margin-top: 78px; }
 .account-security-actions button { min-height: 44px; padding: 10px 20px; border: 1px solid var(--line-light); background: transparent; color: var(--paper); font: inherit; font-size: 13px; cursor: pointer; }
 .account-security-actions button:first-child { border-color: var(--acid); color: var(--acid); }
 .account-security-actions button:hover { border-color: var(--acid); }
+.account-consent { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-top: 24px; padding: 18px 20px; border: 1px solid var(--line-light); }
+.account-consent strong { color: var(--acid); font-size: 12px; font-weight: 750; letter-spacing: .06em; }
+.account-consent p { margin-top: 8px; font-size: 12px; line-height: 1.7; opacity: .72; }
+.account-consent button { flex: none; min-height: 40px; padding: 9px 18px; border: 1px solid var(--line-light); background: transparent; color: var(--paper); font: inherit; font-size: 13px; cursor: pointer; }
+.account-consent button:hover:not(:disabled) { border-color: var(--acid); }
+.account-consent button:disabled { cursor: not-allowed; opacity: .5; }
+.account-consent .account-consent-agree { border-color: var(--acid); color: var(--acid); }
 .user-center .sync-panel { max-width: none; margin: 24px 0 0; padding: 30px; border: 1px solid var(--line-light); background: var(--forest-soft); }
 .user-center .sync-panel-status { opacity: .78; }
 .user-center-disclaimer { opacity: .62; }
