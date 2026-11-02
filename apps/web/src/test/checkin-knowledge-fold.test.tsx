@@ -14,6 +14,7 @@ function setCampStart(offsetDays: number) {
 describe("打卡页科普内容按天数渐进式折叠", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    window.localStorage.setItem("junheng-consent", "true");
     // 本文件只验证前台展示，不接入真实 Supabase。
     vi.stubEnv("VITE_SUPABASE_URL", "");
     vi.stubEnv("VITE_SUPABASE_ANON_KEY", "");
@@ -27,14 +28,14 @@ describe("打卡页科普内容按天数渐进式折叠", () => {
     render(<MemoryRouter initialEntries={["/check-in"]}><App /></MemoryRouter>);
     const checkIn = setCampStart(0);
     expect(within(checkIn).getByRole("heading", { name: "水分是体重波动的关键" })).toBeVisible();
-    expect(within(checkIn).queryByRole("button", { name: /展开健康科普/ })).not.toBeInTheDocument();
+    expect(within(checkIn).queryByRole("button", { name: /揭秘：你的体重为何早晚差2公斤？/ })).not.toBeInTheDocument();
   });
 
   it("第 3 天：科普默认折叠，存在 aria-expanded=false 的展开按钮", () => {
     render(<MemoryRouter initialEntries={["/check-in"]}><App /></MemoryRouter>);
     const checkIn = setCampStart(-2);
     expect(within(checkIn).getByRole("heading", { name: "水分是体重波动的关键", hidden: true })).not.toBeVisible();
-    const toggle = within(checkIn).getByRole("button", { name: /展开健康科普/ });
+    const toggle = within(checkIn).getByRole("button", { name: /揭秘：你的体重为何早晚差2公斤？/ });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
   });
 
@@ -42,8 +43,21 @@ describe("打卡页科普内容按天数渐进式折叠", () => {
     const user = userEvent.setup();
     render(<MemoryRouter initialEntries={["/check-in"]}><App /></MemoryRouter>);
     const checkIn = setCampStart(-2);
-    await user.click(within(checkIn).getByRole("button", { name: /展开健康科普/ }));
-    expect(within(checkIn).getByRole("button", { name: /收起健康科普/ })).toHaveAttribute("aria-expanded", "true");
+    await user.click(within(checkIn).getByRole("button", { name: /揭秘：你的体重为何早晚差2公斤？/ }));
+    expect(within(checkIn).getByRole("button", { name: /收起：你的体重为何早晚差2公斤？/ })).toHaveAttribute("aria-expanded", "true");
     expect(within(checkIn).getByRole("heading", { name: "水分是体重波动的关键" })).toBeVisible();
+  });
+
+  it("第 1 天标题为建立初始基线，第 2 天起改为记录今日体重与腰围", () => {
+    const first = render(<MemoryRouter initialEntries={["/check-in"]}><App /></MemoryRouter>);
+    const firstDay = setCampStart(0);
+    expect(within(firstDay).getByRole("heading", { name: "建立你的初始基线" })).toBeInTheDocument();
+    first.unmount();
+
+    window.localStorage.clear();
+    window.localStorage.setItem("junheng-consent", "true");
+    render(<MemoryRouter initialEntries={["/check-in"]}><App /></MemoryRouter>);
+    const secondDay = setCampStart(-1);
+    expect(within(secondDay).getByRole("heading", { name: "记录今日体重与腰围" })).toBeInTheDocument();
   });
 });

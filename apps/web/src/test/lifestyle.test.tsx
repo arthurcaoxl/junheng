@@ -19,6 +19,7 @@ function renderApp(route = "/") {
 describe("priority lifestyle sections", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    window.localStorage.setItem("junheng-consent", "true");
     // 本文件验证前台展示，不接入真实 Supabase；D7 拦截由 sync-panel 专项覆盖。
     vi.stubEnv("VITE_SUPABASE_URL", "");
     vi.stubEnv("VITE_SUPABASE_ANON_KEY", "");
@@ -59,11 +60,11 @@ describe("priority lifestyle sections", () => {
   it("links the home check-in entry to the dedicated check-in page", () => {
     renderApp();
     const entry = screen.getByRole("region", { name: "21 天打卡入口" });
-    const checkInLinks = screen.getAllByRole("link", { name: "进入 21 天打卡 →" });
+    const checkInLinks = screen.getAllByRole("link", { name: "开启 21 天脂代谢记录 →" });
     expect(checkInLinks).toHaveLength(2);
     expect(checkInLinks[0]).toHaveClass("hero-checkin-link");
     expect(checkInLinks[0]).toHaveAttribute("href", "/check-in");
-    expect(within(entry).getByRole("link", { name: "进入 21 天打卡 →" })).toHaveAttribute("href", "/check-in");
+    expect(within(entry).getByRole("link", { name: "开启 21 天脂代谢记录 →" })).toHaveAttribute("href", "/check-in");
     expect(screen.queryByRole("tablist", { name: "21 天打卡日期" })).not.toBeInTheDocument();
   });
 

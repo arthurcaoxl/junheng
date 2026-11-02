@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi, beforeEach } from "vitest";
 import App from "../App";
 
 function renderAt(route: string) {
@@ -9,6 +9,11 @@ function renderAt(route: string) {
 }
 
 describe("check-in routing", () => {
+  beforeEach(() => {
+    window.localStorage.clear();
+    window.localStorage.setItem("junheng-consent", "true");
+  });
+
   it("serves the check-in flow on its own route without the home narrative", () => {
     renderAt("/check-in");
     expect(screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" })).toBeInTheDocument();
@@ -31,9 +36,10 @@ describe("check-in routing", () => {
     expect(screen.getByRole("heading", { name: "餐前一杯精准膳食，助力脂代谢平衡。" })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "21 天，构建你的脂代谢稳态。" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tablist", { name: "21 天打卡日期" })).not.toBeInTheDocument();
-    const checkInLinks = screen.getAllByRole("link", { name: "进入 21 天打卡 →" });
+    const checkInLinks = screen.getAllByRole("link", { name: "开启 21 天脂代谢记录 →" });
     expect(checkInLinks).toHaveLength(2);
     expect(checkInLinks[0]).toHaveClass("hero-checkin-link");
+    expect(screen.getByText("无需注册 · 数据先存本机 · 绑定邮箱可云端备份")).toBeInTheDocument();
   });
 
   it("redirects unknown routes back to the home page", () => {
@@ -46,7 +52,7 @@ describe("check-in routing", () => {
     window.scrollTo = scrollTo;
     const user = userEvent.setup();
     renderAt("/");
-    await user.click(screen.getAllByRole("link", { name: "进入 21 天打卡 →" }).at(-1) as HTMLElement);
+    await user.click(screen.getAllByRole("link", { name: "开启 21 天脂代谢记录 →" }).at(-1) as HTMLElement);
     expect(screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" })).toBeInTheDocument();
     // 路由切换必须同步、瞬时回到顶部，禁止 smooth 动画从旧页面深滚动位置滑过页脚
     expect(scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: "instant" });

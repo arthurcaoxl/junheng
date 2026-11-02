@@ -18,6 +18,7 @@ function savedToday() {
 describe("保存打卡强制登录", () => {
   beforeEach(() => {
     window.localStorage.clear();
+    window.localStorage.setItem("junheng-consent", "true");
     vi.clearAllMocks();
     vi.stubEnv("VITE_SUPABASE_URL", "https://test.supabase.co");
     vi.stubEnv("VITE_SUPABASE_ANON_KEY", "test-anon-key");
