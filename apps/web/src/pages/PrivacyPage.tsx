@@ -1,6 +1,12 @@
+import { Link } from "react-router";
+
 export default function PrivacyPage() {
   return (
-    <article className="legal-page">
+    <div className="legal-shell">
+      <nav className="legal-nav" aria-label="隐私页导航">
+        <Link className="legal-back-link" to="/check-in">← 返回打卡</Link>
+      </nav>
+      <article className="legal-page">
       <header className="legal-page-heading">
         <p className="legal-eyebrow">JUNHENG PLAN · 隐私保护</p>
         <h1>隐私政策</h1>
@@ -26,6 +32,7 @@ export default function PrivacyPage() {
       <p>您有权随时拒绝授权、查看或修改您的健康数据，或联系客服注销账户及删除云端数据。</p>
 
       <footer className="legal-footer">最后更新日期：2026 年 11 月</footer>
-    </article>
+      </article>
+    </div>
   );
 }

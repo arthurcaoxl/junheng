@@ -14,6 +14,16 @@ export function BmiTrendChart({ points }: { points: BmiPoint[] }) {
   return (
     <section className="bmi-trend" aria-labelledby="bmi-trend-title">
       <header><span>PERSONAL TREND</span><h3 id="bmi-trend-title">BMI 走势</h3></header>
+      <ul className="bmi-trend-legend" aria-label="BMI 图例">
+        <li>
+          <span className="bmi-trend-swatch bmi-trend-swatch-solid" aria-hidden="true" />
+          <span>每日实际 BMI</span>
+        </li>
+        <li>
+          <span className="bmi-trend-swatch bmi-trend-swatch-dashed" aria-hidden="true" />
+          <span>7 日移动平均线</span>
+        </li>
+      </ul>
       <div className="bmi-trend-chart" role="img" aria-label="BMI 动态趋势图">
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={data} margin={{ top: 12, right: 12, bottom: 0, left: -18 }}>

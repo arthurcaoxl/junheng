@@ -1,6 +1,12 @@
+import { Link } from "react-router";
+
 export default function TermsPage() {
   return (
-    <article className="legal-page">
+    <div className="legal-shell">
+      <nav className="legal-nav" aria-label="协议页导航">
+        <Link className="legal-back-link" to="/check-in">← 返回打卡</Link>
+      </nav>
+      <article className="legal-page">
       <header className="legal-page-heading">
         <p className="legal-eyebrow">JUNHENG PLAN · 用户协议</p>
         <h1>用户服务协议</h1>
@@ -23,6 +29,7 @@ export default function TermsPage() {
       <p>我们可能会根据业务发展适时修订本协议，修订后的协议将在平台公布。若您继续使用本平台服务，即视为您接受修订后的协议。</p>
 
       <footer className="legal-footer">最后更新日期：2026 年 11 月</footer>
-    </article>
+      </article>
+    </div>
   );
 }

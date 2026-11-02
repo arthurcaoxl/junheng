@@ -128,6 +128,9 @@ describe("BmiTracker", () => {
     })} onSave={() => undefined} />);
     expect(screen.getByRole("img", { name: "BMI 动态趋势图" })).toBeInTheDocument();
     expect(screen.getByTestId("bmi-line-chart")).toHaveTextContent("11/01,11/02");
+    const legend = screen.getByRole("list", { name: "BMI 图例" });
+    expect(within(legend).getByText("每日实际 BMI")).toBeInTheDocument();
+    expect(within(legend).getByText("7 日移动平均线")).toBeInTheDocument();
     expect(screen.getByText("仅呈现真实打卡日数据")).toBeInTheDocument();
   });
 

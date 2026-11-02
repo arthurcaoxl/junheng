@@ -1379,8 +1379,12 @@ section { scroll-margin-top: 78px; }
 .consent-primary:disabled { border-color: var(--line-light); background: rgb(243 241 232 / 12%); color: var(--paper); cursor: not-allowed; opacity: .42; }
 .consent-hint { margin-top: 12px; color: #d7ef9a; font-size: 12px; text-align: center; }
 
-/* 协议页：长文阅读宽度、清晰标题层级与舒适行高 */
-.legal-page { width: min(760px, 100%); min-height: 100vh; margin: 0 auto; padding: clamp(130px, 14vw, 180px) 28px 80px; background: var(--forest); color: var(--paper); font-size: 14px; line-height: 1.8; }
+/* 协议页：全屏居中容器、清晰返回入口、长文阅读宽度与舒适行高 */
+.legal-shell { min-height: 100vh; background: var(--forest); color: var(--paper); }
+.legal-nav { max-width: 800px; margin: 0 auto; padding: calc(112px + env(safe-area-inset-top, 0px)) 20px 0; }
+.legal-back-link { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; font-size: 12px; font-weight: 700; letter-spacing: .04em; opacity: .68; }
+.legal-back-link:hover { color: var(--acid); opacity: 1; }
+.legal-page { max-width: 800px; margin: 0 auto; padding: 40px 20px 80px; font-size: 14px; line-height: 1.8; }
 .legal-page-heading { padding-bottom: 30px; border-bottom: 1px solid var(--line-light); }
 .legal-eyebrow { color: var(--acid); font-size: 9px; font-weight: 750; letter-spacing: .16em; }
 .legal-page h1 { margin-top: 16px; font-size: clamp(38px, 7vw, 58px); line-height: 1.2; letter-spacing: -.04em; }
@@ -1396,6 +1400,12 @@ section { scroll-margin-top: 78px; }
 .legal-footer { margin-top: 48px; padding-top: 22px; border-top: 1px solid var(--line-light); font-size: 11px; opacity: .5; }
 
 /* 指标库 2：目标进度、趋势反馈与 BMI 适用性说明 */
+.bmi-trend-legend { display: flex; flex-wrap: wrap; gap: 10px 22px; margin: 18px 0 0; padding: 0; list-style: none; color: rgb(243 241 232 / 62%); font-size: 12px; line-height: 1.6; }
+.bmi-trend-legend li { display: inline-flex; align-items: center; gap: 9px; }
+.bmi-trend-swatch { display: inline-block; width: 22px; height: 0; }
+.bmi-trend-swatch-solid { border-top: 2px solid #c8ff3d; }
+.bmi-trend-swatch-dashed { border-top: 2px dashed #a3e635; }
+.bmi-trend-legend + .bmi-trend-chart { margin-top: 16px; }
 .bmi-target-gap { flex-direction: column; align-items: stretch; }
 .bmi-target-gap-copy { align-self: flex-start; }
 .bmi-target-progress { width: 100%; height: 12px; margin-top: 20px; overflow: hidden; border: 1px solid rgb(243 241 232 / 22%); border-radius: 999px; background: rgb(243 241 232 / 10%); }
