@@ -157,8 +157,10 @@ describe("sync panel", () => {
 
       await user.type(screen.getByLabelText("邮箱验证码"), "123456");
       await user.click(screen.getByRole("button", { name: "登录并恢复数据" }));
-      expect(await screen.findByText(/云端暂无记录，已将本机数据上传到云端/)).toBeInTheDocument();
+      expect(await screen.findByText(/已绑定邮箱：restore@example.com/)).toBeInTheDocument();
       expect(getSupabase().auth.verifyOtp).toHaveBeenCalledWith({ email: "restore@example.com", token: "123456", type: "email" });
+      // 登录与数据同步成功后必须自动卸载弹窗，不能让用户手动点关闭
+      expect(screen.queryByRole("dialog", { name: "恢复您的脂代谢档案" })).not.toBeInTheDocument();
     });
 
     it("surfaces a friendly rate-limit error from the server", async () => {

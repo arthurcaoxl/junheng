@@ -103,6 +103,9 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
     );
     setPhase("email");
     setCode("");
+    // 登录/恢复与同步已完成：立即卸载弹窗，避免阻塞打卡流程
+    onSuccess?.();
+    onClose();
   });
 
   return (

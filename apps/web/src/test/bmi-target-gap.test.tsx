@@ -71,6 +71,9 @@ describe("BMI 目标差距数据看板", () => {
     expect(progress).toHaveAttribute("aria-valuenow", "50");
     expect(progress).toHaveAttribute("aria-valuemin", "0");
     expect(progress).toHaveAttribute("aria-valuemax", "100");
+    // 独立且高对比度的整体轨道：未完成部分不能被深背景吞掉
+    expect(progress).toHaveClass("bmi-target-progress-track");
+    expect(progress.querySelector(".bmi-target-progress-fill")).toBeInTheDocument();
     // 目标 = BMI 24 推导 = 73.5kg；剩余差距与进度并存展示
     const banner = screen.getByTestId("bmi-target-gap");
     expect(within(banner).getByText("3.5 kg")).toHaveClass("bmi-target-gap-value");

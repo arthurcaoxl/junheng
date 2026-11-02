@@ -32,7 +32,7 @@ export function BmiTargetGap({ currentWeightKg, initialWeightKg, heightCm }: Bmi
       )}
       {progress !== null && (
         <div
-          className="bmi-target-progress"
+          className="bmi-target-progress bmi-target-progress-track"
           role="progressbar"
           aria-label="目标进度"
           aria-valuenow={progress}

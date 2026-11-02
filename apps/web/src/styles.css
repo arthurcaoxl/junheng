@@ -1398,7 +1398,7 @@ section { scroll-margin-top: 78px; }
 /* 指标库 2：目标进度、趋势反馈与 BMI 适用性说明 */
 .bmi-target-gap { flex-direction: column; align-items: stretch; }
 .bmi-target-gap-copy { align-self: flex-start; }
-.bmi-target-progress { width: 100%; height: 10px; margin-top: 20px; overflow: hidden; border-radius: 999px; background: #2a2a2a; }
+.bmi-target-progress { width: 100%; height: 12px; margin-top: 20px; overflow: hidden; border: 1px solid rgb(243 241 232 / 22%); border-radius: 999px; background: rgb(243 241 232 / 10%); }
 .bmi-target-progress-fill { display: block; height: 100%; border-radius: inherit; background: #a3e635; transition: width .5s ease-in-out; }
 .bmi-smart-feedback { margin-top: 20px; padding: 18px 20px; border-left: 3px solid #a3e635; background: rgb(163 230 53 / 7%); color: rgb(243 241 232 / 84%); font-size: 13px; line-height: 1.8; }
 .bmi-summary-label { display: flex !important; align-items: center; gap: 8px; }
