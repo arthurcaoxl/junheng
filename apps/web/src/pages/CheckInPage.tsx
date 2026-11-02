@@ -1,13 +1,10 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { Link, useLocation } from "react-router";
-import { ConsentDialog } from "../components/ConsentDialog";
 import { SevenDayCheckIn } from "../components/SevenDayCheckIn";
 import { SyncPanel } from "../components/SyncPanel";
-import { hasGrantedConsent } from "../utils/consent";
 
 export default function CheckInPage() {
   const { hash } = useLocation();
-  const [consentGranted, setConsentGranted] = useState(hasGrantedConsent);
 
   useEffect(() => {
     if (hash === "#sync-panel") {
@@ -16,6 +13,9 @@ export default function CheckInPage() {
     }
   }, [hash]);
 
+  // 数据合规总授权统一在“打卡入口点击处”拦截（CheckInGateLink）；
+  // 页面内不再弹授权窗——URL 直达用户的打卡数据由建档时的
+  // consent_granted=false 默认标记兜底（见 writeCloudSnapshot）。
   return (
     <div className="check-in-page">
       <nav className="check-in-page-nav" aria-label="打卡页导航">
@@ -23,7 +23,6 @@ export default function CheckInPage() {
       </nav>
       <SevenDayCheckIn />
       <SyncPanel />
-      {!consentGranted && <ConsentDialog onGranted={() => setConsentGranted(true)} />}
     </div>
   );
 }

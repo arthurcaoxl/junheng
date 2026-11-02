@@ -1,39 +1,26 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { grantResearchConsent } from "../services/checkinSync";
-import { CONSENT_STORAGE_KEY } from "../utils/consent";
 
 type ConsentDialogProps = {
-  onGranted: () => void;
+  busy?: boolean;
+  onAgree: () => void;
+  onDecline: () => void;
 };
 
-/** 数据合规授权弹窗：勾选同意 + 协议超链接的行业标准形态，默认不勾选（自愿、明确同意）。 */
-export function ConsentDialog({ onGranted }: ConsentDialogProps) {
+/**
+ * 用户数据合规总授权弹窗（挂在打卡入口点击处）：
+ * 默认不勾选；同意与“暂不参与”都会留下云端表态并放行，之后绝不重复弹窗。
+ */
+export function ConsentDialog({ busy = false, onAgree, onDecline }: ConsentDialogProps) {
   const [checked, setChecked] = useState(false);
-  const [busy, setBusy] = useState(false);
   const [hintVisible, setHintVisible] = useState(false);
-
-  const submit = async () => {
-    if (!checked || busy) return;
-    setBusy(true);
-    try {
-      // 云端失败不阻断：本地优先，授权留痕以本机为准，云端尽力同步
-      await grantResearchConsent().catch((error: unknown) => {
-        console.warn("授权状态云端同步失败，已保留本机授权记录。", error);
-      });
-      window.localStorage.setItem(CONSENT_STORAGE_KEY, "true");
-      onGranted();
-    } finally {
-      setBusy(false);
-    }
-  };
 
   return (
     <div className="consent-overlay">
-      <div className="consent-dialog" role="dialog" aria-modal="true" aria-label="数据使用授权">
-        <p className="consent-eyebrow">DATA CONSENT · 数据使用授权</p>
-        <h2>开始前，请确认数据授权</h2>
-        <p className="consent-intro">你的健康记录只属于你。以下授权仅用于匿名统计与产品改进，随时可在用户中心查看或修改数据。</p>
+      <div className="consent-dialog" role="dialog" aria-modal="true" aria-label="开启前，请确认数据授权">
+        <p className="consent-eyebrow">DATA CONSENT · 数据合规授权</p>
+        <h2>开启前，请确认数据授权</h2>
+        <p className="consent-intro">你的健康记录只属于你。以下授权仅用于匿名统计与产品改进。</p>
 
         <label className="consent-checkbox-row">
           <input
@@ -44,7 +31,7 @@ export function ConsentDialog({ onGranted }: ConsentDialogProps) {
               if (event.target.checked) setHintVisible(false);
             }}
           />
-          <span>我同意平台在脱敏前提下，将我的健康数据用于产品优化与代谢研究。</span>
+          <span>☑️ 我同意参与平台真实数据研究（数据将脱敏处理，仅用于行业趋势分析，绝不泄露个人隐私）。</span>
         </label>
 
         <p className="consent-agreement">
@@ -60,11 +47,14 @@ export function ConsentDialog({ onGranted }: ConsentDialogProps) {
             type="button"
             className="consent-primary"
             disabled={!checked || busy}
-            onClick={submit}
+            onClick={onAgree}
           >
             {busy ? "正在确认…" : "同意并开启打卡"}
           </button>
         </div>
+        <button type="button" className="consent-secondary" onClick={onDecline} disabled={busy}>
+          暂不参与
+        </button>
         {hintVisible && !checked && <p className="consent-hint" role="alert">请先勾选同意</p>}
       </div>
     </div>
