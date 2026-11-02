@@ -12,6 +12,7 @@ export function Hero() {
         <p className="hero-subtitle">{siteConfig.subtitle}</p>
         <p className="hero-intro">每餐前一杯，让营养先到一步。23 种菌菇精华、优质蛋白与复合维生素，科学融入每一个认真对待三餐的日常。</p>
         <p className="product-category">{siteConfig.category}</p>
+        <p className="hero-compliance-note">{siteConfig.complianceNote}</p>
         <CheckInGateLink className="hero-checkin-link">开启 21 天脂代谢记录 →</CheckInGateLink>
         <p className="hero-trust-note">无需注册 · 数据先存本机 · 绑定邮箱可云端备份</p>
       </div>

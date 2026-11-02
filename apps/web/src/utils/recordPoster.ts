@@ -95,22 +95,23 @@ export function createRecordPoster(records: DayRecord[], recordName = "", camp?:
   context.fillRect(0, 0, WIDTH, HEIGHT);
   context.fillStyle = "#C6FF36";
   context.fillRect(0, 0, WIDTH, 20);
-  context.font = "600 28px sans-serif";
-  context.fillText("菌衡计划 | 脂代谢研究所 × 心脑健康营", 70, 100, 940);
+  context.font = "600 26px sans-serif";
+  context.fillText("菌衡计划·脂代谢研究所", 70, 100, 940);
   context.fillStyle = "#F3F1E8";
-  context.font = "700 70px sans-serif";
-  context.fillText("我的脂代谢健康记录", 70, 210, 940);
-  context.font = "28px sans-serif";
-  context.fillText("看见自己的节奏，不追赶固定数字。", 70, 270);
+  context.font = "700 60px sans-serif";
+  context.fillText("餐前一杯精准膳食，", 70, 190, 940);
+  context.fillText("好身材需要能量代谢助力。", 70, 265, 940);
   context.fillStyle = "#C6FF36";
-  context.font = "600 30px sans-serif";
-  context.fillText(`记录人：${recordName.trim() || "健康体验官"}`, 70, 318);
+  context.font = "24px sans-serif";
+  context.fillText(siteConfig.subtitle, 70, 330, 940);
+  context.fillRect(70, 368, 940, 1);
+  context.fillStyle = "#F3F1E8";
+  context.font = "28px sans-serif";
+  context.fillText(`记录人：${recordName.trim() || "健康体验官"}`, 70, 410);
   if (camp) {
     context.font = "24px sans-serif";
-    context.fillText(`体验官代码：${camp.userCode}`, 560, 318);
+    context.fillText(`体验官代码：${camp.userCode}`, 560, 410);
   }
-  context.fillStyle = "#C6FF36";
-  context.fillRect(70, 350, 940, 1);
 
   drawTrend(context, records, "weight", 70, 450);
   drawTrend(context, records, "waist", 70, 790);
@@ -128,13 +129,23 @@ export function createRecordPoster(records: DayRecord[], recordName = "", camp?:
     context.fillText(`周期：${camp.startDate} 至 ${camp.endDate}`, 70, 1300);
   }
 
+  context.fillStyle = "#F3F1E8";
+  context.font = "24px sans-serif";
+  context.fillText(
+    "每餐前一杯，让营养先到一步。23种菌菇精华、优质蛋白与复合维生素，科学融入每一个认真对待三餐的日常。",
+    70, 1380, 940,
+  );
+
   context.fillStyle = "#C6FF36";
   context.fillRect(70, 1480, 940, 1);
-  context.fillStyle = "#F3F1E8";
-  context.font = "600 22px sans-serif";
-  context.fillText(`加入${siteConfig.platform}，用真实记录陪伴长期健康管理。`, 70, 1680, 940);
   context.fillStyle = "#93A299";
   context.font = "20px sans-serif";
-  context.fillText("本海报由本人主动生成，仅代表个人健康记录，不构成医疗诊断或产品功效承诺。", 70, 1740, 940);
+  context.fillText(siteConfig.complianceNote, 70, 1560, 940);
+  context.fillStyle = "#F3F1E8";
+  context.font = "600 22px sans-serif";
+  context.fillText(siteConfig.category, 70, 1680, 940);
+  context.fillStyle = "#93A299";
+  context.font = "20px sans-serif";
+  context.fillText("本品非药品，不能代替药物治疗疾病。", 70, 1740, 940);
   return canvas.toDataURL("image/png");
 }

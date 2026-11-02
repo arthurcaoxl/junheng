@@ -87,6 +87,7 @@ section { scroll-margin-top: 78px; }
 .hero-subtitle { width: max-content; max-width: 100%; margin-top: 36px; padding: 9px 12px; background: var(--acid); color: var(--forest); font-size: clamp(19px, 1.55vw, 27px); font-weight: 800; line-height: 1.45; letter-spacing: -.025em; }
 .hero-intro { max-width: 520px; margin-top: 24px; font-size: 14px; line-height: 1.9; opacity: .72; }
 .product-category { width: max-content; margin-top: 24px; padding: 8px 12px; border: 1px solid var(--line-light); font-size: 10px; letter-spacing: .12em; }
+.hero-compliance-note { max-width: 520px; margin-top: 12px; font-size: 11px; line-height: 1.8; color: rgb(243 241 232 / 55%); }
 .hero-checkin-link { display: none; }
 .hero-media { position: relative; z-index: 1; width: 100%; justify-self: end; }
 .hero-media::before { content: "23\A FUNGI\A BLEND"; white-space: pre; position: absolute; z-index: 3; top: -54px; right: 0; color: var(--acid); font-size: 10px; font-weight: 800; line-height: 1.5; letter-spacing: .14em; text-align: right; }
