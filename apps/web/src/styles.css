@@ -68,7 +68,7 @@ section { scroll-margin-top: 78px; }
   padding: 154px 4vw 86px;
   display: grid;
   grid-template-columns: minmax(0, 1.9fr) minmax(310px, .78fr);
-  align-items: center;
+  align-items: start;
   gap: 3vw;
   background: var(--forest);
   color: var(--paper);
@@ -76,7 +76,8 @@ section { scroll-margin-top: 78px; }
 }
 .hero::before { content: ""; position: absolute; inset: 82px 4vw 0; z-index: -1; border-left: 1px solid var(--line-light); border-right: 1px solid var(--line-light); pointer-events: none; }
 .hero-watermark { position: absolute; z-index: -1; right: -5vw; bottom: -8vw; color: var(--acid); opacity: .09; font-family: var(--display); font-size: min(52vw, 760px); font-weight: 900; line-height: .8; letter-spacing: -.13em; pointer-events: none; }
-.hero-copy { position: relative; z-index: 2; }
+.hero-copy { position: relative; z-index: 2; margin-block: auto; }
+.hero-media { margin-block: auto; }
 .eyebrow { font-size: 10px; font-weight: 700; letter-spacing: .22em; line-height: 1.7; text-transform: uppercase; }
 .hero .eyebrow { margin-bottom: 38px; color: var(--acid); }
 .hero h1 { font-family: var(--display); font-size: clamp(68px, 7.6vw, 128px); font-weight: 900; letter-spacing: -.075em; line-height: 1.02; }
@@ -659,8 +660,10 @@ section { scroll-margin-top: 78px; }
 .record-identity input { width: 100%; min-width: 0; min-height: 52px; padding: 10px 14px; border: 1px solid var(--line-light); border-radius: 0; background: var(--paper); color: var(--forest); font: inherit; font-size: 16px; }
 .record-identity > p { grid-column: 2; font-size: 10px; line-height: 1.7; opacity: .52; }
 .record-identity > .poster-identity-note { color: var(--acid); font-size: 12px; font-weight: 700; opacity: .88; }
-.day-tabs { display: grid; grid-template-columns: repeat(21, minmax(72px, 1fr)); overflow-x: auto; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; border-top: 1px solid var(--line-light); border-bottom: 1px solid var(--line-light); scrollbar-color: var(--acid) rgb(255 255 255 / 8%); scrollbar-width: thin; }
-.day-tabs button { min-height: 108px; padding: 20px; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; border: 0; background: transparent; color: var(--paper); cursor: pointer; }
+.day-tabs { display: flex; flex-wrap: nowrap; overflow-x: auto; overscroll-behavior-inline: contain; -webkit-overflow-scrolling: touch; border-top: 1px solid var(--line-light); border-bottom: 1px solid var(--line-light); scrollbar-width: none; -ms-overflow-style: none; mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 44px), transparent 100%); -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 44px), transparent 100%); }
+.day-tabs::-webkit-scrollbar { display: none; }
+.day-tabs button { flex: 1 0 72px; min-width: 72px; min-height: 108px; padding: 20px; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; border: 0; background: transparent; color: var(--paper); cursor: pointer; }
+.day-tabs button:last-child { margin-right: 44px; }
 .day-tabs button + button { border-left: 1px solid var(--line-light); }
 .day-tabs button > span { font-size: 8px; letter-spacing: .16em; opacity: .5; }
 .day-tabs button > strong { font-family: var(--display); font-size: 36px; letter-spacing: -.06em; }
@@ -846,8 +849,7 @@ section { scroll-margin-top: 78px; }
   .water-switch-grid article + article { border-top: 1px solid var(--line-light); }
   .record-identity { grid-template-columns: 1fr; gap: 10px; }
   .record-identity > p { grid-column: auto; }
-  .day-tabs { grid-template-columns: repeat(21, minmax(72px, 1fr)); }
-  .day-tabs button { min-height: 92px; padding: 16px 12px; }
+  .day-tabs button { flex: 1 0 64px; min-width: 64px; min-height: 92px; padding: 16px 12px; }
   .check-in-panel { padding-top: 36px; }
   .check-in-panel-heading { display: block; }
   .check-in-panel-count { margin-top: 32px; text-align: left; }
@@ -990,6 +992,11 @@ section { scroll-margin-top: 78px; }
 /* v1.9.0 · Header 同步状态胶囊 */
 .sync-status-pill { justify-self: end; padding: 7px 14px; background: none; border: 1.5px solid var(--acid); border-radius: 999px; color: var(--acid); font: inherit; font-size: 12px; font-weight: 750; letter-spacing: .04em; cursor: pointer; white-space: nowrap; }
 .sync-status-pill.is-synced { border-color: var(--line-light); color: var(--paper); opacity: .6; }
+/* 浅色（米白）Header 下胶囊改为深绿，保证对比度；深色 Header 保持荧光绿 */
+.site-header .sync-status-pill { border-color: var(--forest); color: var(--forest); }
+.site-header .sync-status-pill.is-synced { border-color: var(--line-dark); color: var(--forest); opacity: .65; }
+.site-shell[data-active-theme="forest"] .site-header .sync-status-pill { border-color: var(--acid); color: var(--acid); }
+.site-shell[data-active-theme="forest"] .site-header .sync-status-pill.is-synced { border-color: var(--line-light); color: var(--paper); opacity: .6; }
 
 /* v1.9.0 · 统一同步弹窗 */
 .sync-modal-overlay { position: fixed; inset: 0; z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px; background: rgba(7, 28, 20, .82); }
