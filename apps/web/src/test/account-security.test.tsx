@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -8,6 +8,13 @@ import { emptyDay, STORAGE_KEY, todayKey } from "../utils/checkin";
 
 function renderUserCenter() {
   return render(<MemoryRouter initialEntries={["/user-center"]}><App /></MemoryRouter>);
+}
+
+function cloudQuery() {
+  return getSupabase().from("checkin_sync") as unknown as {
+    maybeSingle: ReturnType<typeof vi.fn>;
+    update: ReturnType<typeof vi.fn>;
+  };
 }
 
 function seedState() {
@@ -109,6 +116,58 @@ describe("账号安全", () => {
       expect(window.localStorage.getItem(STORAGE_KEY)).toBe(before);
       expect(screen.getByText("JH-WQAKS")).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "退出登录" })).not.toBeInTheDocument();
+    });
+
+    describe("数据授权状态（可撤回/可重新同意）", () => {
+      it("已授权用户：显示已授权状态与撤回授权按钮", async () => {
+        cloudQuery().maybeSingle.mockResolvedValue({ data: { consent_granted: true }, error: null });
+        renderUserCenter();
+
+        expect(await screen.findByText("已授权参与数据研究")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "撤回授权" })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "同意参与" })).not.toBeInTheDocument();
+      });
+
+      it("未授权用户（含建档默认 false）：统一显示未参与与同意参与按钮", async () => {
+        cloudQuery().maybeSingle.mockResolvedValue({ data: { consent_granted: false }, error: null });
+        renderUserCenter();
+
+        expect(await screen.findByText("当前未参与数据研究")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "同意参与" })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "撤回授权" })).not.toBeInTheDocument();
+      });
+
+      it("撤回授权：云端写入 consent_granted=false，界面同步翻转", async () => {
+        const user = userEvent.setup();
+        cloudQuery().maybeSingle.mockResolvedValue({ data: { consent_granted: true }, error: null });
+        renderUserCenter();
+        await user.click(await screen.findByRole("button", { name: "撤回授权" }));
+
+        expect(cloudQuery().update).toHaveBeenCalledWith(expect.objectContaining({
+          consent_granted: false,
+          consent_at: expect.any(String),
+        }));
+        expect(await screen.findByText("当前未参与数据研究")).toBeInTheDocument();
+        expect(await screen.findByRole("button", { name: "同意参与" })).toBeInTheDocument();
+      });
+
+      it("同意参与：经授权弹窗勾选确认后云端写入 consent_granted=true，界面同步翻转", async () => {
+        const user = userEvent.setup();
+        cloudQuery().maybeSingle.mockResolvedValue({ data: { consent_granted: false }, error: null });
+        renderUserCenter();
+        await user.click(await screen.findByRole("button", { name: "同意参与" }));
+
+        const dialog = await screen.findByRole("dialog", { name: "开启前，请确认数据授权" });
+        await user.click(within(dialog).getByRole("checkbox", { name: /真实数据研究/ }));
+        await user.click(within(dialog).getByRole("button", { name: "同意并开启打卡" }));
+
+        expect(cloudQuery().update).toHaveBeenCalledWith(expect.objectContaining({
+          consent_granted: true,
+          consent_at: expect.any(String),
+        }));
+        expect(await screen.findByText("已授权参与数据研究")).toBeInTheDocument();
+        expect(screen.queryByRole("dialog", { name: "开启前，请确认数据授权" })).not.toBeInTheDocument();
+      });
     });
   });
 });
