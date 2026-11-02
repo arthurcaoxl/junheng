@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { getBmiTracking } from "../../utils/bmi";
 import type { CheckInState } from "../../utils/checkin";
+import { getSmartFeedback } from "../../utils/metrics";
 import { parseKg } from "../../utils/weight";
 import { BmiProfileForm, type BmiProfileInput } from "./BmiProfileForm";
 import { BmiScale } from "./BmiScale";
@@ -17,6 +18,7 @@ export function BmiTracker({ state, onSave }: BmiTrackerProps) {
   const [editing, setEditing] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const tracking = useMemo(() => getBmiTracking(state), [state]);
+  const smartFeedback = useMemo(() => getSmartFeedback(state.records, state.heightCm), [state.records, state.heightCm]);
   const hasHeight = parseKg(state.heightCm) !== null;
 
   useEffect(() => {
@@ -60,7 +62,12 @@ export function BmiTracker({ state, onSave }: BmiTrackerProps) {
       ) : (
         <>
           <BmiSummaryCards tracking={tracking} customizedInitial={parseKg(state.initialWeightKg) !== null} />
-          <BmiTargetGap currentWeightKg={tracking.current?.weightKg} heightCm={state.heightCm} />
+          <BmiTargetGap
+            currentWeightKg={tracking.current?.weightKg}
+            initialWeightKg={tracking.initial?.weightKg}
+            heightCm={state.heightCm}
+          />
+          {smartFeedback && <p className="bmi-smart-feedback">{smartFeedback}</p>}
           {tracking.current ? (
             <>
               <BmiScale bmi={tracking.current.bmi} />

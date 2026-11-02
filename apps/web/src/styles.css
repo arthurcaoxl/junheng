@@ -1361,3 +1361,65 @@ section { scroll-margin-top: 78px; }
 .research-evidence-label { margin-top: 22px; font-size: 13px; font-weight: 750; line-height: 1.8; }
 .research-evidence-button { display: inline-flex; gap: 8px; margin-top: 14px; padding: 13px 20px; background: var(--forest); color: var(--paper); font-size: 14px; font-weight: 800; text-decoration: none; }
 .plate-note, .water-note { font-size: 12px; line-height: 1.8; opacity: .68; }
+
+/* 首页转化信任说明：与移动端主按钮保持紧凑层级 */
+.hero-trust-note { display: none; }
+
+/* 数据授权：深色模糊遮罩、大面积可点击勾选项与明确的主行动 */
+.consent-overlay { position: fixed; z-index: 200; inset: 0; display: grid; place-items: center; padding: 20px; background: rgb(0 0 0 / 68%); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+.consent-dialog { width: min(520px, 100%); max-height: calc(100dvh - 40px); overflow-y: auto; padding: 36px; border: 1px solid var(--line-light); background: var(--forest-soft); color: var(--paper); box-shadow: 0 28px 80px rgb(0 0 0 / 42%); }
+.consent-eyebrow { color: var(--acid); font-size: 9px; font-weight: 750; letter-spacing: .16em; }
+.consent-dialog h2 { margin-top: 14px; font-size: clamp(25px, 4vw, 34px); line-height: 1.35; letter-spacing: -.03em; }
+.consent-intro { margin-top: 16px; font-size: 12px; line-height: 1.8; opacity: .68; }
+.consent-checkbox-row { display: flex; align-items: flex-start; gap: 14px; margin-top: 26px; padding: 18px; border: 1px solid var(--line-light); background: rgb(243 241 232 / 4%); font-size: 13px; line-height: 1.8; cursor: pointer; }
+.consent-checkbox-row input { flex: 0 0 auto; width: 22px; height: 22px; margin: 2px 0 0; accent-color: #a3e635; cursor: pointer; }
+.consent-agreement { margin-top: 18px; font-size: 12px; line-height: 1.8; opacity: .76; }
+.consent-agreement a { color: var(--acid); text-decoration: underline; text-underline-offset: 4px; }
+.consent-primary { width: 100%; min-height: 50px; margin-top: 24px; border: 1px solid #a3e635; background: #a3e635; color: var(--forest); font-size: 14px; font-weight: 800; cursor: pointer; }
+.consent-primary:disabled { border-color: var(--line-light); background: rgb(243 241 232 / 12%); color: var(--paper); cursor: not-allowed; opacity: .42; }
+.consent-hint { margin-top: 12px; color: #d7ef9a; font-size: 12px; text-align: center; }
+
+/* 协议页：长文阅读宽度、清晰标题层级与舒适行高 */
+.legal-page { width: min(760px, 100%); min-height: 100vh; margin: 0 auto; padding: clamp(130px, 14vw, 180px) 28px 80px; background: var(--forest); color: var(--paper); font-size: 14px; line-height: 1.8; }
+.legal-page-heading { padding-bottom: 30px; border-bottom: 1px solid var(--line-light); }
+.legal-eyebrow { color: var(--acid); font-size: 9px; font-weight: 750; letter-spacing: .16em; }
+.legal-page h1 { margin-top: 16px; font-size: clamp(38px, 7vw, 58px); line-height: 1.2; letter-spacing: -.04em; }
+.legal-updated { margin-top: 14px; font-size: 11px; opacity: .55; }
+.legal-page > p, .legal-page > ul { margin-top: 24px; }
+.legal-page h2 { margin-top: 40px; color: var(--acid); font-size: 19px; line-height: 1.5; }
+.legal-page h2 + p, .legal-page h2 + ul { margin-top: 14px; }
+.legal-page p, .legal-page li { color: rgb(243 241 232 / 78%); }
+.legal-page strong { color: var(--paper); font-weight: 750; }
+.legal-page ul { padding-left: 22px; }
+.legal-page li + li { margin-top: 10px; }
+.legal-emphasis { padding: 20px; border-left: 3px solid var(--acid); background: rgb(200 255 61 / 6%); }
+.legal-footer { margin-top: 48px; padding-top: 22px; border-top: 1px solid var(--line-light); font-size: 11px; opacity: .5; }
+
+/* 指标库 2：目标进度、趋势反馈与 BMI 适用性说明 */
+.bmi-target-gap { flex-direction: column; align-items: stretch; }
+.bmi-target-gap-copy { align-self: flex-start; }
+.bmi-target-progress { width: 100%; height: 10px; margin-top: 20px; overflow: hidden; border-radius: 999px; background: #2a2a2a; }
+.bmi-target-progress-fill { display: block; height: 100%; border-radius: inherit; background: #a3e635; transition: width .5s ease-in-out; }
+.bmi-smart-feedback { margin-top: 20px; padding: 18px 20px; border-left: 3px solid #a3e635; background: rgb(163 230 53 / 7%); color: rgb(243 241 232 / 84%); font-size: 13px; line-height: 1.8; }
+.bmi-summary-label { display: flex !important; align-items: center; gap: 8px; }
+.bmi-info-trigger { display: inline-grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 1px solid var(--line-light); border-radius: 50%; background: transparent; color: var(--paper); font-size: 11px; line-height: 1; cursor: pointer; opacity: .72; }
+.bmi-info-trigger:hover { border-color: var(--acid); color: var(--acid); opacity: 1; }
+.bmi-info-overlay { position: fixed; z-index: 210; inset: 0; display: grid; place-items: center; padding: 20px; background: rgb(0 0 0 / 72%); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+.bmi-info-dialog { width: min(480px, 100%); padding: 32px; border: 1px solid var(--line-light); background: var(--forest-soft); color: var(--paper); box-shadow: 0 24px 70px rgb(0 0 0 / 40%); }
+.bmi-info-eyebrow { color: var(--acid); font-size: 9px; font-weight: 750; letter-spacing: .16em; }
+.bmi-info-dialog h3 { margin-top: 14px; font-size: 26px; line-height: 1.4; }
+.bmi-info-dialog p { margin-top: 18px; font-size: 13px; line-height: 1.8; opacity: .76; }
+.bmi-info-dialog .bmi-primary-button { margin-top: 24px; }
+
+@media (max-width: 760px) {
+  .hero-trust-note { display: block; margin-top: 12px; color: rgb(243 241 232 / 58%); font-size: 11px; line-height: 1.7; text-align: center; }
+  .consent-dialog { padding: 28px 22px; }
+  .consent-checkbox-row { padding: 16px 14px; font-size: 12px; }
+  .legal-page { padding-right: 20px; padding-left: 20px; font-size: 13px; }
+  .bmi-target-progress { margin-top: 16px; }
+  .bmi-info-dialog { padding: 28px 22px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .bmi-target-progress-fill { transition: none; }
+}

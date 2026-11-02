@@ -54,6 +54,28 @@ describe("BMI 目标差距数据看板", () => {
     expect(banner.querySelector("strong")).toBeNull();
   });
 
+  it("减脂时并存展示目标进度条与剩余差距数字", () => {
+    const state: CheckInState = {
+      schema: 3,
+      userCode: "JH-BMI01",
+      startDate: "2026-11-01",
+      heightCm: "175",
+      records: {
+        "2026-11-01": { ...emptyDay(), weight: "80.5" },
+        "2026-11-02": { ...emptyDay(), weight: "77" },
+      },
+    };
+    render(<BmiTracker state={state} onSave={() => undefined} />);
+
+    const progress = screen.getByRole("progressbar", { name: "目标进度" });
+    expect(progress).toHaveAttribute("aria-valuenow", "50");
+    expect(progress).toHaveAttribute("aria-valuemin", "0");
+    expect(progress).toHaveAttribute("aria-valuemax", "100");
+    // 目标 = BMI 24 推导 = 73.5kg；剩余差距与进度并存展示
+    const banner = screen.getByTestId("bmi-target-gap");
+    expect(within(banner).getByText("3.5 kg")).toHaveClass("bmi-target-gap-value");
+  });
+
   it("无身高或无有效体重时不展示目标差距", () => {
     const { rerender } = renderTracker(stateWithWeight("175", undefined));
     expect(screen.queryByTestId("bmi-target-gap")).not.toBeInTheDocument();

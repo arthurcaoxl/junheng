@@ -1,11 +1,14 @@
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { roundBmi, type BmiPoint } from "../../utils/bmi";
 import { formatShortDate } from "../../utils/checkin";
+import { calculate7DayMovingAverage } from "../../utils/metrics";
 
 export function BmiTrendChart({ points }: { points: BmiPoint[] }) {
-  const data = points.map((point) => ({
+  const movingAverage = calculate7DayMovingAverage(points.map((point) => ({ date: point.date, weightKg: point.bmi })));
+  const data = points.map((point, index) => ({
     date: formatShortDate(point.date),
     bmi: roundBmi(point.bmi),
+    ma7: movingAverage[index].ma7,
   }));
 
   return (
@@ -22,6 +25,7 @@ export function BmiTrendChart({ points }: { points: BmiPoint[] }) {
               labelStyle={{ color: "rgba(243, 241, 232, .62)" }}
             />
             <Line type="monotone" dataKey="bmi" name="BMI" stroke="#c8ff3d" strokeWidth={2.5} dot={{ r: 4, fill: "#c8ff3d", strokeWidth: 0 }} activeDot={{ r: 6 }} isAnimationActive={false} />
+            <Line type="monotone" dataKey="ma7" name="7 日均线" stroke="#a3e635" strokeWidth={2} strokeDasharray="6 5" dot={false} activeDot={{ r: 4 }} isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
       </div>

@@ -26,6 +26,15 @@ Object.defineProperty(window, "scrollTo", {
   value: vi.fn(),
 });
 
+// jsdom 没有布局观测接口；Recharts 的 ResponsiveContainer 仅需要可注册/清理的 stub。
+if (typeof globalThis.ResizeObserver !== "function") {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  };
+}
+
 // 全局隔离 Supabase：既有基线测试不 import 它，零影响；
 // 新增同步测试自动拿到此 stub，无环境变量、无真实网络。
 vi.mock("@supabase/supabase-js", () => {

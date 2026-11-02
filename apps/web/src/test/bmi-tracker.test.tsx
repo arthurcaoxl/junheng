@@ -185,4 +185,18 @@ describe("BmiTracker", () => {
     expect(await screen.findByTestId("bmi-current")).toHaveTextContent("22.2");
     expect(screen.getByRole("status")).toHaveTextContent("身高档案已更新，BMI 已重新计算");
   });
+
+  it("近 7 天体重腰围双降时渲染高情商反馈，大数字旁可打开肌肉人群风险说明", async () => {
+    const user = userEvent.setup();
+    const records = Object.fromEntries(Array.from({ length: 7 }, (_, index) => [
+      `2026-11-0${index + 1}`,
+      { ...emptyDay(), weight: (70 - index * 0.1).toFixed(1), waist: (96 - index * 0.2).toFixed(1) },
+    ]));
+    render(<Harness initialState={state({ heightCm: "175", records })} />);
+
+    expect(screen.getByText(/精准掉脂肪/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "BMI 适用性说明" }));
+    expect(screen.getByRole("dialog", { name: "BMI 适用性说明" })).toHaveTextContent("肌肉");
+  });
 });

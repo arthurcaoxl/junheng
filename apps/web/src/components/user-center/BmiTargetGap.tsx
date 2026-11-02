@@ -1,13 +1,18 @@
 import { getBmiTargetDiff } from "../../utils/bmi";
+import { calculateTargetProgress } from "../../utils/metrics";
 
 type BmiTargetGapProps = {
   currentWeightKg?: number;
+  initialWeightKg?: number;
   heightCm?: string;
 };
 
-export function BmiTargetGap({ currentWeightKg, heightCm }: BmiTargetGapProps) {
+export function BmiTargetGap({ currentWeightKg, initialWeightKg, heightCm }: BmiTargetGapProps) {
   const target = getBmiTargetDiff(currentWeightKg, heightCm);
   if (!target) return null;
+  const progress = target.status === "reduce"
+    ? calculateTargetProgress(initialWeightKg, currentWeightKg, target.targetWeightKg)
+    : null;
 
   return (
     <div className="bmi-target-gap" data-testid="bmi-target-gap" data-state={target.status}>
@@ -24,6 +29,18 @@ export function BmiTargetGap({ currentWeightKg, heightCm }: BmiTargetGapProps) {
               : `距超重上限还有 ${Math.abs(target.diffKg).toFixed(1)} kg`}
           </strong>
         </span>
+      )}
+      {progress !== null && (
+        <div
+          className="bmi-target-progress"
+          role="progressbar"
+          aria-label="目标进度"
+          aria-valuenow={progress}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <span className="bmi-target-progress-fill" style={{ width: `${progress}%` }} />
+        </div>
       )}
     </div>
   );
