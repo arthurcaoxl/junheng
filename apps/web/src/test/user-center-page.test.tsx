@@ -21,6 +21,7 @@ function mockPosterCanvas() {
     fillRect: vi.fn(), fillText: vi.fn(), beginPath: vi.fn(), moveTo: vi.fn(),
     lineTo: vi.fn(), stroke: vi.fn(), strokeRect: vi.fn(), arc: vi.fn(), fill: vi.fn(),
     measureText: vi.fn(() => ({ width: 100 })), closePath: vi.fn(),
+    save: vi.fn(), restore: vi.fn(), translate: vi.fn(), rotate: vi.fn(),
   };
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(context as unknown as CanvasRenderingContext2D);
   vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/png;base64,poster");
@@ -194,7 +195,7 @@ describe("用户中心 D7 与绑定状态", () => {
 
     await user.click(screen.getByRole("button", { name: "生成我的见证" }));
     expect(screen.getByRole("dialog", { name: "🎉 您的 21 天代谢重塑见证已生成！" })).toBeInTheDocument();
-    expect(context.fillText).toHaveBeenCalledWith("21 天代谢重塑见证", expect.any(Number), expect.any(Number));
+    expect(context.fillText).toHaveBeenCalledWith("21天代谢重塑见证", expect.any(Number), expect.any(Number));
     await user.type(screen.getByLabelText("邮箱地址"), "certificate@example.com");
     await user.click(screen.getByRole("button", { name: "立即绑定并查看见证" }));
     await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
