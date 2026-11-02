@@ -48,7 +48,7 @@ export default function UserCenter() {
       />
       <AccountSecurity configured={configured} email={email} />
       <SyncPanel />
-      <Link className="user-center-checkin-link" to="/check-in">继续打卡</Link>
+      <Link className="user-center-checkin-link" to="/check-in">继续记录今日体重与腰围</Link>
       <p className="platform-disclaimer user-center-disclaimer">{siteConfig.platformDisclaimer}</p>
     </section>
   );

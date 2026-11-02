@@ -197,7 +197,7 @@ describe("sync panel", () => {
       await user.click(screen.getByRole("button", { name: "生成专属成就海报" }));
       expect(screen.getByRole("dialog", { name: "🎉 您的专属健康海报已生成！" })).toBeInTheDocument();
       await user.click(screen.getByRole("button", { name: "暂不，返回打卡" }));
-      await user.click(screen.getByRole("link", { name: "继续打卡" }));
+      await user.click(screen.getByRole("link", { name: "继续记录今日体重与腰围" }));
 
       await user.type(screen.getByLabelText("早晨体重（空腹）"), "68");
       await bindFromMilestone("after-d7@example.com");
@@ -271,7 +271,7 @@ describe("sync panel", () => {
       await user.click(screen.getByRole("button", { name: "生成专属成就海报" }));
       expect(screen.getByRole("img", { name: "21 天健康记录海报预览" })).toBeInTheDocument();
       expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-      expect(screen.getByRole("link", { name: "继续打卡" })).toHaveAttribute("href", "/check-in");
+      expect(screen.getByRole("link", { name: "继续记录今日体重与腰围" })).toHaveAttribute("href", "/check-in");
     });
   });
 });
