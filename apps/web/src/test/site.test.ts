@@ -5,8 +5,9 @@ import type { MealCheckIn, WaistRecord, WeightRecord } from "../types/check-in";
 describe("brand configuration", () => {
   it("keeps the approved slogan verbatim", () => {
     expect(siteConfig.slogan).toBe("餐前一杯精准膳食，");
-    expect(siteConfig.healthStatement).toBe("助力脂代谢平衡。");
+    expect(siteConfig.healthStatement).toBe("好身材需要能量代谢助力。");
     expect(siteConfig.subtitle).toBe("——23种菌菇精华 × 优质蛋白 × 复合维生素——");
+    expect(siteConfig.complianceNote).toBe("本品含有B族维生素，根据 GB 28050 规定，B族维生素有助于维持正常的能量代谢。");
   });
 
   it("defines the approved internal research-platform identity and boundary", () => {

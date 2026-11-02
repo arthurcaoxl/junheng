@@ -101,10 +101,10 @@ describe("v1.4.1 interface refinement", () => {
     await user.click(screen.getByRole("button", { name: "生成专属成就海报" }));
     expect(posterCanvases[0]?.width).toBe(1080);
     expect(posterCanvases[0]?.height).toBe(1920);
-    expect(context.fillText).toHaveBeenCalledWith("记录人：小菌", 70, 318);
+    expect(context.fillText).toHaveBeenCalledWith("记录人：小菌", 70, 410);
     expect(context.fillText).toHaveBeenCalledWith("体重趋势 / kg", 70, 450);
     expect(context.fillText).toHaveBeenCalledWith("腰围趋势 / cm", 70, 790);
-    expect(context.fillText).toHaveBeenCalledWith("本海报由本人主动生成，仅代表个人健康记录，不构成医疗诊断或产品功效承诺。", 70, 1740, 940);
+    expect(context.fillText).toHaveBeenCalledWith("本品非药品，不能代替药物治疗疾病。", 70, 1740, 940);
     const posterText = context.fillText.mock.calls.map(([text]) => String(text));
     expect(posterText).toEqual(expect.arrayContaining(["D1", "D7", "D14", "D21"]));
     expect(posterText.filter((text) => ["D5", "D10", "D15"].includes(text))).toEqual([]);

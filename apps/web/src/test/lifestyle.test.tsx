@@ -212,8 +212,8 @@ describe("priority lifestyle sections", () => {
     await user.click(within(userCenter).getByRole("button", { name: "生成专属成就海报" }));
     expect(within(userCenter).getByRole("img", { name: "21 天健康记录海报预览" })).toHaveAttribute("src", "data:image/png;base64,poster");
     expect(within(userCenter).getByRole("link", { name: "下载 PNG 海报" })).toHaveAttribute("download", "菌衡计划-21天健康记录.png");
-    expect(context.fillText).toHaveBeenCalledWith("菌衡计划 | 脂代谢研究所 × 心脑健康营", 70, 100, 940);
-    expect(context.fillText).toHaveBeenCalledWith("我的脂代谢健康记录", 70, 210, 940);
+    expect(context.fillText).toHaveBeenCalledWith("菌衡计划·脂代谢研究所", 70, 100, 940);
+    expect(context.fillText).toHaveBeenCalledWith("餐前一杯精准膳食，", 70, 190, 940);
     expect(context.fillText).toHaveBeenCalledWith("餐前饮用 0/63次 · 饮水 0/21天 · 运动 0/21天 · 作息 0/21天", 70, 1220, 940);
     expect(within(userCenter).getByText(/支持微信内长按保存/)).toBeInTheDocument();
     expect(within(userCenter).getByText(/微信内可长按图片保存/)).toBeInTheDocument();
