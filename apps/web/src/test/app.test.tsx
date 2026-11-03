@@ -9,6 +9,8 @@ describe("brand page", () => {
     expect(screen.getByText("菌衡计划 | 脂代谢研究所")).toBeInTheDocument();
     expect(screen.getByText("注：菌衡计划·脂代谢研究所为本品牌内部健康管理研究平台，非医疗或国家级学术机构。相关数据与成分科普不作为医疗诊断或治疗依据。")).toBeInTheDocument();
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("餐前一杯精准膳食，好身材需要能量代谢助力。");
+    // 第二行文案较长，必须挂在可降级的 secondary 类上，由 CSS 控制字号层级
+    expect(document.querySelector(".hero-title-secondary")).toHaveTextContent("好身材需要能量代谢助力。");
     expect(screen.getByText("——23种菌菇精华 × 优质蛋白 × 复合维生素——")).toBeInTheDocument();
     expect(screen.getByText("本品含有B族维生素，根据 GB 28050 规定，B族维生素有助于维持正常的能量代谢。")).toBeInTheDocument();
     expect(screen.getAllByText("40%+").length).toBeGreaterThan(0);
