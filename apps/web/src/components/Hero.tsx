@@ -8,7 +8,7 @@ export function Hero() {
       <span className="hero-watermark" aria-hidden="true">23</span>
       <div className="hero-copy">
         <p className="eyebrow">JUNHENG PLAN · 餐前营养管理</p>
-        <h1 id="hero-title"><span className="hero-title-primary">{siteConfig.slogan}</span><span>{siteConfig.healthStatement}</span></h1>
+        <h1 id="hero-title"><span className="hero-title-primary">{siteConfig.slogan}</span><span className="hero-title-secondary">{siteConfig.healthStatement}</span></h1>
         <p className="hero-subtitle">{siteConfig.subtitle}</p>
         <p className="hero-intro">每餐前一杯，让营养先到一步。23 种菌菇精华、优质蛋白与复合维生素，科学融入每一个认真对待三餐的日常。</p>
         <p className="product-category">{siteConfig.category}</p>

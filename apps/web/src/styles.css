@@ -83,7 +83,8 @@ section { scroll-margin-top: 78px; }
 .hero h1 { font-family: var(--display); font-size: clamp(68px, 7.6vw, 128px); font-weight: 900; letter-spacing: -.075em; line-height: 1.02; }
 .hero h1 span { display: block; white-space: nowrap; }
 .hero h1 .hero-title-primary { font-size: clamp(32px, 7vw, 88px); letter-spacing: -.065em; }
-.hero h1 span:last-child { color: var(--acid); }
+/* 第二行文案较长（12 字），降级为次级展示字号，避免侵入右侧产品图；移动端允许自然换行 */
+.hero h1 .hero-title-secondary { color: var(--acid); font-size: clamp(38px, 4.4vw, 66px); letter-spacing: -.06em; }
 .hero-subtitle { width: max-content; max-width: 100%; margin-top: 36px; padding: 9px 12px; background: var(--acid); color: var(--forest); font-size: clamp(19px, 1.55vw, 27px); font-weight: 800; line-height: 1.45; letter-spacing: -.025em; }
 .hero-intro { max-width: 520px; margin-top: 24px; font-size: 14px; line-height: 1.9; opacity: .72; }
 .product-category { width: max-content; margin-top: 24px; padding: 8px 12px; border: 1px solid var(--line-light); font-size: 10px; letter-spacing: .12em; }
@@ -379,6 +380,7 @@ section { scroll-margin-top: 78px; }
   .site-header { grid-template-columns: auto minmax(0, 1fr) auto; }
   .hero { grid-template-columns: minmax(0, 1.5fr) minmax(290px, .75fr); }
   .hero h1 { font-size: clamp(62px, 7.2vw, 88px); }
+  .hero h1 .hero-title-secondary { font-size: clamp(32px, 4.6vw, 52px); }
   .hero-subtitle { font-size: 18px; }
   .metric-card { min-height: 390px; padding: 24px 20px; }
   .nutrition-card-protein > strong { font-size: 11vw; }
@@ -408,6 +410,7 @@ section { scroll-margin-top: 78px; }
   .hero-watermark { right: -28vw; top: 32%; bottom: auto; font-size: 110vw; }
   .hero .eyebrow { margin-bottom: 28px; font-size: 8px; }
   .hero h1 { font-size: clamp(36px, 11.2vw, 74px); line-height: 1.05; }
+  .hero h1 .hero-title-secondary { white-space: normal; font-size: clamp(24px, 7.2vw, 38px); line-height: 1.18; }
   .hero-subtitle { width: auto; margin-top: 26px; padding: 9px 10px; font-size: clamp(17px, 5.1vw, 23px); line-height: 1.6; }
   .hero-intro { margin-top: 20px; font-size: 13px; }
   .product-category { margin-top: 20px; font-size: 9px; }
