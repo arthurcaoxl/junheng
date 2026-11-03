@@ -37,3 +37,33 @@ on conflict (email) do update set is_active = true;
 - `.env` 中的 `VITE_SUPABASE_URL` 和 `VITE_SUPABASE_ANON_KEY` 可进入浏览器。
 - `service_role` key 只能留在服务端或 SQL Editor，**不得写入前端代码或仓库**。
 - 管理员 CSV 导出不包含 Supabase UID、邮箱等账户字段。
+
+## 测试用户清理操作指引
+
+前端设备标识复用 Supabase 匿名登录的 `auth.uid`（SDK 会话持久化）。每次本地 `npm run dev` 起新会话做真实链路测试（OTP、同步、合规门禁），都会在 `auth.users` 新增一个 Anonymous 用户，测试后需定期自查清理。
+
+### 级联规则（删除前必读）
+
+- 全部业务数据（打卡快照、合规表态 `consent_granted/consent_at`、BMI 档案 `height_cm/initial_weight_kg`）都存于 `checkin_sync` 一张表。
+- `checkin_sync.auth_user_id` 是主键，且带 `references auth.users(id) on delete cascade`（见 `migrations/20261030100000_admin_checkin_overview.sql`）。
+- 因此在 **Authentication → Users 删除 auth 用户 = 业务数据自动级联清空**，不需要手写 SQL 清理。
+- 匿名升级为邮箱绑定（OTP）时，邮箱身份挂在**同一个 uid** 上，Providers 变为 Email；仍显示 Anonymous 的用户从未绑定邮箱，删除零资产损失。
+- 删除立即永久生效，无回收站；同一邮箱再登录会生成全新 uid。
+
+### 删除步骤
+
+1. Supabase 控制台 → **Authentication → Users**。
+2. 勾选目标用户（Anonymous 测试残留直接勾；邮箱账号先确认是测试号再勾）。
+3. 点左上角 **“Delete N users”** → 确认。
+4. 可选留痕：删除前在 SQL Editor 执行，预览将被级联删除的业务行：
+   ```sql
+   select auth_user_id, consent_granted, updated_at
+   from public.checkin_sync
+   where auth_user_id = '<uid>';
+   ```
+
+### 每次测试后自查口径
+
+- Anonymous 用户：本地每轮真实环境测试产生的均可直接清理。
+- 邮箱用户：只删所有者明确确认为测试号的账号；真用户绝不代删。
+- 清理后 `checkin_sync` 不应残留 `auth.users` 中已不存在的 `auth_user_id`（级联保证，无需手工对账）。
