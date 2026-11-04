@@ -11,6 +11,10 @@ import {
   buildDashboard, calculateChannelLTV, equivalentMaintenanceBEP,
   firstReachedMonth, summarizeScenario, sustainableOperatingNet,
 } from './metrics';
+import {
+  computeInventoryAssetValue, computeInventoryCashFlow,
+  computeInventoryKpis, computeStockoutOpportunityCost,
+} from './finance';
 import type { MonthResult } from './engine';
 import type { ScenarioResult } from './metrics';
 import type { SandboxInput, ScenarioKey } from './schema';
@@ -22,6 +26,11 @@ const ENGINE_FUNCTIONS = [
   simulateUserMonth, runSeedMonth, applyQualification, isCoachCohortActive,
   simulate, calculateStaffCapacity, firstReachedMonth, sustainableOperatingNet,
   equivalentMaintenanceBEP, calculateChannelLTV, summarizeScenario, buildDashboard,
+];
+
+const FINANCE_FUNCTIONS = [
+  computeInventoryAssetValue, computeStockoutOpportunityCost,
+  computeInventoryCashFlow, computeInventoryKpis,
 ];
 
 const SLIDERS = [
@@ -49,6 +58,18 @@ function parseControlValue(raw: string, min: number, integer: boolean): number |
 export function generateReport(input: SandboxInput): string {
   const initialDashboard = buildDashboard(input);
   const engineJs = [...ENGINE_FUNCTIONS, parseControlValue].map((fn) => fn.toString()).join('\n');
+  const financeJs = FINANCE_FUNCTIONS.map((fn) => fn.toString()).join('\n');
+  const platformStockBoxes = 200;
+  const initialMonths = initialDashboard.scenarios.baseline.months;
+  const initialLast = initialMonths[initialMonths.length - 1];
+  const initialInventoryKpis = computeInventoryKpis({
+    platformStockBoxes,
+    coachPickupBoxes: initialLast.coachOrderBoxes,
+    stockoutBoxes: initialLast.shortageBoxes,
+    unitCost: input.product.unitCost,
+    revenuePerBox: input.product.boxPrice,
+    coachPickupPrice: input.product.coachPurchasePrice,
+  });
   const state = {
     retention: input.users.monthlyRetention * 100,
     acquisition: input.coaches.monthlyNewUsersPerCoach,
@@ -59,6 +80,7 @@ export function generateReport(input: SandboxInput): string {
     salary: input.staff.monthlySalary,
     seed1: input.seed.phase1.users,
     seed2: input.seed.phase2.users,
+    platformStockBoxes,
     scenario: 'baseline' as ScenarioKey,
   };
   const numberControls = NUMBER_INPUTS.map((control) => `
@@ -102,10 +124,13 @@ export function generateReport(input: SandboxInput): string {
 </main><script>
 'use strict';
 ${engineJs}
+${financeJs}
 const BASE_INPUT = ${JSON.stringify(input)};
 const INITIAL_DASHBOARD = ${JSON.stringify(initialDashboard)};
+const INITIAL_INVENTORY_KPIS = ${JSON.stringify(initialInventoryKpis)};
 const state = ${JSON.stringify(state)};
 let dashboard = INITIAL_DASHBOARD;
+let inventoryKpis = INITIAL_INVENTORY_KPIS;
 function currentInput() {
   const input = JSON.parse(JSON.stringify(BASE_INPUT));
   input.users.monthlyRetention = state.retention / 100;
@@ -177,7 +202,35 @@ function buildChart(months, series) {
   svg += '<text x="' + P + '" y="' + (H - 8) + '" fill="#93a69f" font-size="11">' + number(min) + '</text></svg>';
   return svg;
 }
-function renderKpis(result, baseline) {
+function buildDualAxisChart(months, series) {
+  const W = 620, H = 240, P = 38;
+  const scales = { y: { min: 0, max: 1 }, y1: { min: 0, max: 1 } };
+  for (const item of series) for (const m of months) {
+    const scale = scales[item.axis];
+    scale.min = Math.min(scale.min, item.value(m));
+    scale.max = Math.max(scale.max, item.value(m));
+  }
+  function x(i) { return P + i * (W - P * 2) / Math.max(1, months.length - 1); }
+  function y(v, axis) {
+    const scale = scales[axis];
+    return H - P - (v - scale.min) * (H - P * 2) / (scale.max - scale.min || 1);
+  }
+  let html = '<div>';
+  for (const item of series) html += '<span style="color:' + item.color + ';margin-right:12px">● ' + item.label + '</span>';
+  html += '</div><svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" role="img">';
+  html += '<line x1="' + P + '" y1="' + y(0, 'y') + '" x2="' + (W - P) + '" y2="' + y(0, 'y') + '" stroke="#2a3935"/>';
+  for (const item of series) {
+    let points = '';
+    for (let i = 0; i < months.length; i++) points += x(i) + ',' + y(item.value(months[i]), item.axis) + ' ';
+    html += '<polyline data-axis="' + item.axis + '" points="' + points + '" fill="none" stroke="' + item.color + '" stroke-width="2.5"/>';
+  }
+  html += '<text x="' + P + '" y="18" fill="#93a69f" font-size="11">' + number(scales.y.max) + '</text>';
+  html += '<text x="' + P + '" y="' + (H - 8) + '" fill="#93a69f" font-size="11">' + number(scales.y.min) + '</text>';
+  html += '<text x="' + (W - P) + '" y="18" fill="#93a69f" font-size="11" text-anchor="end">' + number(scales.y1.max) + '</text>';
+  html += '<text x="' + (W - P) + '" y="' + (H - 8) + '" fill="#93a69f" font-size="11" text-anchor="end">' + number(scales.y1.min) + '</text></svg>';
+  return html;
+}
+function renderKpis(result, baseline, inventoryKpis) {
   const m = result.metrics, b = baseline.metrics;
   const cards = [
     ['现金安全', month(m.cashBreakMonth), '安全月数 ' + m.cashSafetyMonths + '；最低 ' + money(m.minCashBalance), delta(m.endingCash, b.endingCash, ' 元')],
@@ -189,6 +242,7 @@ function renderKpis(result, baseline) {
   ];
   let html = '';
   for (const card of cards) html += '<article class="kpi"><span>' + card[0] + '</span><strong>' + card[1] + '</strong><small>' + card[2] + '</small><div class="delta">' + card[3] + '</div></article>';
+  html += '<article class="kpi" id="inventory-asset-kpi"><span>库存与资产</span><strong>' + money(inventoryKpis.inventoryAssetValue) + '</strong><small>缺货机会成本 ' + money(inventoryKpis.stockoutOpportunityCost) + '</small><div class="delta">现金流净影响 ' + money(inventoryKpis.inventoryCashFlow.netCashImpact) + '</div></article>';
   document.getElementById('kpis').innerHTML = html;
 }
 function renderTables(result, input) {
@@ -219,8 +273,17 @@ function render() {
   const input = currentInput();
   dashboard = buildDashboard(currentInput());
   const result = dashboard.scenarios[state.scenario];
-  renderKpis(result, dashboard.scenarios.baseline);
   const months = result.months;
+  const last = months[months.length - 1];
+  inventoryKpis = computeInventoryKpis({
+    platformStockBoxes: state.platformStockBoxes,
+    coachPickupBoxes: last.coachOrderBoxes,
+    stockoutBoxes: last.shortageBoxes,
+    unitCost: input.product.unitCost,
+    revenuePerBox: input.product.boxPrice,
+    coachPickupPrice: input.product.coachPurchasePrice,
+  });
+  renderKpis(result, dashboard.scenarios.baseline, inventoryKpis);
   document.getElementById('cash-chart').innerHTML = buildChart(months, [{ color: '#9ddd70', value: (m) => m.cashBalance, markMinimum: true }]);
   document.getElementById('operating-chart').innerHTML = buildChart(months, [
     { color: '#9ddd70', value: (m) => m.operatingNet },
@@ -230,9 +293,10 @@ function render() {
     { color: '#9ddd70', value: (m) => m.activeCoaches },
     { color: '#ff786f', value: (m) => m.dormantCoaches },
   ]);
-  document.getElementById('inventory-chart').innerHTML = buildChart(months, [
-    { color: '#f2bc68', value: (m) => m.coachInventory },
-    { color: '#ff786f', value: (m) => m.shortageBoxes },
+  document.getElementById('inventory-chart').innerHTML = buildDualAxisChart(months, [
+    { label: '教练库存', axis: 'y', color: '#f2bc68', value: (m) => m.coachInventory },
+    { label: '缺货盒数', axis: 'y', color: '#ff786f', value: (m) => m.shortageBoxes },
+    { label: '库存资产余额', axis: 'y1', color: '#72b7ff', value: (m) => computeInventoryAssetValue(state.platformStockBoxes - m.coachOrderBoxes, input.product.unitCost) },
   ]);
   document.getElementById('capacity-chart').innerHTML = buildChart(months, [{ color: '#72b7ff', value: (m) => m.capacityUtilization * 100 }]);
   renderTables(result, input);
