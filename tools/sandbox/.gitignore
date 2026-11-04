@@ -1,0 +1,4 @@
+# 本地沙盘：忽略本地输入与输出产物
+inputs/local/
+output/
+node_modules/
