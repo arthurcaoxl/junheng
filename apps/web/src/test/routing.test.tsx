@@ -4,6 +4,11 @@ import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import App from "../App";
 
+vi.mock("../services/consent", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/consent")>();
+  return { ...actual, fetchCloudConsent: vi.fn().mockResolvedValue(true) };
+});
+
 function renderAt(route: string) {
   return render(<MemoryRouter initialEntries={[route]}><App /></MemoryRouter>);
 }
@@ -53,7 +58,7 @@ describe("check-in routing", () => {
     const user = userEvent.setup();
     renderAt("/");
     await user.click(screen.getAllByRole("link", { name: "开启 21 天脂代谢记录 →" }).at(-1) as HTMLElement);
-    expect(screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "21 天，构建你的脂代谢稳态。" })).toBeInTheDocument();
     // 路由切换必须同步、瞬时回到顶部，禁止 smooth 动画从旧页面深滚动位置滑过页脚
     expect(scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: "instant" });
   });
