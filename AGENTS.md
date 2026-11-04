@@ -43,4 +43,4 @@ npm run build
 | --- | --- | --- | --- | --- |
 | 1 | feature-1-domain | 替换旧域名 og/canonical 标签 | 已合并 | 历史登记补录；旧域名已切换 |
 | 2 | feature-2-sandbox-v7.1 | 沙盘 V7.1 CEO 经营驾驶舱 | 已合并 | 初始导入 d24aed0；沙盘 59 项、前端 291 项测试通过；未发布网站 |
-| 3 | bugfix-3-routing-scroll | 修复路由滚动测试的 jsdom 时序依赖 | 已派工 | 严格 TDD；禁止 push main；不得削弱断言或靠固定延时掩盖问题 |
+| 3 | bugfix-3-routing-scroll | 修复路由滚动测试的 jsdom 时序依赖 | 已合并 | 裁判验收通过；仅修改测试，未改产品代码；291 项测试全绿 |
