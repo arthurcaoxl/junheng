@@ -160,6 +160,10 @@ ${SNAPSHOT_BROWSER_FUNCTIONS.map((fn) => fn.toString()).join('\n')}
 <footer>本地经营沙盘，不构成收益或经营结果承诺。</footer>
 </main><script>
 'use strict';
+function __name(fn, name) {
+  try { Object.defineProperty(fn, 'name', { value: name, configurable: true }); } catch (e) {}
+  return fn;
+}
 ${engineJs}
 ${financeJs}
 ${snapshotJs}
