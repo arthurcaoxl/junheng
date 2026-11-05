@@ -131,6 +131,30 @@ export function computeChannelFinancials(
   };
 }
 
+export function computeDynamicBEP(
+  month: MonthResult,
+  input: SandboxInput,
+  channelResult: ReturnType<typeof computeChannelFinancials>,
+): number | null {
+  const effectiveBoxes = month.directPaidBoxes + month.coachSoldBoxes;
+  if (effectiveBoxes <= 0) return null;
+
+  const variableContribution = channelResult.direct.operatingContribution
+    + channelResult.coach.operatingContribution
+    - channelResult.direct.overhead
+    - channelResult.coach.overhead
+    - month.staffPerformance
+    - month.incubationReward;
+  const contributionPerUser = monthlyRecurringBoxes(input.product)
+    * variableContribution
+    / effectiveBoxes;
+  if (contributionPerUser <= 0 || !Number.isFinite(contributionPerUser)) return null;
+
+  const commonCosts = month.fixedCosts + month.staffBaseSalary;
+  const users = commonCosts / contributionPerUser;
+  return Number.isFinite(users) ? Math.ceil(users) : null;
+}
+
 export function firstReachedMonth(
   months: MonthResult[],
   key: 'operatingNet' | 'cumulativeCashFlow',
