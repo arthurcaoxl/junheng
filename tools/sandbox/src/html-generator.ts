@@ -67,20 +67,23 @@ function resolveInventoryKpiParams(
   month: Pick<MonthResult, 'coachOrderBoxes' | 'shortageBoxes'>,
   product: SandboxInput['product']
 ) {
-  const actual = mode === 'actual' && snapshot !== null;
+  const actual = mode === 'actual';
   return {
     platformStockBoxes,
-    coachPickupBoxes: actual ? snapshot.coachPickupBoxes : month.coachOrderBoxes,
-    stockoutBoxes: actual ? snapshot.stockoutBoxes : month.shortageBoxes,
-    unitCost: actual ? snapshot.unitCost : product.unitCost,
-    coachPickupPrice: actual ? snapshot.coachPickupPrice : product.coachPurchasePrice,
-    revenuePerBox: actual ? snapshot.revenuePerBox : product.boxPrice,
+    coachPickupBoxes: actual ? snapshot?.coachPickupBoxes : month.coachOrderBoxes,
+    stockoutBoxes: actual ? snapshot?.stockoutBoxes : month.shortageBoxes,
+    unitCost: actual ? snapshot?.unitCost : product.unitCost,
+    coachPickupPrice: actual ? snapshot?.coachPickupPrice : product.coachPurchasePrice,
+    revenuePerBox: actual ? snapshot?.revenuePerBox : product.boxPrice,
   };
 }
 
 export function generateReport(input: SandboxInput): string {
   const initialDashboard = buildDashboard(input);
-  const engineJs = [...ENGINE_FUNCTIONS, parseControlValue].map((fn) => fn.toString()).join('\n');
+  const engineJs = [...ENGINE_FUNCTIONS, parseControlValue]
+    .map((fn) => fn.toString())
+    .join('\n')
+    .replace(/\bimport_[A-Za-z0-9_$]+\./g, '');
   const financeJs = FINANCE_FUNCTIONS.map((fn) => fn.toString()).join('\n');
   const snapshotJs = `/* SNAPSHOT_BROWSER_BEGIN */
 /* SNAPSHOT_BROWSER_FUNCTIONS */
@@ -181,6 +184,7 @@ const snapshotStatus = document.getElementById('snapshot-status');
 const importButton = document.getElementById('import-snapshot');
 let activeSnapshot = null;
 let activeSnapshotInput = null;
+const snapshotHistory = [];
 function setSnapshotStatus(message, isError) {
   snapshotStatus.textContent = message;
   snapshotStatus.className = isError ? 'error' : '';
@@ -190,10 +194,22 @@ function updateDataModeButtons() {
     button.classList.toggle('active', button.getAttribute('data-data-mode') === state.dataMode);
   });
 }
+function syncActiveSnapshot() {
+  const resolved = resolveActualSnapshots(snapshotHistory);
+  activeSnapshot = resolved.snapshots.length > 0 ? resolved.snapshots[resolved.snapshots.length - 1] : null;
+  activeSnapshotInput = activeSnapshot ? standardizeSnapshot(activeSnapshot) : null;
+  if (state.dataMode === 'actual') {
+    state.platformStockBoxes = activeSnapshotInput ? activeSnapshotInput.platformStockBoxes : 0;
+  }
+  return resolved.conflicts;
+}
 function setDataMode(mode) {
-  if (mode === 'actual' && activeSnapshotInput === null) {
-    setSnapshotStatus('导入失败：实际模式需要先导入通过校验的快照，不会回退到 200 盒。', true);
-    return;
+  if (mode === 'actual') {
+    syncActiveSnapshot();
+    if (activeSnapshotInput === null) {
+      setSnapshotStatus('导入失败：实际模式需要先导入通过校验且无冲突的快照，不会回退到 200 盒。', true);
+      return;
+    }
   }
   state.dataMode = mode;
   state.platformStockBoxes = mode === 'actual' ? activeSnapshotInput.platformStockBoxes : 200;
@@ -203,13 +219,25 @@ function setDataMode(mode) {
 function importSnapshotFromText(raw) {
   try {
     const imported = snapshotImporter.importJson(raw);
-    activeSnapshot = imported;
-    activeSnapshotInput = standardizeSnapshot(imported);
     state.dataMode = imported.source.dataMode;
-    state.platformStockBoxes = state.dataMode === 'actual' ? activeSnapshotInput.platformStockBoxes : 200;
+    let conflicts = [];
+    if (state.dataMode === 'actual') {
+      if (!snapshotHistory.some(function (snapshot) { return snapshot.snapshotId === imported.snapshotId; })) {
+        snapshotHistory.push(imported);
+      }
+      conflicts = syncActiveSnapshot();
+    } else {
+      activeSnapshot = imported;
+      activeSnapshotInput = standardizeSnapshot(imported);
+      state.platformStockBoxes = 200;
+    }
     updateDataModeButtons();
     render();
-    setSnapshotStatus('导入成功：' + imported.snapshotId + '；来源修订 ' + imported.sourceRevision + '；当前为' + (state.dataMode === 'actual' ? '实际模式' : '假设模式') + '。', false);
+    if (conflicts.length > 0) {
+      setSnapshotStatus('同期快照冲突：' + conflicts.join('、') + '。请导入具有明确替代关系的修正快照。', true);
+    } else {
+      setSnapshotStatus('导入成功：' + imported.snapshotId + '；来源修订 ' + imported.sourceRevision + '；当前为' + (state.dataMode === 'actual' ? '实际模式' : '假设模式') + '。', false);
+    }
   } catch (error) {
     const code = error && typeof error.code === 'string' ? error.code : 'INVALID_JSON';
     const message = error && typeof error.message === 'string' ? error.message : '无法读取快照';
@@ -334,6 +362,183 @@ function buildDualAxisChart(months, series) {
   html += '<text x="' + (W - P) + '" y="' + (H - 8) + '" fill="#93a69f" font-size="11" text-anchor="end">' + number(scales.y1.min) + '</text></svg>';
   return html;
 }
+function escapeHtml(value) {
+  return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function resolveActualSnapshots(snapshots) {
+  const unique = new Map();
+  for (const snapshot of snapshots) {
+    if (snapshot.source.dataMode === 'actual' && !unique.has(snapshot.snapshotId)) {
+      unique.set(snapshot.snapshotId, snapshot);
+    }
+  }
+  const groups = new Map();
+  for (const snapshot of unique.values()) {
+    const key = snapshot.periodStart + '|' + snapshot.periodEnd;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(snapshot);
+  }
+  const resolved = [];
+  const conflicts = [];
+  for (const group of groups.values()) {
+    const byId = new Map(group.map(function (snapshot) { return [snapshot.snapshotId, snapshot]; }));
+    const superseded = new Set();
+    let conflict = false;
+    for (const snapshot of group) {
+      if (!snapshot.supersedesSnapshotId) continue;
+      const parent = byId.get(snapshot.supersedesSnapshotId);
+      if (!parent || parent.periodStart !== snapshot.periodStart || parent.periodEnd !== snapshot.periodEnd) {
+        conflict = true;
+      } else {
+        superseded.add(parent.snapshotId);
+      }
+    }
+    for (const snapshot of group) {
+      const seen = new Set();
+      let current = snapshot;
+      while (current && current.supersedesSnapshotId) {
+        if (seen.has(current.snapshotId)) {
+          conflict = true;
+          break;
+        }
+        seen.add(current.snapshotId);
+        current = byId.get(current.supersedesSnapshotId);
+      }
+    }
+    const heads = group.filter(function (snapshot) { return !superseded.has(snapshot.snapshotId); });
+    if (conflict || heads.length !== 1) {
+      conflicts.push(group[0].periodEnd);
+    } else {
+      resolved.push(heads[0]);
+    }
+  }
+  resolved.sort(function (a, b) {
+    if (a.periodEnd === b.periodEnd) return a.periodStart < b.periodStart ? -1 : 1;
+    return a.periodEnd < b.periodEnd ? -1 : 1;
+  });
+  conflicts.sort();
+  return { snapshots: resolved, conflicts: conflicts };
+}
+function buildActualInventoryPoints(snapshots) {
+  const resolved = resolveActualSnapshots(snapshots);
+  const points = resolved.snapshots.map(function (snapshot) {
+    const unitCostMinor = snapshot.productPricing.unitCostMinor;
+    return {
+      kind: 'actual',
+      snapshotId: snapshot.snapshotId,
+      periodEnd: snapshot.periodEnd,
+      coachClosingBoxes: snapshot.inventory.coachClosingBoxes === undefined ? null : snapshot.inventory.coachClosingBoxes,
+      stockoutBoxes: snapshot.coachOrders.stockoutBoxes === undefined ? null : snapshot.coachOrders.stockoutBoxes,
+      inventoryAssetValue: unitCostMinor === undefined ? null : computeInventoryAssetValue(snapshot.inventory.closingPlatformBoxes, unitCostMinor / 100),
+    };
+  });
+  return { points: points, conflicts: resolved.conflicts };
+}
+function buildForecastInventoryPoints(months, product) {
+  return months.map(function (month) {
+    return {
+      kind: 'forecast',
+      month: month.month,
+      label: '模拟预测 第 ' + month.month + ' 月',
+      coachClosingBoxes: month.coachInventory,
+      stockoutBoxes: month.shortageBoxes,
+      inventoryAssetValue: computeInventoryAssetValue(200 - month.coachOrderBoxes, product.unitCost),
+    };
+  });
+}
+function buildInventoryTimelineChart(actualPoints, forecastPoints, conflicts, actualMode) {
+  const W = 960, H = 330, P = 54, TOP = 42, BOTTOM = 220;
+  const points = actualMode ? actualPoints.concat(forecastPoints) : forecastPoints;
+  const series = [
+    { key: 'coachClosingBoxes', label: '教练库存', axis: 'y', color: '#f2bc68' },
+    { key: 'stockoutBoxes', label: '缺货盒数', axis: 'y', color: '#ff786f' },
+    { key: 'inventoryAssetValue', label: '库存资产余额', axis: 'y1', color: '#72b7ff' },
+  ];
+  const scales = {
+    actual: { y: { min: 0, max: 1 }, y1: { min: 0, max: 1 } },
+    forecast: { y: { min: 0, max: 1 }, y1: { min: 0, max: 1 } },
+  };
+  for (const item of series) for (const point of points) {
+    const value = point[item.key];
+    if (!Number.isFinite(value)) continue;
+    const scale = scales[point.kind][item.axis];
+    scale.min = Math.min(scale.min, value);
+    scale.max = Math.max(scale.max, value);
+  }
+  function x(index) { return P + index * (W - P * 2) / Math.max(1, points.length - 1); }
+  function y(value, axis, kind) {
+    const scale = scales[kind][axis];
+    return BOTTOM - (value - scale.min) * (BOTTOM - TOP) / (scale.max - scale.min || 1);
+  }
+  const actualCount = actualMode ? actualPoints.length : 0;
+  let html = '<div>';
+  if (actualMode) {
+    html += '<span style="color:#edf5f1;margin-right:12px">━ 实际历史</span><span style="color:#edf5f1;margin-right:12px">┅ 模拟预测</span>';
+  } else {
+    html += '<span style="color:#edf5f1;margin-right:12px">┅ 全部为假设／模拟</span>';
+  }
+  html += '<span style="color:#f2bc68;margin-right:12px">盒数轴：教练库存／缺货盒数</span><span style="color:#72b7ff">库存资产金额轴：库存资产余额</span></div>';
+  html += '<svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" role="img">';
+  if (actualCount > 0 && forecastPoints.length > 0) {
+    const boundaryX = (x(actualCount - 1) + x(actualCount)) / 2;
+    html += '<rect data-inventory-forecast-shade x="' + boundaryX + '" y="30" width="' + (W - P - boundaryX) + '" height="200" fill="#72b7ff" opacity="0.07"/>';
+    html += '<line data-inventory-boundary x1="' + boundaryX + '" y1="30" x2="' + boundaryX + '" y2="230" stroke="#93a69f" stroke-width="1.5" stroke-dasharray="6 4"/>';
+    html += '<text x="' + (boundaryX + 5) + '" y="30" fill="#93a69f" font-size="11">模拟预测起点</text>';
+  }
+  html += '<line x1="' + P + '" y1="' + y(0, 'y', 'forecast') + '" x2="' + (W - P) + '" y2="' + y(0, 'y', 'forecast') + '" stroke="#2a3935"/>';
+  for (const kind of ['actual', 'forecast']) {
+    for (const item of series) {
+      let segment = [];
+      function flushSegment() {
+        const singleActualPoint = kind === 'actual' && actualCount === 1 && segment.length === 1;
+        if (segment.length < 2 && !singleActualPoint) {
+          segment = [];
+          return;
+        }
+        const coordinates = segment.map(function (entry) { return x(entry.index) + ',' + y(entry.point[item.key], item.axis, kind); }).join(' ');
+        html += '<polyline data-inventory-line="' + kind + '" data-series-path="' + item.key + '" data-axis="' + item.axis + '" points="' + coordinates + '" fill="none" stroke="' + item.color + '" stroke-width="2.5"' + (kind === 'forecast' ? ' stroke-dasharray="7 5"' : '') + '/>';
+        segment = [];
+      }
+      for (let index = 0; index <= points.length; index++) {
+        const point = points[index];
+        if (point && point.kind === kind && Number.isFinite(point[item.key])) segment.push({ point: point, index: index });
+        else flushSegment();
+      }
+    }
+  }
+  for (let index = 0; index < points.length; index++) {
+    const point = points[index];
+    const isActual = point.kind === 'actual';
+    html += '<g data-inventory-point="' + point.kind + '"' + (isActual ? ' data-snapshot-id="' + escapeHtml(point.snapshotId) + '" data-period-end="' + escapeHtml(point.periodEnd) + '"' : ' data-month="' + point.month + '"') + '>';
+    for (const item of series) {
+      const value = point[item.key];
+      if (Number.isFinite(value)) {
+        html += '<circle data-series="' + item.key + '" data-value="' + value + '" data-axis="' + item.axis + '" cx="' + x(index) + '" cy="' + y(value, item.axis, point.kind) + '" r="4" fill="#0b1110" stroke="' + item.color + '" stroke-width="2"><title>' + escapeHtml(item.label + '：' + number(value) + (isActual ? '；' + point.snapshotId : '')) + '</title></circle>';
+      } else {
+        html += '<text data-series="' + item.key + '" x="' + x(index) + '" y="' + (y(0, item.axis, point.kind) - 8) + '" text-anchor="middle" fill="#93a69f" font-size="10">未知</text>';
+      }
+    }
+    html += '</g>';
+  }
+  for (let index = 0; index < points.length; index++) {
+    const point = points[index];
+    const label = point.kind === 'actual' ? point.periodEnd.slice(0, 10) : point.label;
+    html += '<text x="' + x(index) + '" y="248" transform="rotate(-35 ' + x(index) + ' 248)" fill="#93a69f" font-size="9" text-anchor="end">' + escapeHtml(label) + '</text>';
+  }
+  html += '<text x="' + P + '" y="18" fill="#93a69f" font-size="11">盒数轴 ' + (actualMode ? '实际 ' + number(scales.actual.y.max) + ' ／ ' : '') + '模拟 ' + number(scales.forecast.y.max) + '</text>';
+  html += '<text x="' + P + '" y="238" fill="#93a69f" font-size="11">' + (actualMode ? '实际 ' + number(scales.actual.y.min) + ' ／ ' : '') + '模拟 ' + number(scales.forecast.y.min) + '</text>';
+  html += '<text x="' + (W - P) + '" y="18" fill="#93a69f" font-size="11" text-anchor="end">库存资产金额轴 ' + (actualMode ? '实际 ' + number(scales.actual.y1.max) + ' ／ ' : '') + '模拟 ' + number(scales.forecast.y1.max) + '</text>';
+  html += '<text x="' + (W - P) + '" y="238" fill="#93a69f" font-size="11" text-anchor="end">' + (actualMode ? '实际 ' + number(scales.actual.y1.min) + ' ／ ' : '') + '模拟 ' + number(scales.forecast.y1.min) + '</text></svg>';
+  if (actualMode) {
+    html += '<p data-inventory-summary>实际快照 ' + actualPoints.length + ' 期；后续为模拟预测，不属于实际经营结果。</p>';
+    const degraded = actualPoints.some(function (point) { return series.some(function (item) { return !Number.isFinite(point[item.key]); }); });
+    if (degraded) html += '<p class="warn">部分实际指标未知，未知值以断点显示，不参与数值比例计算。</p>';
+    if (conflicts.length > 0) html += '<p class="warn" data-inventory-conflict>同期快照冲突：' + escapeHtml(conflicts.join('、')) + '；冲突期间未绘制。</p>';
+  } else {
+    html += '<p data-inventory-summary>全部为假设／模拟；模拟预测不属于实际经营结果。</p>';
+  }
+  return html;
+}
 function renderKpis(result, baseline, inventoryKpis) {
   const m = result.metrics, b = baseline.metrics;
   const cards = [
@@ -397,22 +602,10 @@ function render() {
     { color: '#ff786f', value: (m) => m.dormantCoaches },
   ]);
   const inventoryChart = document.getElementById('inventory-chart');
-  if (state.dataMode === 'actual' && activeSnapshotInput && (
-    activeSnapshotInput.stockoutBoxes === undefined ||
-    activeSnapshotInput.unitCost === undefined ||
-    activeSnapshot.inventory.coachClosingBoxes === undefined
-  )) {
-    inventoryChart.textContent = '部分实际库存指标未知：快照缺少缺货、成本或教练结存数据。';
-  } else {
-    inventoryChart.innerHTML = buildDualAxisChart(months, [
-      { label: '教练库存', axis: 'y', color: '#f2bc68', value: (m) => state.dataMode === 'actual' && activeSnapshot ? activeSnapshot.inventory.coachClosingBoxes : m.coachInventory },
-      { label: '缺货盒数', axis: 'y', color: '#ff786f', value: (m) => resolveInventoryKpiParams(state.dataMode, activeSnapshotInput, state.platformStockBoxes, m, input.product).stockoutBoxes },
-      { label: '库存资产余额', axis: 'y1', color: '#72b7ff', value: (m) => {
-        const params = resolveInventoryKpiParams(state.dataMode, activeSnapshotInput, state.platformStockBoxes, m, input.product);
-        return computeInventoryAssetValue(params.platformStockBoxes - params.coachPickupBoxes, params.unitCost);
-      } },
-    ]);
-  }
+  const actualMode = state.dataMode === 'actual';
+  const actualTimeline = actualMode ? buildActualInventoryPoints(snapshotHistory) : { points: [], conflicts: [] };
+  const forecastPoints = buildForecastInventoryPoints(months, input.product);
+  inventoryChart.innerHTML = buildInventoryTimelineChart(actualTimeline.points, forecastPoints, actualTimeline.conflicts, actualMode);
   document.getElementById('capacity-chart').innerHTML = buildChart(months, [{ color: '#72b7ff', value: (m) => m.capacityUtilization * 100 }]);
   renderTables(result, input);
   document.getElementById('input-snapshot').textContent = JSON.stringify({

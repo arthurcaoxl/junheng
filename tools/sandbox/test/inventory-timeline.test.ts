@@ -1,3 +1,5 @@
+import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 import { computeInventoryAssetValue } from '../src/finance';
 import { generateReport } from '../src/html-generator';
@@ -346,6 +348,7 @@ describe('库存图表：实际历史与模拟预测分界', () => {
     expect(chart).toMatch(/<rect[^>]*data-inventory-forecast-shade/);
     expect(chart).toContain('模拟预测起点');
     expect(chart).toContain('2026-10-31T16:00:00.000Z');
+    expect(chart).toMatch(/>2026-10-31<\/text>/);
     expect(chart).toContain('模拟预测 第 1 月');
     expect(chart).toContain('实际快照 1 期；后续为模拟预测，不属于实际经营结果。');
   });
@@ -540,6 +543,20 @@ describe('库存图表：实际历史与模拟预测分界', () => {
       report.clickScenario('upside');
       report.moveRetention(60);
     }).not.toThrow();
+  });
+
+  it('真实 tsx 生成路径不残留 import_ 模块别名幽灵变量', () => {
+    const sandboxDir = fileURLToPath(new URL('..', import.meta.url));
+    const tsx = fileURLToPath(new URL('../node_modules/.bin/tsx', import.meta.url));
+    const script = [
+      "import { generateReport } from './src/html-generator.ts';",
+      "import { sampleInput } from './test/fixtures.ts';",
+      "const html = generateReport(sampleInput());",
+      "console.log(JSON.stringify(html.match(/\\bimport_[A-Za-z0-9_$]+\\./g) ?? []));",
+    ].join(' ');
+    const output = execFileSync(tsx, ['-e', script], { cwd: sandboxDir, encoding: 'utf8' });
+
+    expect(JSON.parse(output)).toEqual([]);
   });
 
   it('不引入网络、主站通信或 Supabase 浏览器路径', () => {
