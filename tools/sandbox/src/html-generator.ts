@@ -15,6 +15,11 @@ import {
   computeInventoryAssetValue, computeInventoryCashFlow,
   computeInventoryKpis, computeStockoutOpportunityCost,
 } from './finance';
+import {
+  SNAPSHOT_BROWSER_CONSTANTS,
+  SNAPSHOT_BROWSER_FUNCTIONS,
+} from './snapshot';
+import type { StandardizedSnapshot } from './snapshot';
 import type { MonthResult } from './engine';
 import type { ScenarioResult } from './metrics';
 import type { SandboxInput, ScenarioKey } from './schema';
@@ -55,10 +60,34 @@ function parseControlValue(raw: string, min: number, integer: boolean): number |
   return value;
 }
 
+function resolveInventoryKpiParams(
+  mode: 'actual' | 'assumption',
+  snapshot: StandardizedSnapshot | null,
+  platformStockBoxes: number,
+  month: Pick<MonthResult, 'coachOrderBoxes' | 'shortageBoxes'>,
+  product: SandboxInput['product']
+) {
+  const actual = mode === 'actual' && snapshot !== null;
+  return {
+    platformStockBoxes,
+    coachPickupBoxes: actual ? snapshot.coachPickupBoxes : month.coachOrderBoxes,
+    stockoutBoxes: actual ? snapshot.stockoutBoxes : month.shortageBoxes,
+    unitCost: actual ? snapshot.unitCost : product.unitCost,
+    coachPickupPrice: actual ? snapshot.coachPickupPrice : product.coachPurchasePrice,
+    revenuePerBox: actual ? snapshot.revenuePerBox : product.boxPrice,
+  };
+}
+
 export function generateReport(input: SandboxInput): string {
   const initialDashboard = buildDashboard(input);
   const engineJs = [...ENGINE_FUNCTIONS, parseControlValue].map((fn) => fn.toString()).join('\n');
   const financeJs = FINANCE_FUNCTIONS.map((fn) => fn.toString()).join('\n');
+  const snapshotJs = `/* SNAPSHOT_BROWSER_BEGIN */
+/* SNAPSHOT_BROWSER_FUNCTIONS */
+const TOP_LEVEL_FIELDS = ${JSON.stringify(SNAPSHOT_BROWSER_CONSTANTS.TOP_LEVEL_FIELDS)};
+const SENSITIVE_KEYS = new Set(${JSON.stringify(SNAPSHOT_BROWSER_CONSTANTS.SENSITIVE_KEYS)});
+${SNAPSHOT_BROWSER_FUNCTIONS.map((fn) => fn.toString()).join('\n')}
+/* SNAPSHOT_BROWSER_END */`;
   const platformStockBoxes = 200;
   const initialMonths = initialDashboard.scenarios.baseline.months;
   const initialLast = initialMonths[initialMonths.length - 1];
@@ -81,6 +110,7 @@ export function generateReport(input: SandboxInput): string {
     seed1: input.seed.phase1.users,
     seed2: input.seed.phase2.users,
     platformStockBoxes,
+    dataMode: 'assumption' as 'actual' | 'assumption',
     scenario: 'baseline' as ScenarioKey,
   };
   const numberControls = NUMBER_INPUTS.map((control) => `
@@ -101,9 +131,16 @@ export function generateReport(input: SandboxInput): string {
 <title>菌衡计划 V7.1 · CEO 经营驾驶舱</title>
 <style>
 :root{--bg:#0b1110;--panel:#131c1a;--line:#2a3935;--text:#edf5f1;--muted:#93a69f;--green:#9ddd70;--red:#ff786f;--blue:#72b7ff;--amber:#f2bc68}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 -apple-system,"PingFang SC",sans-serif}main{max-width:1440px;margin:auto;padding:28px 18px 60px}h1{font-size:25px;margin:0}h2{font-size:16px;margin:0 0 16px}p{color:var(--muted)}.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin:16px 0}.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}.control,.slider{display:flex;flex-direction:column;gap:6px;color:var(--muted)}.number-wrap{display:flex;align-items:center;background:var(--bg);padding:7px 10px;border-radius:8px}.number-wrap input{width:100%;border:0;background:transparent;color:var(--green);font:inherit}.number-wrap em{font-style:normal}.slider output{float:right;color:var(--green)}.slider input{width:100%;accent-color:var(--green)}.scenarios{display:flex;gap:8px;margin:16px 0}.scenarios button{border:1px solid var(--line);background:var(--panel);color:var(--text);padding:8px 18px;border-radius:20px;cursor:pointer}.scenarios button.active{background:var(--green);color:#10200f}.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}.kpi{padding:16px;background:var(--panel);border:1px solid var(--line);border-radius:12px}.kpi strong{display:block;font-size:24px;color:var(--green);margin:6px 0}.kpi small{color:var(--muted)}.delta{font-size:12px;color:var(--blue)}.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:12px}.chart svg{width:100%;height:auto}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}th:first-child,td:first-child{text-align:left}th{color:var(--muted)}nav{display:flex;gap:16px;flex-wrap:wrap}nav a{color:var(--blue)}pre{white-space:pre-wrap;color:var(--muted);font-size:12px}.warn{color:var(--red)}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px/1.55 -apple-system,"PingFang SC",sans-serif}main{max-width:1440px;margin:auto;padding:28px 18px 60px}h1{font-size:25px;margin:0}h2{font-size:16px;margin:0 0 16px}p{color:var(--muted)}.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;margin:16px 0}.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}.control,.slider{display:flex;flex-direction:column;gap:6px;color:var(--muted)}.number-wrap{display:flex;align-items:center;background:var(--bg);padding:7px 10px;border-radius:8px}.number-wrap input{width:100%;border:0;background:transparent;color:var(--green);font:inherit}.number-wrap em{font-style:normal}.slider output{float:right;color:var(--green)}.slider input{width:100%;accent-color:var(--green)}.scenarios{display:flex;gap:8px;margin:16px 0}.scenarios button,.snapshot-action{border:1px solid var(--line);background:var(--panel);color:var(--text);padding:8px 18px;border-radius:20px;cursor:pointer}.scenarios button.active{background:var(--green);color:#10200f}.snapshot-layout{display:grid;gap:12px}.snapshot-layout textarea{min-height:140px;resize:vertical;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px;font:12px/1.5 monospace}.snapshot-layout input[type=file]{color:var(--muted)}#snapshot-status{margin:0;color:var(--green)}#snapshot-status.error{color:var(--red)}.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}.kpi{padding:16px;background:var(--panel);border:1px solid var(--line);border-radius:12px}.kpi strong{display:block;font-size:24px;color:var(--green);margin:6px 0}.kpi small{color:var(--muted)}.delta{font-size:12px;color:var(--blue)}.charts{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:12px}.chart svg{width:100%;height:auto}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}th:first-child,td:first-child{text-align:left}th{color:var(--muted)}nav{display:flex;gap:16px;flex-wrap:wrap}nav a{color:var(--blue)}pre{white-space:pre-wrap;color:var(--muted);font-size:12px}.warn{color:var(--red)}
 </style></head><body><main>
 <header><h1>菌衡计划 V7.1 · CEO 经营驾驶舱</h1><p>${input.horizonMonths} 个月月度 cohort ｜ 双渠道经济 ｜ 所有数字由输入实时推导</p></header>
+<section class="panel" id="snapshot-import"><h2>经营快照导入</h2><div class="snapshot-layout">
+<div class="scenarios"><button type="button" data-data-mode="assumption" class="active">假设模式</button><button type="button" data-data-mode="actual">实际模式</button></div>
+<input type="file" id="snapshot-file" accept=".json,application/json" aria-label="上传 JSON 经营快照" />
+<textarea id="snapshot-json" placeholder="粘贴 Sandbox Snapshot JSON；导入前会在本地完成契约与库存勾稽校验"></textarea>
+<button type="button" class="snapshot-action" id="import-snapshot">校验并导入快照</button>
+<p id="snapshot-status" role="status" aria-live="polite">假设模式：200 盒仅为默认经营假设，不是平台真实库存。</p>
+</div></section>
 <section class="panel"><h2>经营假设</h2><div class="controls">${numberControls}${sliderControls}</div></section>
 <div class="scenarios"><button class="active" data-scenario="baseline">基准</button><button data-scenario="stress">压力</button><button data-scenario="upside">进取</button></div>
 <section id="kpis" class="kpis"></section>
@@ -125,12 +162,74 @@ export function generateReport(input: SandboxInput): string {
 'use strict';
 ${engineJs}
 ${financeJs}
+${snapshotJs}
+${resolveInventoryKpiParams.toString()}
 const BASE_INPUT = ${JSON.stringify(input)};
 const INITIAL_DASHBOARD = ${JSON.stringify(initialDashboard)};
 const INITIAL_INVENTORY_KPIS = ${JSON.stringify(initialInventoryKpis)};
 const state = ${JSON.stringify(state)};
 let dashboard = INITIAL_DASHBOARD;
 let inventoryKpis = INITIAL_INVENTORY_KPIS;
+const snapshotImporter = createSnapshotImporter();
+const snapshotFile = document.getElementById('snapshot-file');
+const snapshotJson = document.getElementById('snapshot-json');
+const snapshotStatus = document.getElementById('snapshot-status');
+const importButton = document.getElementById('import-snapshot');
+let activeSnapshot = null;
+let activeSnapshotInput = null;
+function setSnapshotStatus(message, isError) {
+  snapshotStatus.textContent = message;
+  snapshotStatus.className = isError ? 'error' : '';
+}
+function updateDataModeButtons() {
+  document.querySelectorAll('[data-data-mode]').forEach(function (button) {
+    button.classList.toggle('active', button.getAttribute('data-data-mode') === state.dataMode);
+  });
+}
+function setDataMode(mode) {
+  if (mode === 'actual' && activeSnapshotInput === null) {
+    setSnapshotStatus('导入失败：实际模式需要先导入通过校验的快照，不会回退到 200 盒。', true);
+    return;
+  }
+  state.dataMode = mode;
+  state.platformStockBoxes = mode === 'actual' ? activeSnapshotInput.platformStockBoxes : 200;
+  updateDataModeButtons();
+  scheduleRender();
+}
+function importSnapshotFromText(raw) {
+  try {
+    const imported = snapshotImporter.importJson(raw);
+    activeSnapshot = imported;
+    activeSnapshotInput = standardizeSnapshot(imported);
+    state.dataMode = imported.source.dataMode;
+    state.platformStockBoxes = state.dataMode === 'actual' ? activeSnapshotInput.platformStockBoxes : 200;
+    updateDataModeButtons();
+    render();
+    setSnapshotStatus('导入成功：' + imported.snapshotId + '；来源修订 ' + imported.sourceRevision + '；当前为' + (state.dataMode === 'actual' ? '实际模式' : '假设模式') + '。', false);
+  } catch (error) {
+    const code = error && typeof error.code === 'string' ? error.code : 'INVALID_JSON';
+    const message = error && typeof error.message === 'string' ? error.message : '无法读取快照';
+    setSnapshotStatus('导入失败 [' + code + ']：' + message, true);
+  }
+}
+snapshotFile.addEventListener('change', function () {
+  const file = snapshotFile.files && snapshotFile.files[0];
+  if (!file) return;
+  file.text().then(function (raw) {
+    snapshotJson.value = raw;
+    importSnapshotFromText(raw);
+  }).catch(function () {
+    setSnapshotStatus('导入失败：无法读取所选文件。', true);
+  });
+});
+importButton.addEventListener('click', function () {
+  importSnapshotFromText(snapshotJson.value);
+});
+document.querySelectorAll('[data-data-mode]').forEach(function (button) {
+  button.addEventListener('click', function () {
+    setDataMode(button.getAttribute('data-data-mode'));
+  });
+});
 function currentInput() {
   const input = JSON.parse(JSON.stringify(BASE_INPUT));
   input.users.monthlyRetention = state.retention / 100;
@@ -145,6 +244,7 @@ function currentInput() {
   return input;
 }
 function money(n) { return Math.round(n).toLocaleString('zh-CN') + ' 元'; }
+function moneyOrUnknown(n) { return Number.isFinite(n) ? money(n) : '未知'; }
 function number(n) { return Number(n).toLocaleString('zh-CN', { maximumFractionDigits: 1 }); }
 function month(n) { return n === null ? '未达到' : '第 ' + n + ' 月'; }
 function delta(current, base, suffix) {
@@ -242,7 +342,7 @@ function renderKpis(result, baseline, inventoryKpis) {
   ];
   let html = '';
   for (const card of cards) html += '<article class="kpi"><span>' + card[0] + '</span><strong>' + card[1] + '</strong><small>' + card[2] + '</small><div class="delta">' + card[3] + '</div></article>';
-  html += '<article class="kpi" id="inventory-asset-kpi"><span>库存与资产</span><strong>' + money(inventoryKpis.inventoryAssetValue) + '</strong><small>缺货机会成本 ' + money(inventoryKpis.stockoutOpportunityCost) + '</small><div class="delta">现金流净影响 ' + money(inventoryKpis.inventoryCashFlow.netCashImpact) + '</div></article>';
+  html += '<article class="kpi" id="inventory-asset-kpi"><span>库存与资产</span><strong>' + moneyOrUnknown(inventoryKpis.inventoryAssetValue) + '</strong><small>缺货机会成本 ' + moneyOrUnknown(inventoryKpis.stockoutOpportunityCost) + '</small><div class="delta">现金流净影响 ' + moneyOrUnknown(inventoryKpis.inventoryCashFlow.netCashImpact) + '</div></article>';
   document.getElementById('kpis').innerHTML = html;
 }
 function renderTables(result, input) {
@@ -275,14 +375,13 @@ function render() {
   const result = dashboard.scenarios[state.scenario];
   const months = result.months;
   const last = months[months.length - 1];
-  inventoryKpis = computeInventoryKpis({
-    platformStockBoxes: state.platformStockBoxes,
-    coachPickupBoxes: last.coachOrderBoxes,
-    stockoutBoxes: last.shortageBoxes,
-    unitCost: input.product.unitCost,
-    revenuePerBox: input.product.boxPrice,
-    coachPickupPrice: input.product.coachPurchasePrice,
-  });
+  inventoryKpis = computeInventoryKpis(resolveInventoryKpiParams(
+    state.dataMode,
+    activeSnapshotInput,
+    state.platformStockBoxes,
+    last,
+    input.product
+  ));
   renderKpis(result, dashboard.scenarios.baseline, inventoryKpis);
   document.getElementById('cash-chart').innerHTML = buildChart(months, [{ color: '#9ddd70', value: (m) => m.cashBalance, markMinimum: true }]);
   document.getElementById('operating-chart').innerHTML = buildChart(months, [
@@ -293,14 +392,30 @@ function render() {
     { color: '#9ddd70', value: (m) => m.activeCoaches },
     { color: '#ff786f', value: (m) => m.dormantCoaches },
   ]);
-  document.getElementById('inventory-chart').innerHTML = buildDualAxisChart(months, [
-    { label: '教练库存', axis: 'y', color: '#f2bc68', value: (m) => m.coachInventory },
-    { label: '缺货盒数', axis: 'y', color: '#ff786f', value: (m) => m.shortageBoxes },
-    { label: '库存资产余额', axis: 'y1', color: '#72b7ff', value: (m) => computeInventoryAssetValue(state.platformStockBoxes - m.coachOrderBoxes, input.product.unitCost) },
-  ]);
+  const inventoryChart = document.getElementById('inventory-chart');
+  if (state.dataMode === 'actual' && activeSnapshotInput && (
+    activeSnapshotInput.stockoutBoxes === undefined ||
+    activeSnapshotInput.unitCost === undefined ||
+    activeSnapshot.inventory.coachClosingBoxes === undefined
+  )) {
+    inventoryChart.textContent = '部分实际库存指标未知：快照缺少缺货、成本或教练结存数据。';
+  } else {
+    inventoryChart.innerHTML = buildDualAxisChart(months, [
+      { label: '教练库存', axis: 'y', color: '#f2bc68', value: (m) => state.dataMode === 'actual' && activeSnapshot ? activeSnapshot.inventory.coachClosingBoxes : m.coachInventory },
+      { label: '缺货盒数', axis: 'y', color: '#ff786f', value: (m) => resolveInventoryKpiParams(state.dataMode, activeSnapshotInput, state.platformStockBoxes, m, input.product).stockoutBoxes },
+      { label: '库存资产余额', axis: 'y1', color: '#72b7ff', value: (m) => {
+        const params = resolveInventoryKpiParams(state.dataMode, activeSnapshotInput, state.platformStockBoxes, m, input.product);
+        return computeInventoryAssetValue(params.platformStockBoxes - params.coachPickupBoxes, params.unitCost);
+      } },
+    ]);
+  }
   document.getElementById('capacity-chart').innerHTML = buildChart(months, [{ color: '#72b7ff', value: (m) => m.capacityUtilization * 100 }]);
   renderTables(result, input);
-  document.getElementById('input-snapshot').textContent = JSON.stringify(input, null, 2);
+  document.getElementById('input-snapshot').textContent = JSON.stringify({
+    mode: state.dataMode,
+    scenarioInput: input,
+    importedSnapshot: activeSnapshot,
+  }, null, 2);
 }
 let debounceTimer = null;
 function scheduleRender() { clearTimeout(debounceTimer); debounceTimer = setTimeout(render, 50); }
