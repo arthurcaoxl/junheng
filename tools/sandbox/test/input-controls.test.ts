@@ -571,6 +571,32 @@ describe('子任务 8：全局经营假设输入与校验', () => {
     expect(report.api.state.platformStockBoxes).toBe(270);
   });
 
+  it('实际快照可选价格缺失时保留显式模拟假设，不把未知值传入重算', () => {
+    const report = createBrowserReport();
+    report.setInput('product.unitCost', '123.45');
+    report.setInput('product.coachPurchasePrice', '456.78');
+    report.setInput('product.boxPrice', '666.66');
+    const degraded = goldenSnapshot();
+    delete degraded.productPricing.unitCostMinor;
+    delete degraded.productPricing.coachPickupPriceMinor;
+    delete degraded.productPricing.revenuePerBoxMinor;
+    degraded.dataQuality.status = 'degraded';
+    degraded.dataQuality.missingFields = [
+      'productPricing.unitCostMinor',
+      'productPricing.coachPickupPriceMinor',
+      'productPricing.revenuePerBoxMinor',
+    ];
+    report.importSnapshot(degraded);
+
+    expect(report.api.currentInput().product.unitCost).toBe(123.45);
+    expect(report.api.currentInput().product.coachPurchasePrice).toBe(456.78);
+    expect(report.api.currentInput().product.boxPrice).toBe(666.66);
+    expect(report.control('product.unitCost').value).toBe('123.45');
+    expect(report.control('product.coachPurchasePrice').value).toBe('456.78');
+    expect(report.control('product.boxPrice').value).toBe('666.66');
+    expect(report.chart()).not.toMatch(/NaN|Infinity|undefined/);
+  });
+
   it('恢复假设模式还原显式假设值，库存预测不隐藏回退固定盒数', () => {
     const report = createBrowserReport();
     report.setInput('platformStockBoxes', '345');
