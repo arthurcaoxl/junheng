@@ -26,6 +26,173 @@ export interface ScenarioResult {
 }
 export interface DashboardResult { scenarios: Record<ScenarioKey, ScenarioResult>; }
 
+export interface ChannelFinancialBase {
+  confirmedRevenue: number;
+  productCost: number;
+  overhead: number;
+  terminalGMV: number;
+  operatingContribution: number;
+  operatingNet: number | null;
+  rewardOffsetUsed: number;
+  rewardCash: number;
+  rewardOffsetAccrued: number;
+}
+
+export interface DirectChannelFinancials extends ChannelFinancialBase {
+  paidBoxes: number;
+  freeBoxes: number;
+}
+
+export interface CoachChannelFinancials extends ChannelFinancialBase {
+  orderBoxes: number;
+  firstCaseBoxes: number;
+  netCashFlow: number;
+}
+
+export interface ChannelFinancialBreakdown {
+  direct: DirectChannelFinancials;
+  coach: CoachChannelFinancials;
+  directCommon: number | null;
+  coachCommon: number | null;
+  unallocatedCommonCosts: number;
+}
+
+export function computeChannelFinancials(
+  month: MonthResult,
+  input: SandboxInput,
+): ChannelFinancialBreakdown {
+  const directProductCost = (month.directPaidBoxes + month.directFreeBoxes) * input.product.unitCost;
+  const coachProductCost = month.coachOrderBoxes * input.product.unitCost;
+  const directTerminalGMV = month.directPaidBoxes * input.product.boxPrice;
+  const coachTerminalGMV = month.coachSoldBoxes * input.product.boxPrice;
+  const directOverhead = directTerminalGMV * input.finance.overheadRate;
+  const coachOverhead = coachTerminalGMV * input.finance.overheadRate;
+  const directOperatingContribution = month.directRevenue - directProductCost;
+  const coachOperatingContribution = month.coachOrderRevenue
+    - coachProductCost
+    - month.dataRewards
+    - month.referralRewards;
+
+  const commonCosts = month.fixedCosts + month.staffBaseSalary;
+  const hasConfirmedRevenue = month.confirmedRevenue > 0;
+  const directCommon = hasConfirmedRevenue
+    ? commonCosts * month.directRevenue / month.confirmedRevenue
+    : null;
+  const coachCommon = hasConfirmedRevenue
+    ? commonCosts * month.coachOrderRevenue / month.confirmedRevenue
+    : null;
+
+  return {
+    direct: {
+      confirmedRevenue: month.directRevenue,
+      paidBoxes: month.directPaidBoxes,
+      freeBoxes: month.directFreeBoxes,
+      productCost: directProductCost,
+      overhead: directOverhead,
+      terminalGMV: directTerminalGMV,
+      operatingContribution: directOperatingContribution,
+      operatingNet: directCommon === null
+        ? null
+        : directOperatingContribution - directOverhead - directCommon,
+      rewardOffsetUsed: 0,
+      rewardCash: 0,
+      rewardOffsetAccrued: 0,
+    },
+    coach: {
+      confirmedRevenue: month.coachOrderRevenue,
+      orderBoxes: month.coachOrderBoxes,
+      firstCaseBoxes: month.firstCaseBoxes,
+      productCost: coachProductCost,
+      overhead: coachOverhead,
+      terminalGMV: coachTerminalGMV,
+      operatingContribution: coachOperatingContribution,
+      operatingNet: coachCommon === null
+        ? null
+        : coachOperatingContribution
+          - coachOverhead
+          - month.staffPerformance
+          - month.incubationReward
+          - coachCommon,
+      netCashFlow: month.coachOrderRevenue
+        - month.rewardOffsetUsed
+        - coachProductCost
+        - month.rewardCash
+        - coachOverhead
+        - month.staffPerformance
+        - month.incubationReward
+        - (coachCommon ?? 0),
+      rewardOffsetUsed: month.rewardOffsetUsed,
+      rewardCash: month.rewardCash,
+      rewardOffsetAccrued: month.rewardOffsetAccrued,
+    },
+    directCommon,
+    coachCommon,
+    unallocatedCommonCosts: hasConfirmedRevenue ? 0 : commonCosts,
+  };
+}
+
+export function computeDynamicBEP(
+  month: MonthResult,
+  input: SandboxInput,
+  channelResult: ReturnType<typeof computeChannelFinancials>,
+): number | null {
+  const effectiveBoxes = month.directPaidBoxes + month.coachSoldBoxes;
+  if (effectiveBoxes <= 0) return null;
+
+  const variableContribution = channelResult.direct.operatingContribution
+    + channelResult.coach.operatingContribution
+    - channelResult.direct.overhead
+    - channelResult.coach.overhead
+    - month.staffPerformance
+    - month.incubationReward;
+  const contributionPerUser = monthlyRecurringBoxes(input.product)
+    * variableContribution
+    / effectiveBoxes;
+  if (contributionPerUser <= 0 || !Number.isFinite(contributionPerUser)) return null;
+
+  const commonCosts = month.fixedCosts + month.staffBaseSalary;
+  const users = commonCosts / contributionPerUser;
+  return Number.isFinite(users) ? Math.ceil(users) : null;
+}
+
+export interface RunwayMetrics {
+  maxOperatingLoss: number;
+  maxOperatingLossMonth: number | null;
+  maxCashGap: number;
+  runway: number | null;
+}
+
+export function computeRunwayMetrics(
+  months: MonthResult[],
+  cashWarningLine: number,
+): RunwayMetrics {
+  if (months.length === 0) {
+    return { maxOperatingLoss: 0, maxOperatingLossMonth: null, maxCashGap: 0, runway: null };
+  }
+
+  const initialCash = months[0].cashBalance - months[0].netCashFlow;
+  let runway = initialCash < cashWarningLine ? 0 : null;
+  let minOperatingNet = months[0].operatingNet;
+  let maxOperatingLossMonth = months[0].operatingNet < 0 ? months[0].month : null;
+  let minCashBalance = months[0].cashBalance;
+
+  for (const month of months) {
+    if (month.operatingNet < minOperatingNet) {
+      minOperatingNet = month.operatingNet;
+      maxOperatingLossMonth = month.month;
+    }
+    if (month.cashBalance < minCashBalance) minCashBalance = month.cashBalance;
+    if (runway === null && month.cashBalance < cashWarningLine) runway = month.month;
+  }
+
+  return {
+    maxOperatingLoss: Math.max(0, -minOperatingNet),
+    maxOperatingLossMonth,
+    maxCashGap: Math.max(0, cashWarningLine - minCashBalance),
+    runway,
+  };
+}
+
 export function firstReachedMonth(
   months: MonthResult[],
   key: 'operatingNet' | 'cumulativeCashFlow',
