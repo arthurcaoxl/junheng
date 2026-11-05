@@ -8,8 +8,9 @@ import {
   runSeedMonth, scenarioMultipliers, simulate, simulateUserMonth, splitCompleters,
 } from './engine';
 import {
-  buildDashboard, calculateChannelLTV, equivalentMaintenanceBEP,
-  firstReachedMonth, summarizeScenario, sustainableOperatingNet,
+  buildDashboard, calculateChannelLTV, computeChannelFinancials, computeDynamicBEP,
+  computeRunwayMetrics, equivalentMaintenanceBEP, firstReachedMonth,
+  summarizeScenario, sustainableOperatingNet,
 } from './metrics';
 import {
   computeInventoryAssetValue, computeInventoryCashFlow,
@@ -19,7 +20,7 @@ import {
   SNAPSHOT_BROWSER_CONSTANTS,
   SNAPSHOT_BROWSER_FUNCTIONS,
 } from './snapshot';
-import type { StandardizedSnapshot } from './snapshot';
+import type { SandboxSnapshot, StandardizedSnapshot } from './snapshot';
 import type { MonthResult } from './engine';
 import type { ScenarioResult } from './metrics';
 import type { SandboxInput, ScenarioKey } from './schema';
@@ -30,7 +31,8 @@ const ENGINE_FUNCTIONS = [
   scenarioMultipliers, resolveUserRates, splitCompleters, addCompleterOutcomes,
   simulateUserMonth, runSeedMonth, applyQualification, isCoachCohortActive,
   simulate, calculateStaffCapacity, firstReachedMonth, sustainableOperatingNet,
-  equivalentMaintenanceBEP, calculateChannelLTV, summarizeScenario, buildDashboard,
+  equivalentMaintenanceBEP, computeChannelFinancials, computeDynamicBEP,
+  computeRunwayMetrics, buildCeoCharts, calculateChannelLTV, summarizeScenario, buildDashboard,
 ];
 
 const FINANCE_FUNCTIONS = [
@@ -380,7 +382,67 @@ function resolveInventoryKpiParams(
   };
 }
 
-export function generateReport(input: SandboxInput): string {
+function buildCeoCharts(months: MonthResult[], input: SandboxInput, cashWarningLine: number) {
+  // 当前快照契约不含双渠道财务历史，三类图表只能标记为模拟预测。
+  const channelResults = months.map(function (month) {
+    return computeChannelFinancials(month, input);
+  });
+  const channelFinancials = months.map(function (month, index) {
+    const channelResult = channelResults[index];
+    return {
+      month: month.month,
+      directRevenue: channelResult.direct.confirmedRevenue,
+      coachRevenue: channelResult.coach.confirmedRevenue,
+      directProductCost: channelResult.direct.productCost,
+      coachProductCost: channelResult.coach.productCost,
+      directCommon: channelResult.directCommon,
+      coachCommon: channelResult.coachCommon,
+      directOperatingNet: channelResult.direct.operatingNet,
+      coachOperatingNet: channelResult.coach.operatingNet,
+      unallocatedCommonCosts: channelResult.unallocatedCommonCosts,
+      isActual: false,
+      isForecast: true,
+    };
+  });
+  const dynamicBEP = months.map(function (month, index) {
+    const channelResult = channelResults[index];
+    return {
+      month: month.month,
+      users: computeDynamicBEP(month, input, channelResult),
+      isActual: false,
+      isForecast: true,
+    };
+  });
+  const runway = computeRunwayMetrics(months, cashWarningLine);
+  return {
+    channelFinancials,
+    dynamicBEP,
+    cashRunway: {
+      points: months.map(function (month) {
+        return {
+          month: month.month,
+          cashBalance: month.cashBalance,
+          cashWarningLine,
+          isActual: false,
+          isForecast: true,
+        };
+      }),
+      maxOperatingLoss: runway.maxOperatingLoss,
+      maxOperatingLossMonth: runway.maxOperatingLossMonth,
+      maxCashGap: runway.maxCashGap,
+      runway: runway.runway,
+      runwayLabel: runway.runway === null
+        ? '超过推演期'
+        : runway.runway === 0 ? '期初已触线' : '第 ' + runway.runway + ' 月触线',
+    },
+  };
+}
+
+export function generateReport(
+  input: SandboxInput,
+  snapshots: SandboxSnapshot[] = [],
+  cashWarningLine = 0,
+): string {
   const initialDashboard = buildDashboard(input);
   const cleanBrowserJs = (source: string) => source.replace(
     new RegExp('\\b' + 'imp' + 'ort_[A-Za-z0-9_$]+\\.', 'g'), '',
@@ -430,6 +492,7 @@ ${SNAPSHOT_BROWSER_FUNCTIONS.map((fn) => fn.toString()).join('\n')}
     },
     platformStockBoxes,
     assumptionPlatformStockBoxes: platformStockBoxes,
+    cashWarningLine,
     dataMode: 'assumption' as 'actual' | 'assumption',
     scenario: 'baseline' as ScenarioKey,
   };
@@ -487,6 +550,9 @@ ${assumptionPanels}
   <div class="panel chart"><h2>活跃／休眠教练</h2><div id="coach-chart"></div></div>
   <div class="panel chart"><h2>教练库存与缺货</h2><div id="inventory-chart"></div></div>
   <div class="panel chart"><h2>员工容量利用率</h2><div id="capacity-chart"></div></div>
+  <div class="panel chart"><h2>双渠道财务对比</h2><div id="channel-financials-chart"></div></div>
+  <div class="panel chart"><h2>动态 BEP 趋势</h2><div id="dynamic-bep-chart"></div></div>
+  <div class="panel chart"><h2>Runway 现金与警戒线</h2><div id="runway-cash-chart"></div></div>
 </section>
 <section class="panel"><nav><a href="#users-drilldown">用户增长与分流</a><a href="#coaches-drilldown">教练准入与休眠</a><a href="#finance-drilldown">库存分润与平台损益</a><a href="#staff-drilldown">员工容量与扩编</a></nav></section>
 <section id="users-drilldown" class="panel"><h2>用户增长与分流</h2><div id="users-table"></div><div id="ltv"></div></section>
@@ -515,9 +581,11 @@ const SLIDER_BINDINGS = ${JSON.stringify([
   ])};
 const INITIAL_DASHBOARD = ${JSON.stringify(initialDashboard)};
 const INITIAL_INVENTORY_KPIS = ${JSON.stringify(initialInventoryKpis)};
+const INITIAL_CEO_CHARTS = ${JSON.stringify(buildCeoCharts(initialMonths, input, cashWarningLine))};
 const state = ${JSON.stringify(state)};
 let dashboard = INITIAL_DASHBOARD;
 let inventoryKpis = INITIAL_INVENTORY_KPIS;
+let ceoCharts = INITIAL_CEO_CHARTS;
 const snapshotImporter = createSnapshotImporter();
 const snapshotFile = document.getElementById('snapshot-file');
 const snapshotJson = document.getElementById('snapshot-json');
@@ -525,7 +593,7 @@ const snapshotStatus = document.getElementById('snapshot-status');
 const importButton = document.getElementById('import-snapshot');
 let activeSnapshot = null;
 let activeSnapshotInput = null;
-const snapshotHistory = [];
+const snapshotHistory = ${JSON.stringify(snapshots)};
 function setSnapshotStatus(message, isError) {
   snapshotStatus.textContent = message;
   snapshotStatus.className = isError ? 'error' : '';
@@ -701,6 +769,91 @@ function buildDualAxisChart(months, series) {
   html += '<text x="' + (W - P) + '" y="18" fill="#93a69f" font-size="11" text-anchor="end">' + number(scales.y1.max) + '</text>';
   html += '<text x="' + (W - P) + '" y="' + (H - 8) + '" fill="#93a69f" font-size="11" text-anchor="end">' + number(scales.y1.min) + '</text></svg>';
   return html;
+}
+function isChartNumber(value) {
+  return typeof value === 'number' && Number.isFinite(value);
+}
+function buildCeoLineChart(points, series, warningLine) {
+  const W = 620, H = 260, P = 44;
+  let min = 0, max = 1;
+  for (const point of points) for (const item of series) {
+    const value = point[item.key];
+    if (!isChartNumber(value)) continue;
+    min = Math.min(min, value);
+    max = Math.max(max, value);
+  }
+  if (isChartNumber(warningLine)) {
+    min = Math.min(min, warningLine);
+    max = Math.max(max, warningLine);
+  }
+  function x(index) { return P + index * (W - P * 2) / Math.max(1, points.length - 1); }
+  function y(value) { return H - P - (value - min) * (H - P * 2) / (max - min || 1); }
+  let html = '<div>';
+  for (const item of series) html += '<span style="color:' + item.color + ';margin-right:12px">● ' + item.label + '</span>';
+  html += '</div><svg viewBox="0 0 ' + W + ' ' + H + '" xmlns="http://www.w3.org/2000/svg" role="img">';
+  html += '<line x1="' + P + '" y1="' + y(0) + '" x2="' + (W - P) + '" y2="' + y(0) + '" stroke="#2a3935"/>';
+  if (isChartNumber(warningLine)) {
+    html += '<line data-cash-warning-line x1="' + P + '" y1="' + y(warningLine) + '" x2="' + (W - P) + '" y2="' + y(warningLine) + '" stroke="#ff786f" stroke-width="1.5" stroke-dasharray="3 4"/>';
+    html += '<text x="' + (W - P) + '" y="' + (y(warningLine) - 6) + '" fill="#ff786f" font-size="10" text-anchor="end">现金警戒线 ' + number(warningLine) + '</text>';
+  }
+  for (const item of series) {
+    let segment = [];
+    let segmentKind = null;
+    function flushSegment() {
+      if (segment.length > 1) {
+        const coordinates = segment.map(function (entry) { return x(entry.index) + ',' + y(entry.value); }).join(' ');
+        html += '<polyline data-ceo-line="' + segmentKind + '" data-series-path="' + item.key + '" points="' + coordinates + '" fill="none" stroke="' + item.color + '" stroke-width="2.5"' + (segmentKind === 'forecast' ? ' stroke-dasharray="7 5"' : '') + '/>';
+      }
+      segment = [];
+    }
+    for (let index = 0; index <= points.length; index++) {
+      const point = points[index];
+      const value = point ? point[item.key] : null;
+      const kind = point && point.isActual ? 'actual' : 'forecast';
+      if (point && isChartNumber(value)) {
+        if (segment.length > 0 && kind !== segmentKind) flushSegment();
+        segmentKind = kind;
+        segment.push({ index: index, value: value });
+      } else {
+        flushSegment();
+      }
+    }
+  }
+  for (let index = 0; index < points.length; index++) {
+    const point = points[index];
+    const kind = point.isActual ? 'actual' : 'forecast';
+    for (const item of series) {
+      const value = point[item.key];
+      if (!isChartNumber(value)) continue;
+      html += '<circle data-ceo-point="' + kind + '" data-series="' + item.key + '" data-value="' + value + '" data-month="' + point.month + '" cx="' + x(index) + '" cy="' + y(value) + '" r="3.5" fill="#0b1110" stroke="' + item.color + '" stroke-width="2"><title>第 ' + point.month + ' 月；' + item.label + '：' + number(value) + '；' + (kind === 'actual' ? '实际' : '模拟预测') + '</title></circle>';
+    }
+  }
+  html += '<text x="' + P + '" y="18" fill="#93a69f" font-size="11">' + number(max) + '</text>';
+  html += '<text x="' + P + '" y="' + (H - 8) + '" fill="#93a69f" font-size="11">' + number(min) + '</text>';
+  if (points.length > 0) {
+    html += '<text x="' + P + '" y="' + (H - 22) + '" fill="#93a69f" font-size="10">第 ' + points[0].month + ' 月</text>';
+    html += '<text x="' + (W - P) + '" y="' + (H - 22) + '" fill="#93a69f" font-size="10" text-anchor="end">第 ' + points[points.length - 1].month + ' 月</text>';
+  }
+  html += '</svg><p>实线＝实际历史；虚线＝模拟预测。当前快照不含实际财务历史，本图全部使用虚线。</p>';
+  return html;
+}
+function renderCeoCharts(charts) {
+  document.getElementById('channel-financials-chart').innerHTML = buildCeoLineChart(charts.channelFinancials, [
+    { key: 'directRevenue', label: '直营确认收入', color: '#9ddd70' },
+    { key: 'coachRevenue', label: '教练确认收入', color: '#72b7ff' },
+    { key: 'directProductCost', label: '直营产品成本', color: '#ff786f' },
+    { key: 'coachProductCost', label: '教练产品成本', color: '#f2bc68' },
+    { key: 'directCommon', label: '直营公共分摊', color: '#c39bd3' },
+    { key: 'coachCommon', label: '教练公共分摊', color: '#76d7c4' },
+  ]);
+  document.getElementById('dynamic-bep-chart').innerHTML = buildCeoLineChart(charts.dynamicBEP, [
+    { key: 'users', label: '动态 BEP（人）', color: '#9ddd70' },
+  ]);
+  document.getElementById('runway-cash-chart').innerHTML = buildCeoLineChart(charts.cashRunway.points, [
+    { key: 'cashBalance', label: '期末现金', color: '#72b7ff' },
+  ], state.cashWarningLine) + '<p>最大单月经营亏损：' + money(charts.cashRunway.maxOperatingLoss) +
+    (charts.cashRunway.maxOperatingLossMonth === null ? '（无经营亏损）' : '（第 ' + charts.cashRunway.maxOperatingLossMonth + ' 月）') +
+    '；最大现金缺口：' + money(charts.cashRunway.maxCashGap) + '；Runway：<strong>' + charts.cashRunway.runwayLabel + '</strong></p>';
 }
 function escapeHtml(value) {
   return String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -947,6 +1100,8 @@ function render() {
   const forecastPoints = buildForecastInventoryPoints(months, input.product, state.assumptionPlatformStockBoxes);
   inventoryChart.innerHTML = buildInventoryTimelineChart(actualTimeline.points, forecastPoints, actualTimeline.conflicts, actualMode);
   document.getElementById('capacity-chart').innerHTML = buildChart(months, [{ color: '#72b7ff', value: (m) => toDisplayPercent(m.capacityUtilization) }]);
+  ceoCharts = buildCeoCharts(months, input, state.cashWarningLine);
+  renderCeoCharts(ceoCharts);
   renderTables(result, input);
   document.getElementById('input-snapshot').textContent = JSON.stringify({
     mode: state.dataMode,
