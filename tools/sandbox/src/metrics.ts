@@ -155,6 +155,44 @@ export function computeDynamicBEP(
   return Number.isFinite(users) ? Math.ceil(users) : null;
 }
 
+export interface RunwayMetrics {
+  maxOperatingLoss: number;
+  maxOperatingLossMonth: number | null;
+  maxCashGap: number;
+  runway: number | null;
+}
+
+export function computeRunwayMetrics(
+  months: MonthResult[],
+  cashWarningLine: number,
+): RunwayMetrics {
+  if (months.length === 0) {
+    return { maxOperatingLoss: 0, maxOperatingLossMonth: null, maxCashGap: 0, runway: null };
+  }
+
+  const initialCash = months[0].cashBalance - months[0].netCashFlow;
+  let runway = initialCash < cashWarningLine ? 0 : null;
+  let minOperatingNet = months[0].operatingNet;
+  let maxOperatingLossMonth = months[0].operatingNet < 0 ? months[0].month : null;
+  let minCashBalance = months[0].cashBalance;
+
+  for (const month of months) {
+    if (month.operatingNet < minOperatingNet) {
+      minOperatingNet = month.operatingNet;
+      maxOperatingLossMonth = month.month;
+    }
+    if (month.cashBalance < minCashBalance) minCashBalance = month.cashBalance;
+    if (runway === null && month.cashBalance < cashWarningLine) runway = month.month;
+  }
+
+  return {
+    maxOperatingLoss: Math.max(0, -minOperatingNet),
+    maxOperatingLossMonth,
+    maxCashGap: Math.max(0, cashWarningLine - minCashBalance),
+    runway,
+  };
+}
+
 export function firstReachedMonth(
   months: MonthResult[],
   key: 'operatingNet' | 'cumulativeCashFlow',
