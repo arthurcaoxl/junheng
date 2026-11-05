@@ -638,4 +638,19 @@ describe('子任务 8：全局经营假设输入与校验', () => {
     expect(report.html).not.toContain('fetch(');
     expect(report.html).not.toContain('XMLHttpRequest');
   });
+
+  it('初始渲染百分比仅换算一次且金额保留两位小数', () => {
+    const input = sampleInput();
+    input.users.monthlyRetention = 0.425;
+    input.product.boxPrice = 666.66;
+    const report = createBrowserReport(input);
+    const currentInput = report.api.currentInput();
+
+    for (const spec of FIELD_SPECS.filter((field) => field.kind === 'percent')) {
+      const storedValue = getPath(currentInput, spec.path);
+      expect(Number(report.control(spec.path).value), spec.path).toBeCloseTo(storedValue * 100, 10);
+    }
+    expect(report.control('users.monthlyRetention').value).toBe('42.5');
+    expect(report.control('product.boxPrice').value).toBe('666.66');
+  });
 });
