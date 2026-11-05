@@ -152,8 +152,36 @@ function controlId(path: string): string {
   return legacyIds[path] ?? `ci-${path.replace(/\./g, '-')}`;
 }
 
+export function toDisplayPercent(stored: number): number {
+  return stored * 100;
+}
+
+export function toStoredPercent(display: number): number {
+  return display / 100;
+}
+
+export function isValidMoney(s: string): boolean {
+  if (!/^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/.test(s)) return false;
+  const decimalIndex = s.indexOf('.');
+  const whole = decimalIndex === -1 ? s : s.slice(0, decimalIndex);
+  const fraction = decimalIndex === -1 ? '' : s.slice(decimalIndex + 1);
+  const minor = Number(whole) * 100 + Number(fraction.padEnd(2, '0') || 0);
+  return Number.isSafeInteger(minor);
+}
+
+function parseObjectPath(path: string): string[] {
+  if (!/^[A-Za-z0-9_]+(?:\.[A-Za-z0-9_]+)*$/.test(path)) throw new Error('非法路径：' + path);
+  const keys = path.match(/[^.]+/g) ?? [];
+  for (const key of keys) {
+    if (key === '__proto__' || key === 'prototype' || key === 'constructor') {
+      throw new Error('危险路径：' + path);
+    }
+  }
+  return keys;
+}
+
 function readInputPath(input: SandboxInput, path: string): number {
-  return path.split('.').reduce((value: any, key) => value[key], input as any) as number;
+  return readObjectPath(input, path) as number;
 }
 
 function parseControlValue(raw: string, min: number, integer: boolean): number | null {
@@ -166,16 +194,17 @@ function parseControlValue(raw: string, min: number, integer: boolean): number |
 function parseAssumptionValue(raw: string, rule: BrowserControlRule) {
   const normalized = raw.trim();
   if (normalized === '') return { value: null, error: '请输入数值，不能留空。' };
-  if (!/^\d+(?:\.\d+)?$/.test(normalized)) {
+  if (rule.kind === 'money') {
+    if (!isValidMoney(normalized)) {
+      return { value: null, error: '金额必须使用非负普通十进制数字，最多保留两位小数，且换算到分必须是安全整数。' };
+    }
+  } else if (!/^\d+(?:\.\d+)?$/.test(normalized)) {
     return { value: null, error: '必须使用普通十进制数字，不支持科学计数法或其他格式。' };
   }
   const value = Number(normalized);
   if (!Number.isFinite(value)) return { value: null, error: '输入必须是有限数值。' };
   if (rule.kind === 'integer' && !Number.isSafeInteger(value)) {
     return { value: null, error: '计数字段必须是安全整数，不能包含小数或超出安全整数范围。' };
-  }
-  if (rule.kind === 'money' && (normalized.split('.')[1] ?? '').length > 2) {
-    return { value: null, error: '金额最多保留两位小数，不会自动四舍五入。' };
   }
   if (value < rule.min || (rule.exclusiveMin === true && value === rule.min)) {
     return { value: null, error: rule.exclusiveMin === true ? `输入必须大于 ${rule.min}。` : `输入不能小于 ${rule.min}。` };
@@ -188,11 +217,12 @@ function parseAssumptionValue(raw: string, rule: BrowserControlRule) {
 }
 
 function readObjectPath(object: any, path: string): any {
-  return path.split('.').reduce((value, key) => value[key], object);
+  const keys = parseObjectPath(path);
+  return keys.reduce((value, key) => value[key], object);
 }
 
 function writeObjectPath(object: any, path: string, value: number): void {
-  const keys = path.split('.');
+  const keys = parseObjectPath(path);
   const last = keys.pop() as string;
   const target = keys.reduce((current, key) => current[key], object);
   target[last] = value;
@@ -223,7 +253,7 @@ function currentControlNumber(path: string): number {
   }
   const rule = findControlRule(path);
   const value = readObjectPath(state.values, path);
-  return rule.kind === 'percent' ? value * 100 : value;
+  return rule.kind === 'percent' ? toDisplayPercent(value) : value;
 }
 
 function syncLegacyState(path: string, value: number): void {
@@ -262,7 +292,7 @@ function commitNumericPath(path: string, raw: string, source: string): boolean {
     setControlError(input, parsed.error);
     return false;
   }
-  const stored = rule.kind === 'percent' ? parsed.value / 100 : parsed.value;
+  const stored = rule.kind === 'percent' ? toStoredPercent(parsed.value) : parsed.value;
   if (path === 'platformStockBoxes') {
     state.platformStockBoxes = stored;
     state.assumptionPlatformStockBoxes = stored;
@@ -284,7 +314,7 @@ function updateFlowDraft(path: string, raw: string): void {
     setControlError(input, parsed.error);
     return;
   }
-  const key = path.split('.').pop() as string;
+  const key = parseObjectPath(path).pop() as string;
   state.flowDraft[key] = parsed.value;
   setControlError(input, '');
 }
@@ -306,8 +336,9 @@ function applyFlowRates(): void {
     }
   }
   if (!valid) return;
-  const sum = values[0] + values[1] + values[2];
-  if (Math.abs(sum - 100) > 1e-9) {
+  const storedValues = values.map((value) => toStoredPercent(value));
+  const sum = storedValues[0] + storedValues[1] + storedValues[2];
+  if (Math.abs(sum - 1) > 1e-9) {
     for (const path of paths) {
       const rule = findControlRule(path);
       setControlError(document.getElementById(rule.id) as any, '延伸、维持和流失分流率合计必须等于 100%。');
@@ -315,8 +346,8 @@ function applyFlowRates(): void {
     return;
   }
   for (let index = 0; index < paths.length; index++) {
-    writeObjectPath(state.values, paths[index], values[index] / 100);
-    state.flowDraft[paths[index].split('.').pop() as string] = values[index];
+    writeObjectPath(state.values, paths[index], storedValues[index]);
+    state.flowDraft[parseObjectPath(paths[index]).pop() as string] = values[index];
   }
   scheduleRender();
 }
@@ -358,7 +389,8 @@ export function generateReport(input: SandboxInput): string {
     .map((fn) => fn.toString())
     .join('\n'));
   const inputJs = cleanBrowserJs([
-    parseAssumptionValue, readObjectPath, writeObjectPath, findControlRule,
+    toDisplayPercent, toStoredPercent, isValidMoney, parseAssumptionValue,
+    parseObjectPath, readObjectPath, writeObjectPath, findControlRule,
     isSnapshotProtectedPath, setControlError, currentControlNumber, syncLegacyState,
     syncPairedControl, commitNumericPath, updateFlowDraft, applyFlowRates, applyModeProtection,
   ].map((fn) => fn.toString()).join('\n'));
@@ -381,9 +413,9 @@ ${SNAPSHOT_BROWSER_FUNCTIONS.map((fn) => fn.toString()).join('\n')}
     coachPickupPrice: input.product.coachPurchasePrice,
   });
   const state = {
-    retention: input.users.monthlyRetention * 100,
+    retention: toDisplayPercent(input.users.monthlyRetention),
     acquisition: input.coaches.monthlyNewUsersPerCoach,
-    candidate: input.coaches.candidateRate * 100,
+    candidate: toDisplayPercent(input.coaches.candidateRate),
     rent: input.finance.rent,
     office: input.finance.monthlyOffice,
     staff: input.staff.initialCount,
@@ -392,9 +424,9 @@ ${SNAPSHOT_BROWSER_FUNCTIONS.map((fn) => fn.toString()).join('\n')}
     seed2: input.seed.phase2.users,
     values: input,
     flowDraft: {
-      extensionRate: input.users.extensionRate * 100,
-      maintenanceRate: input.users.maintenanceRate * 100,
-      churnRate: input.users.churnRate * 100,
+      extensionRate: toDisplayPercent(input.users.extensionRate),
+      maintenanceRate: toDisplayPercent(input.users.maintenanceRate),
+      churnRate: toDisplayPercent(input.users.churnRate),
     },
     platformStockBoxes,
     assumptionPlatformStockBoxes: platformStockBoxes,
@@ -410,7 +442,7 @@ ${SNAPSHOT_BROWSER_FUNCTIONS.map((fn) => fn.toString()).join('\n')}
     const controls = INPUT_CONTROLS.filter((control) => control.group === group).map((control) => {
       const id = controlId(control.path);
       const rawValue = control.path === 'platformStockBoxes' ? platformStockBoxes : readInputPath(input, control.path);
-      const displayValue = control.kind === 'percent' ? rawValue * 100 : rawValue;
+      const displayValue = control.kind === 'percent' ? toDisplayPercent(rawValue) : rawValue;
       return `<label class="control" for="${id}"><span>${control.label}</span><span class="number-wrap">
         <input type="text" inputmode="${control.kind === 'integer' ? 'numeric' : 'decimal'}" id="${id}" data-input-path="${control.path}" value="${displayValue}" aria-invalid="false" aria-describedby="error-${id}" />
       </span><small class="control-error" id="error-${id}" role="alert" aria-live="polite"></small></label>`;
@@ -879,7 +911,7 @@ function renderTables(result, input) {
   );
   document.getElementById('staff-table').innerHTML = table(
     ['月份', '员工', '教练容量', '用户容量', '利用率', '建议员工', '扩编缺口', '底薪', '孵化奖', '绩效'],
-    months.map((m) => [m.month, m.staffCount, number(m.coachCapacity), number(m.userCapacity), number(m.capacityUtilization * 100) + '%', m.suggestedStaffCount, m.staffExpansionGap, money(m.staffBaseSalary), money(m.incubationReward), money(m.staffPerformance)]),
+    months.map((m) => [m.month, m.staffCount, number(m.coachCapacity), number(m.userCapacity), number(toDisplayPercent(m.capacityUtilization)) + '%', m.suggestedStaffCount, m.staffExpansionGap, money(m.staffBaseSalary), money(m.incubationReward), money(m.staffPerformance)]),
   );
   document.getElementById('audit-table').innerHTML = table(
     ['月份', '现金流入', '现金流出', '期末现金', '奖励抵扣', '奖励付现', '产品成本', '动态平摊'],
@@ -914,7 +946,7 @@ function render() {
   const actualTimeline = actualMode ? buildActualInventoryPoints(snapshotHistory) : { points: [], conflicts: [] };
   const forecastPoints = buildForecastInventoryPoints(months, input.product, state.assumptionPlatformStockBoxes);
   inventoryChart.innerHTML = buildInventoryTimelineChart(actualTimeline.points, forecastPoints, actualTimeline.conflicts, actualMode);
-  document.getElementById('capacity-chart').innerHTML = buildChart(months, [{ color: '#72b7ff', value: (m) => m.capacityUtilization * 100 }]);
+  document.getElementById('capacity-chart').innerHTML = buildChart(months, [{ color: '#72b7ff', value: (m) => toDisplayPercent(m.capacityUtilization) }]);
   renderTables(result, input);
   document.getElementById('input-snapshot').textContent = JSON.stringify({
     mode: state.dataMode,
