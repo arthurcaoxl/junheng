@@ -46,4 +46,4 @@ npm run build
 | 3 | bugfix-3-routing-scroll | 修复路由滚动测试的 jsdom 时序依赖 | 已合并 | 裁判验收通过；仅修改测试，未改产品代码；291 项测试全绿 |
 | 4 | feature-4-inventory-asset | 沙盘 4.0 库存与资金联动模型 | 已合并 | 1104 目录；测试先行；BEP 锁死 393/317，禁 503 |
 | 5 | feature-5-sandbox-platform-design | 沙盘与平台数据打通的架构与算法方案设计 | 已合并 | 仅设计文档；不改生产代码、底层引擎或 Supabase；200 盒默认输入待真实数据映射 |
-| 6 | feature-6-sandbox-snapshot-import | 沙盘阶段 A：人工 JSON 快照导入与契约校验 | 进行中 | 测试先行；缺必填字段严格阻断；禁止回退 200 盒；不改 engine/schema/finance |
+| 6 | feature-6-sandbox-snapshot-import | 沙盘阶段 A：人工 JSON 快照导入与契约校验 | 已合并 | 测试先行；缺必填字段严格阻断；禁止回退 200 盒；不改 engine/schema/finance |
