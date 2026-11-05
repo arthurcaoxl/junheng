@@ -26,6 +26,111 @@ export interface ScenarioResult {
 }
 export interface DashboardResult { scenarios: Record<ScenarioKey, ScenarioResult>; }
 
+export interface ChannelFinancialBase {
+  confirmedRevenue: number;
+  productCost: number;
+  overhead: number;
+  terminalGMV: number;
+  operatingContribution: number;
+  operatingNet: number | null;
+  rewardOffsetUsed: number;
+  rewardCash: number;
+  rewardOffsetAccrued: number;
+}
+
+export interface DirectChannelFinancials extends ChannelFinancialBase {
+  paidBoxes: number;
+  freeBoxes: number;
+}
+
+export interface CoachChannelFinancials extends ChannelFinancialBase {
+  orderBoxes: number;
+  firstCaseBoxes: number;
+  netCashFlow: number;
+}
+
+export interface ChannelFinancialBreakdown {
+  direct: DirectChannelFinancials;
+  coach: CoachChannelFinancials;
+  directCommon: number | null;
+  coachCommon: number | null;
+  unallocatedCommonCosts: number;
+}
+
+export function computeChannelFinancials(
+  month: MonthResult,
+  input: SandboxInput,
+): ChannelFinancialBreakdown {
+  const directProductCost = (month.directPaidBoxes + month.directFreeBoxes) * input.product.unitCost;
+  const coachProductCost = month.coachOrderBoxes * input.product.unitCost;
+  const directTerminalGMV = month.directPaidBoxes * input.product.boxPrice;
+  const coachTerminalGMV = month.coachSoldBoxes * input.product.boxPrice;
+  const directOverhead = directTerminalGMV * input.finance.overheadRate;
+  const coachOverhead = coachTerminalGMV * input.finance.overheadRate;
+  const directOperatingContribution = month.directRevenue - directProductCost;
+  const coachOperatingContribution = month.coachOrderRevenue
+    - coachProductCost
+    - month.dataRewards
+    - month.referralRewards;
+
+  const commonCosts = month.fixedCosts + month.staffBaseSalary;
+  const hasConfirmedRevenue = month.confirmedRevenue > 0;
+  const directCommon = hasConfirmedRevenue
+    ? commonCosts * month.directRevenue / month.confirmedRevenue
+    : null;
+  const coachCommon = hasConfirmedRevenue
+    ? commonCosts * month.coachOrderRevenue / month.confirmedRevenue
+    : null;
+
+  return {
+    direct: {
+      confirmedRevenue: month.directRevenue,
+      paidBoxes: month.directPaidBoxes,
+      freeBoxes: month.directFreeBoxes,
+      productCost: directProductCost,
+      overhead: directOverhead,
+      terminalGMV: directTerminalGMV,
+      operatingContribution: directOperatingContribution,
+      operatingNet: directCommon === null
+        ? null
+        : directOperatingContribution - directOverhead - directCommon,
+      rewardOffsetUsed: 0,
+      rewardCash: 0,
+      rewardOffsetAccrued: 0,
+    },
+    coach: {
+      confirmedRevenue: month.coachOrderRevenue,
+      orderBoxes: month.coachOrderBoxes,
+      firstCaseBoxes: month.firstCaseBoxes,
+      productCost: coachProductCost,
+      overhead: coachOverhead,
+      terminalGMV: coachTerminalGMV,
+      operatingContribution: coachOperatingContribution,
+      operatingNet: coachCommon === null
+        ? null
+        : coachOperatingContribution
+          - coachOverhead
+          - month.staffPerformance
+          - month.incubationReward
+          - coachCommon,
+      netCashFlow: month.coachOrderRevenue
+        - month.rewardOffsetUsed
+        - coachProductCost
+        - month.rewardCash
+        - coachOverhead
+        - month.staffPerformance
+        - month.incubationReward
+        - (coachCommon ?? 0),
+      rewardOffsetUsed: month.rewardOffsetUsed,
+      rewardCash: month.rewardCash,
+      rewardOffsetAccrued: month.rewardOffsetAccrued,
+    },
+    directCommon,
+    coachCommon,
+    unallocatedCommonCosts: hasConfirmedRevenue ? 0 : commonCosts,
+  };
+}
+
 export function firstReachedMonth(
   months: MonthResult[],
   key: 'operatingNet' | 'cumulativeCashFlow',
