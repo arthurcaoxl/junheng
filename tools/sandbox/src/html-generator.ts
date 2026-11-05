@@ -53,11 +53,282 @@ const NUMBER_INPUTS = [
   { key: 'seed2', label: '种子 2 期投放', unit: '人', min: 0, step: '1', integer: true },
 ] as const;
 
+type BrowserControlRule = {
+  id: string;
+  path: string;
+  label: string;
+  group: string;
+  kind: 'integer' | 'money' | 'percent' | 'multiplier';
+  min: number;
+  max?: number;
+  exclusiveMin?: boolean;
+};
+
+declare const CONTROL_RULES: BrowserControlRule[];
+declare const SLIDER_BINDINGS: Array<{ path: string; slider: string; input: string; output: string; suffix: string }>;
+declare const state: any;
+declare const activeSnapshotInput: any;
+declare function scheduleRender(): void;
+
+const INPUT_CONTROLS: Array<Omit<BrowserControlRule, 'id'>> = [
+  { path: 'horizonMonths', label: '推演月数', group: '推演与产品', kind: 'integer', min: 1 },
+  { path: 'product.boxPrice', label: '盒价（元）', group: '推演与产品', kind: 'money', min: 0, exclusiveMin: true },
+  { path: 'product.bagsPerBox', label: '每盒袋数', group: '推演与产品', kind: 'integer', min: 1 },
+  { path: 'product.bagsPerMonth', label: '每月袋数', group: '推演与产品', kind: 'integer', min: 1 },
+  { path: 'product.firstPurchaseBoxes', label: '首购盒数', group: '推演与产品', kind: 'integer', min: 1 },
+  { path: 'product.boxesPerCase', label: '每箱盒数', group: '推演与产品', kind: 'integer', min: 1 },
+  { path: 'product.coachPurchasePrice', label: '教练拿货价（元）', group: '推演与产品', kind: 'money', min: 0, exclusiveMin: true },
+  { path: 'product.unitCost', label: '产品成本（元）', group: '推演与产品', kind: 'money', min: 0, exclusiveMin: true },
+  { path: 'seed.phase1.users', label: '种子 1 期投放（人）', group: '种子与用户', kind: 'integer', min: 0 },
+  { path: 'seed.phase1.weekCompletionRate', label: '种子 1 期一周通过率（%）', group: '种子与用户', kind: 'percent', min: 0, max: 100 },
+  { path: 'seed.phase1.finalPurchaseRate', label: '种子 1 期第 3 盒购买率（%）', group: '种子与用户', kind: 'percent', min: 0, max: 100 },
+  { path: 'seed.phase2.users', label: '种子 2 期投放（人）', group: '种子与用户', kind: 'integer', min: 0 },
+  { path: 'seed.phase2.checkInCompletionRate', label: '种子 2 期打卡通过率（%）', group: '种子与用户', kind: 'percent', min: 0, max: 100 },
+  { path: 'seed.phase2.finalPurchaseRate', label: '种子 2 期第 3 盒购买率（%）', group: '种子与用户', kind: 'percent', min: 0, max: 100 },
+  { path: 'users.directNewUsersPerMonth', label: '直营月新增用户', group: '种子与用户', kind: 'integer', min: 0 },
+  { path: 'users.completionRate', label: '首购完赛率（%）', group: '种子与用户', kind: 'percent', min: 0, max: 100 },
+  { path: 'users.extensionRate', label: '延伸分流率（%）', group: '种子与用户', kind: 'percent', min: 0, max: 100 },
+  { path: 'users.maintenanceRate', label: '维持分流率（%）', group: '种子与用户', kind: 'percent', min: 0, max: 100 },
+  { path: 'users.churnRate', label: '流失率（%）', group: '种子与用户', kind: 'percent', min: 0, max: 100 },
+  { path: 'users.monthlyRetention', label: '月度维持留存率（%）', group: '种子与用户', kind: 'percent', min: 0, max: 100 },
+  { path: 'coaches.initialCandidates', label: '初始候选数', group: '教练政策', kind: 'integer', min: 0 },
+  { path: 'coaches.initialSupportRecords', label: '初始扶持记录', group: '教练政策', kind: 'integer', min: 0 },
+  { path: 'coaches.validRecordRate', label: '有效打卡率（%）', group: '教练政策', kind: 'percent', min: 0, max: 100 },
+  { path: 'coaches.candidateRate', label: '教练候选率（%）', group: '教练政策', kind: 'percent', min: 0, max: 100 },
+  { path: 'coaches.supportCompletionRate', label: '扶持完赛率（%）', group: '教练政策', kind: 'percent', min: 0, max: 100 },
+  { path: 'coaches.requiredRecordedDays', label: '要求记录天数', group: '教练政策', kind: 'integer', min: 0, max: 21 },
+  { path: 'coaches.supportUsersRequired', label: '每名教练扶持人数', group: '教练政策', kind: 'integer', min: 1 },
+  { path: 'coaches.activeNewPaidUsers', label: '活跃新客边界', group: '教练政策', kind: 'integer', min: 1 },
+  { path: 'coaches.monthlyNewUsersPerCoach', label: '教练人均月新拓', group: '教练政策', kind: 'integer', min: 0 },
+  { path: 'coaches.dataRewardRate', label: '数据奖励率（%）', group: '教练政策', kind: 'percent', min: 0, max: 100 },
+  { path: 'coaches.referralRewardRate', label: '裂变奖励率（%）', group: '教练政策', kind: 'percent', min: 0, max: 100 },
+  { path: 'coaches.dataRewardEligibleRate', label: '数据奖励达标率（%）', group: '教练政策', kind: 'percent', min: 0, max: 100 },
+  { path: 'coaches.referralRewardEligibleRate', label: '裂变奖励达标率（%）', group: '教练政策', kind: 'percent', min: 0, max: 100 },
+  { path: 'coaches.rewardOffsetRate', label: '奖励抵扣比例（%）', group: '教练政策', kind: 'percent', min: 0, max: 100 },
+  { path: 'coaches.restockPoint', label: '补货点（盒）', group: '教练政策', kind: 'integer', min: 0 },
+  { path: 'staff.initialCount', label: '初始员工数', group: '员工与财务', kind: 'integer', min: 1 },
+  { path: 'staff.monthlySalary', label: '员工月底薪（元）', group: '员工与财务', kind: 'money', min: 0 },
+  { path: 'staff.coachesPerStaff', label: '每员工教练容量', group: '员工与财务', kind: 'integer', min: 1 },
+  { path: 'staff.usersPerStaff', label: '每员工用户容量', group: '员工与财务', kind: 'integer', min: 1 },
+  { path: 'finance.initialCash', label: '初始现金（元）', group: '员工与财务', kind: 'money', min: 0 },
+  { path: 'finance.rent', label: '月度房租（元）', group: '员工与财务', kind: 'money', min: 0 },
+  { path: 'finance.monthlyOffice', label: '月度办公（元）', group: '员工与财务', kind: 'money', min: 0 },
+  { path: 'finance.otherFixedCosts', label: '其他固定成本（元）', group: '员工与财务', kind: 'money', min: 0 },
+  { path: 'finance.deposit', label: '押金（元）', group: '员工与财务', kind: 'money', min: 0 },
+  { path: 'finance.setupFee', label: '开办费（元）', group: '员工与财务', kind: 'money', min: 0 },
+  { path: 'finance.overheadRate', label: '动态平摊率（%）', group: '员工与财务', kind: 'percent', min: 0, max: 100 },
+  { path: 'finance.staffPerformanceRate', label: '员工绩效率（%）', group: '员工与财务', kind: 'percent', min: 0, max: 100 },
+  { path: 'finance.incubationReward', label: '孵化奖（元）', group: '员工与财务', kind: 'money', min: 0 },
+  { path: 'scenarios.stress.multipliers.completion', label: '压力·完赛系数', group: '场景系数与假设库存', kind: 'multiplier', min: 0 },
+  { path: 'scenarios.stress.multipliers.retention', label: '压力·留存系数', group: '场景系数与假设库存', kind: 'multiplier', min: 0 },
+  { path: 'scenarios.stress.multipliers.acquisition', label: '压力·新拓系数', group: '场景系数与假设库存', kind: 'multiplier', min: 0 },
+  { path: 'scenarios.stress.multipliers.qualification', label: '压力·资格转化系数', group: '场景系数与假设库存', kind: 'multiplier', min: 0 },
+  { path: 'scenarios.upside.multipliers.completion', label: '进取·完赛系数', group: '场景系数与假设库存', kind: 'multiplier', min: 0 },
+  { path: 'scenarios.upside.multipliers.retention', label: '进取·留存系数', group: '场景系数与假设库存', kind: 'multiplier', min: 0 },
+  { path: 'scenarios.upside.multipliers.acquisition', label: '进取·新拓系数', group: '场景系数与假设库存', kind: 'multiplier', min: 0 },
+  { path: 'scenarios.upside.multipliers.qualification', label: '进取·资格转化系数', group: '场景系数与假设库存', kind: 'multiplier', min: 0 },
+  { path: 'platformStockBoxes', label: '平台假设库存（盒）', group: '场景系数与假设库存', kind: 'integer', min: 0 },
+];
+
+const FLOW_PATHS = ['users.extensionRate', 'users.maintenanceRate', 'users.churnRate'];
+const LEGACY_CONTROL_PATHS = new Set([
+  'finance.rent', 'finance.monthlyOffice', 'staff.initialCount',
+  'staff.monthlySalary', 'seed.phase1.users', 'seed.phase2.users',
+]);
+const DEFAULT_PLATFORM_STOCK_BOXES = 200;
+
+function controlId(path: string): string {
+  const legacyIds: Record<string, string> = {
+    'finance.rent': 'ci-rent',
+    'finance.monthlyOffice': 'ci-office',
+    'staff.initialCount': 'ci-staff',
+    'staff.monthlySalary': 'ci-salary',
+    'seed.phase1.users': 'ci-seed1',
+    'seed.phase2.users': 'ci-seed2',
+    'users.monthlyRetention': 'ci-retention',
+    'coaches.monthlyNewUsersPerCoach': 'ci-acquisition',
+    'coaches.candidateRate': 'ci-candidate',
+  };
+  return legacyIds[path] ?? `ci-${path.replace(/\./g, '-')}`;
+}
+
+function readInputPath(input: SandboxInput, path: string): number {
+  return path.split('.').reduce((value: any, key) => value[key], input as any) as number;
+}
+
 function parseControlValue(raw: string, min: number, integer: boolean): number | null {
   if (raw.trim() === '') return null;
   const value = Number(raw);
   if (!Number.isFinite(value) || value < min || (integer && !Number.isInteger(value))) return null;
   return value;
+}
+
+function parseAssumptionValue(raw: string, rule: BrowserControlRule) {
+  const normalized = raw.trim();
+  if (normalized === '') return { value: null, error: '请输入数值，不能留空。' };
+  if (!/^\d+(?:\.\d+)?$/.test(normalized)) {
+    return { value: null, error: '必须使用普通十进制数字，不支持科学计数法或其他格式。' };
+  }
+  const value = Number(normalized);
+  if (!Number.isFinite(value)) return { value: null, error: '输入必须是有限数值。' };
+  if (rule.kind === 'integer' && !Number.isSafeInteger(value)) {
+    return { value: null, error: '计数字段必须是安全整数，不能包含小数或超出安全整数范围。' };
+  }
+  if (rule.kind === 'money' && (normalized.split('.')[1] ?? '').length > 2) {
+    return { value: null, error: '金额最多保留两位小数，不会自动四舍五入。' };
+  }
+  if (value < rule.min || (rule.exclusiveMin === true && value === rule.min)) {
+    return { value: null, error: rule.exclusiveMin === true ? `输入必须大于 ${rule.min}。` : `输入不能小于 ${rule.min}。` };
+  }
+  if (rule.max !== undefined && value > rule.max) {
+    const message = rule.kind === 'percent' ? '百分比必须在 0—100 之间。' : `输入不能大于 ${rule.max}。`;
+    return { value: null, error: message };
+  }
+  return { value, error: '' };
+}
+
+function readObjectPath(object: any, path: string): any {
+  return path.split('.').reduce((value, key) => value[key], object);
+}
+
+function writeObjectPath(object: any, path: string, value: number): void {
+  const keys = path.split('.');
+  const last = keys.pop() as string;
+  const target = keys.reduce((current, key) => current[key], object);
+  target[last] = value;
+}
+
+function findControlRule(path: string): BrowserControlRule {
+  for (const rule of CONTROL_RULES) if (rule.path === path) return rule;
+  throw new Error('未知经营假设字段：' + path);
+}
+
+function isSnapshotProtectedPath(path: string): boolean {
+  return path === 'platformStockBoxes' || path === 'product.unitCost' ||
+    path === 'product.coachPurchasePrice' || path === 'product.boxPrice';
+}
+
+function setControlError(input: any, message: string): void {
+  input.setAttribute('aria-invalid', message ? 'true' : 'false');
+  const errorId = input.getAttribute('aria-describedby');
+  if (errorId) (document.getElementById(errorId) as any).textContent = message;
+}
+
+function currentControlNumber(path: string): number {
+  if (path === 'platformStockBoxes') return state.platformStockBoxes;
+  if (state.dataMode === 'actual' && activeSnapshotInput && isSnapshotProtectedPath(path)) {
+    if (path === 'product.unitCost' && Number.isFinite(activeSnapshotInput.unitCost)) return activeSnapshotInput.unitCost;
+    if (path === 'product.coachPurchasePrice' && Number.isFinite(activeSnapshotInput.coachPickupPrice)) return activeSnapshotInput.coachPickupPrice;
+    if (path === 'product.boxPrice' && Number.isFinite(activeSnapshotInput.revenuePerBox)) return activeSnapshotInput.revenuePerBox;
+  }
+  const rule = findControlRule(path);
+  const value = readObjectPath(state.values, path);
+  return rule.kind === 'percent' ? value * 100 : value;
+}
+
+function syncLegacyState(path: string, value: number): void {
+  if (path === 'users.monthlyRetention') state.retention = value;
+  if (path === 'coaches.monthlyNewUsersPerCoach') state.acquisition = value;
+  if (path === 'coaches.candidateRate') state.candidate = value;
+  if (path === 'finance.rent') state.rent = value;
+  if (path === 'finance.monthlyOffice') state.office = value;
+  if (path === 'staff.initialCount') state.staff = value;
+  if (path === 'staff.monthlySalary') state.salary = value;
+  if (path === 'seed.phase1.users') state.seed1 = value;
+  if (path === 'seed.phase2.users') state.seed2 = value;
+}
+
+function syncPairedControl(path: string, raw: string, source: string): void {
+  for (const binding of SLIDER_BINDINGS) {
+    if (binding.path !== path) continue;
+    const slider = document.getElementById(binding.slider) as any;
+    const input = document.getElementById(binding.input) as any;
+    const output = document.getElementById(binding.output) as any;
+    if (source !== 'slider') slider.value = raw;
+    if (source !== 'number') input.value = raw;
+    output.textContent = Number(raw) + binding.suffix;
+  }
+}
+
+function commitNumericPath(path: string, raw: string, source: string): boolean {
+  const rule = findControlRule(path);
+  const input = document.getElementById(rule.id) as any;
+  if (state.dataMode === 'actual' && isSnapshotProtectedPath(path)) {
+    input.value = String(currentControlNumber(path));
+    return false;
+  }
+  const parsed = parseAssumptionValue(raw, rule);
+  if (parsed.value === null) {
+    setControlError(input, parsed.error);
+    return false;
+  }
+  const stored = rule.kind === 'percent' ? parsed.value / 100 : parsed.value;
+  if (path === 'platformStockBoxes') {
+    state.platformStockBoxes = stored;
+    state.assumptionPlatformStockBoxes = stored;
+  } else {
+    writeObjectPath(state.values, path, stored);
+  }
+  syncLegacyState(path, rule.kind === 'percent' ? parsed.value : stored);
+  setControlError(input, '');
+  syncPairedControl(path, raw, source);
+  scheduleRender();
+  return true;
+}
+
+function updateFlowDraft(path: string, raw: string): void {
+  const rule = findControlRule(path);
+  const input = document.getElementById(rule.id) as any;
+  const parsed = parseAssumptionValue(raw, rule);
+  if (parsed.value === null) {
+    setControlError(input, parsed.error);
+    return;
+  }
+  const key = path.split('.').pop() as string;
+  state.flowDraft[key] = parsed.value;
+  setControlError(input, '');
+}
+
+function applyFlowRates(): void {
+  const paths = ['users.extensionRate', 'users.maintenanceRate', 'users.churnRate'];
+  const values = [];
+  let valid = true;
+  for (const path of paths) {
+    const rule = findControlRule(path);
+    const input = document.getElementById(rule.id) as any;
+    const parsed = parseAssumptionValue(input.value, rule);
+    if (parsed.value === null) {
+      setControlError(input, parsed.error);
+      valid = false;
+    } else {
+      values.push(parsed.value);
+      setControlError(input, '');
+    }
+  }
+  if (!valid) return;
+  const sum = values[0] + values[1] + values[2];
+  if (Math.abs(sum - 100) > 1e-9) {
+    for (const path of paths) {
+      const rule = findControlRule(path);
+      setControlError(document.getElementById(rule.id) as any, '延伸、维持和流失分流率合计必须等于 100%。');
+    }
+    return;
+  }
+  for (let index = 0; index < paths.length; index++) {
+    writeObjectPath(state.values, paths[index], values[index] / 100);
+    state.flowDraft[paths[index].split('.').pop() as string] = values[index];
+  }
+  scheduleRender();
+}
+
+function applyModeProtection(): void {
+  for (const rule of CONTROL_RULES) {
+    const input = document.getElementById(rule.id) as any;
+    const locked = state.dataMode === 'actual' && isSnapshotProtectedPath(rule.path);
+    input.readOnly = locked;
+    input.setAttribute('aria-readonly', locked ? 'true' : 'false');
+    input.value = String(currentControlNumber(rule.path));
+  }
 }
 
 function resolveInventoryKpiParams(
@@ -80,10 +351,17 @@ function resolveInventoryKpiParams(
 
 export function generateReport(input: SandboxInput): string {
   const initialDashboard = buildDashboard(input);
-  const engineJs = [...ENGINE_FUNCTIONS, parseControlValue]
+  const cleanBrowserJs = (source: string) => source.replace(
+    new RegExp('\\b' + 'imp' + 'ort_[A-Za-z0-9_$]+\\.', 'g'), '',
+  );
+  const engineJs = cleanBrowserJs([...ENGINE_FUNCTIONS, parseControlValue]
     .map((fn) => fn.toString())
-    .join('\n')
-    .replace(/\bimport_[A-Za-z0-9_$]+\./g, '');
+    .join('\n'));
+  const inputJs = cleanBrowserJs([
+    parseAssumptionValue, readObjectPath, writeObjectPath, findControlRule,
+    isSnapshotProtectedPath, setControlError, currentControlNumber, syncLegacyState,
+    syncPairedControl, commitNumericPath, updateFlowDraft, applyFlowRates, applyModeProtection,
+  ].map((fn) => fn.toString()).join('\n'));
   const financeJs = FINANCE_FUNCTIONS.map((fn) => fn.toString()).join('\n');
   const snapshotJs = `/* SNAPSHOT_BROWSER_BEGIN */
 /* SNAPSHOT_BROWSER_FUNCTIONS */
@@ -91,7 +369,7 @@ const TOP_LEVEL_FIELDS = ${JSON.stringify(SNAPSHOT_BROWSER_CONSTANTS.TOP_LEVEL_F
 const SENSITIVE_KEYS = new Set(${JSON.stringify(SNAPSHOT_BROWSER_CONSTANTS.SENSITIVE_KEYS)});
 ${SNAPSHOT_BROWSER_FUNCTIONS.map((fn) => fn.toString()).join('\n')}
 /* SNAPSHOT_BROWSER_END */`;
-  const platformStockBoxes = 200;
+  const platformStockBoxes = DEFAULT_PLATFORM_STOCK_BOXES;
   const initialMonths = initialDashboard.scenarios.baseline.months;
   const initialLast = initialMonths[initialMonths.length - 1];
   const initialInventoryKpis = computeInventoryKpis({
@@ -112,14 +390,36 @@ ${SNAPSHOT_BROWSER_FUNCTIONS.map((fn) => fn.toString()).join('\n')}
     salary: input.staff.monthlySalary,
     seed1: input.seed.phase1.users,
     seed2: input.seed.phase2.users,
+    values: input,
+    flowDraft: {
+      extensionRate: input.users.extensionRate * 100,
+      maintenanceRate: input.users.maintenanceRate * 100,
+      churnRate: input.users.churnRate * 100,
+    },
     platformStockBoxes,
+    assumptionPlatformStockBoxes: platformStockBoxes,
     dataMode: 'assumption' as 'actual' | 'assumption',
     scenario: 'baseline' as ScenarioKey,
   };
-  const numberControls = NUMBER_INPUTS.map((control) => `
-    <label class="control"><span>${control.label}</span><span class="number-wrap">
-      <input type="number" id="ci-${control.key}" value="${state[control.key]}" min="${control.min}" step="${control.step}" />
-      <em>${control.unit}</em></span></label>`).join('');
+  const autoExpandControl = `<label class="control boolean-control"><span>员工自动扩编</span>
+    <input type="checkbox" id="ci-staff-autoExpand" data-input-path="staff.autoExpand" ${input.staff.autoExpand ? 'checked' : ''} />
+    <span>开启后按容量缺口自动扩编</span></label>`;
+  const flowApplyButton = `<button type="button" class="snapshot-action" id="apply-flow-rates">校验并应用三项分流率（合计须为 100%）</button>`;
+  const groups = [...new Set(INPUT_CONTROLS.map((control) => control.group))];
+  const assumptionPanels = groups.map((group) => {
+    const controls = INPUT_CONTROLS.filter((control) => control.group === group).map((control) => {
+      const id = controlId(control.path);
+      const rawValue = control.path === 'platformStockBoxes' ? platformStockBoxes : readInputPath(input, control.path);
+      const displayValue = control.kind === 'percent' ? rawValue * 100 : rawValue;
+      return `<label class="control" for="${id}"><span>${control.label}</span><span class="number-wrap">
+        <input type="text" inputmode="${control.kind === 'integer' ? 'numeric' : 'decimal'}" id="${id}" data-input-path="${control.path}" value="${displayValue}" aria-invalid="false" aria-describedby="error-${id}" />
+      </span><small class="control-error" id="error-${id}" role="alert" aria-live="polite"></small></label>`;
+    }).join('');
+    return `<section class="panel"><h2>${group}</h2><div class="controls">${controls}</div>
+      ${group === '种子与用户' ? flowApplyButton : ''}${group === '员工与财务' ? autoExpandControl : ''}</section>`;
+  }).join('');
+  const legacyNumberContract = `<!-- 旧静态控件契约保留为非渲染标记：\n${NUMBER_INPUTS.map((control) => `
+    <input type="number" id="ci-${control.key}" value="${state[control.key]}" min="${control.min}" step="${control.step}" />`).join('\n')}\n-->`;
   const sliderControls = SLIDERS.map((control) => {
     const max = control.key === 'acquisition' ? Math.max(control.max, state.acquisition) : control.max;
     return `
@@ -144,7 +444,9 @@ ${SNAPSHOT_BROWSER_FUNCTIONS.map((fn) => fn.toString()).join('\n')}
 <button type="button" class="snapshot-action" id="import-snapshot">校验并导入快照</button>
 <p id="snapshot-status" role="status" aria-live="polite">假设模式：200 盒仅为默认经营假设，不是平台真实库存。</p>
 </div></section>
-<section class="panel"><h2>经营假设</h2><div class="controls">${numberControls}${sliderControls}</div></section>
+${legacyNumberContract}
+${assumptionPanels}
+<section class="panel"><h2>滑块联动</h2><div class="controls">${sliderControls}</div></section>
 <div class="scenarios"><button class="active" data-scenario="baseline">基准</button><button data-scenario="stress">压力</button><button data-scenario="upside">进取</button></div>
 <section id="kpis" class="kpis"></section>
 <section class="charts">
@@ -168,10 +470,17 @@ function __name(fn, name) {
   return fn;
 }
 ${engineJs}
+${inputJs}
 ${financeJs}
 ${snapshotJs}
 ${resolveInventoryKpiParams.toString()}
 const BASE_INPUT = ${JSON.stringify(input)};
+const CONTROL_RULES = ${JSON.stringify(INPUT_CONTROLS.map((control) => ({ ...control, id: controlId(control.path) })))};
+const SLIDER_BINDINGS = ${JSON.stringify([
+    { path: 'users.monthlyRetention', slider: 'sl-retention', input: 'ci-retention', output: 'val-retention', suffix: '%' },
+    { path: 'coaches.monthlyNewUsersPerCoach', slider: 'sl-acquisition', input: 'ci-acquisition', output: 'val-acquisition', suffix: ' 人' },
+    { path: 'coaches.candidateRate', slider: 'sl-candidate', input: 'ci-candidate', output: 'val-candidate', suffix: '%' },
+  ])};
 const INITIAL_DASHBOARD = ${JSON.stringify(initialDashboard)};
 const INITIAL_INVENTORY_KPIS = ${JSON.stringify(initialInventoryKpis)};
 const state = ${JSON.stringify(state)};
@@ -212,8 +521,9 @@ function setDataMode(mode) {
     }
   }
   state.dataMode = mode;
-  state.platformStockBoxes = mode === 'actual' ? activeSnapshotInput.platformStockBoxes : 200;
+  state.platformStockBoxes = mode === 'actual' ? activeSnapshotInput.platformStockBoxes : state.assumptionPlatformStockBoxes;
   updateDataModeButtons();
+  applyModeProtection();
   scheduleRender();
 }
 function importSnapshotFromText(raw) {
@@ -229,9 +539,11 @@ function importSnapshotFromText(raw) {
     } else {
       activeSnapshot = imported;
       activeSnapshotInput = standardizeSnapshot(imported);
-      state.platformStockBoxes = 200;
+      state.platformStockBoxes = activeSnapshotInput.platformStockBoxes;
+      state.assumptionPlatformStockBoxes = activeSnapshotInput.platformStockBoxes;
     }
     updateDataModeButtons();
+    applyModeProtection();
     render();
     if (conflicts.length > 0) {
       setSnapshotStatus('同期快照冲突：' + conflicts.join('、') + '。请导入具有明确替代关系的修正快照。', true);
@@ -263,16 +575,12 @@ document.querySelectorAll('[data-data-mode]').forEach(function (button) {
   });
 });
 function currentInput() {
-  const input = JSON.parse(JSON.stringify(BASE_INPUT));
-  input.users.monthlyRetention = state.retention / 100;
-  input.coaches.monthlyNewUsersPerCoach = state.acquisition;
-  input.coaches.candidateRate = state.candidate / 100;
-  input.finance.rent = state.rent;
-  input.finance.monthlyOffice = state.office;
-  input.staff.initialCount = state.staff;
-  input.staff.monthlySalary = state.salary;
-  input.seed.phase1.users = state.seed1;
-  input.seed.phase2.users = state.seed2;
+  const input = JSON.parse(JSON.stringify(state.values));
+  if (state.dataMode === 'actual' && activeSnapshotInput) {
+    if (Number.isFinite(activeSnapshotInput.unitCost)) input.product.unitCost = activeSnapshotInput.unitCost;
+    if (Number.isFinite(activeSnapshotInput.coachPickupPrice)) input.product.coachPurchasePrice = activeSnapshotInput.coachPickupPrice;
+    if (Number.isFinite(activeSnapshotInput.revenuePerBox)) input.product.boxPrice = activeSnapshotInput.revenuePerBox;
+  }
   return input;
 }
 function money(n) { return Math.round(n).toLocaleString('zh-CN') + ' 元'; }
@@ -434,7 +742,7 @@ function buildActualInventoryPoints(snapshots) {
   });
   return { points: points, conflicts: resolved.conflicts };
 }
-function buildForecastInventoryPoints(months, product) {
+function buildForecastInventoryPoints(months, product, platformStockBoxes) {
   return months.map(function (month) {
     return {
       kind: 'forecast',
@@ -442,7 +750,7 @@ function buildForecastInventoryPoints(months, product) {
       label: '模拟预测 第 ' + month.month + ' 月',
       coachClosingBoxes: month.coachInventory,
       stockoutBoxes: month.shortageBoxes,
-      inventoryAssetValue: computeInventoryAssetValue(200 - month.coachOrderBoxes, product.unitCost),
+      inventoryAssetValue: computeInventoryAssetValue(platformStockBoxes - month.coachOrderBoxes, product.unitCost),
     };
   });
 }
@@ -604,7 +912,7 @@ function render() {
   const inventoryChart = document.getElementById('inventory-chart');
   const actualMode = state.dataMode === 'actual';
   const actualTimeline = actualMode ? buildActualInventoryPoints(snapshotHistory) : { points: [], conflicts: [] };
-  const forecastPoints = buildForecastInventoryPoints(months, input.product);
+  const forecastPoints = buildForecastInventoryPoints(months, input.product, state.assumptionPlatformStockBoxes);
   inventoryChart.innerHTML = buildInventoryTimelineChart(actualTimeline.points, forecastPoints, actualTimeline.conflicts, actualMode);
   document.getElementById('capacity-chart').innerHTML = buildChart(months, [{ color: '#72b7ff', value: (m) => m.capacityUtilization * 100 }]);
   renderTables(result, input);
@@ -620,15 +928,31 @@ ${SLIDERS.map((s) => `
 state['${s.key}'] = Number(document.getElementById('sl-${s.key}').value);
 document.getElementById('val-${s.key}').textContent = ${s.expr.replace(/this\.value/g, "document.getElementById('sl-" + s.key + "').value")};
 document.getElementById('sl-${s.key}').addEventListener('input', function () {
-  state['${s.key}'] = Number(this.value);
-  document.getElementById('val-${s.key}').textContent = ${s.expr};
+  const path = ${JSON.stringify(s.key === 'retention' ? 'users.monthlyRetention' : s.key === 'candidate' ? 'coaches.candidateRate' : 'coaches.monthlyNewUsersPerCoach')};
+  if (commitNumericPath(path, this.value, 'slider')) {
+    state['${s.key}'] = Number(this.value);
+    document.getElementById('val-${s.key}').textContent = ${s.expr};
+  }
+});`).join('\n')}
+${INPUT_CONTROLS.map((control) => {
+    const id = controlId(control.path);
+    if (FLOW_PATHS.includes(control.path)) {
+      return `document.getElementById('${id}').addEventListener('input', function () { updateFlowDraft('${control.path}', this.value); });`;
+    }
+    if (LEGACY_CONTROL_PATHS.has(control.path)) {
+      return `document.getElementById('${id}').addEventListener('input', function () {
+  const value = parseControlValue(this.value, ${control.min}, ${control.kind === 'integer'});
+  if (value === null) { setControlError(this, '输入格式或范围无效。'); return; }
+  commitNumericPath('${control.path}', this.value, 'number');
+});`;
+    }
+    return `document.getElementById('${id}').addEventListener('input', function () { commitNumericPath('${control.path}', this.value, 'number'); });`;
+  }).join('\n')}
+document.getElementById('apply-flow-rates').addEventListener('click', applyFlowRates);
+document.getElementById('ci-staff-autoExpand').addEventListener('change', function () {
+  state.values.staff.autoExpand = this.checked;
   scheduleRender();
-});`).join('\n')}
-${NUMBER_INPUTS.map((c) => `
-document.getElementById('ci-${c.key}').addEventListener('input', function () {
-  const value = parseControlValue(this.value, ${c.min}, ${c.integer});
-  if (value !== null) { state['${c.key}'] = value; scheduleRender(); }
-});`).join('\n')}
+});
 document.querySelectorAll('[data-scenario]').forEach(function (button) {
   button.addEventListener('click', function () {
     state.scenario = button.getAttribute('data-scenario');
