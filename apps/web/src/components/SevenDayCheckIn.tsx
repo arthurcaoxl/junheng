@@ -147,10 +147,11 @@ export function SevenDayCheckIn() {
     const clothesWeight = String(clothesKg(clothesDraft));
     let next: CheckInState = { ...state, clothesWeight };
     // 设置确认后立即作用于今天，历史日期仍保留各自快照。
-    if (activeDate === today && current.weights) {
-      const nextDay = { ...current, clothes: clothesWeight };
+    const todayRecord = state.records[today];
+    if (todayRecord?.weights) {
+      const nextDay = { ...todayRecord, clothes: clothesWeight };
       nextDay.weight = deriveWeightCache(nextDay);
-      next = { ...next, records: { ...state.records, [activeDate]: nextDay } };
+      next = { ...next, records: { ...state.records, [today]: nextDay } };
     }
     commitState(next);
     setEditingClothes(false);
