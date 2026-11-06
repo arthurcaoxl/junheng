@@ -1162,6 +1162,14 @@ section { scroll-margin-top: 78px; }
 .admin-trend-track { display: inline-block; width: 72px; height: 5px; margin-right: 8px; background: rgb(243 241 232 / 12%); vertical-align: middle; }
 .admin-trend-track > span { display: block; height: 100%; background: var(--acid); }
 .admin-empty { padding: 24px; border: 1px dashed var(--line-light); font-size: 13px; opacity: .65; }
+.coach-radar .admin-empty p + p { margin-top: 8px; font-size: 12px; }
+
+/* 10.6 · 教练灯号与用户激活状态共用同一套标签样式 */
+.status-tag { display: inline-flex; align-items: center; width: max-content; min-height: 28px; padding: 5px 12px; border: 1px solid currentColor; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: .04em; }
+.status-tag--red { background: rgb(255 157 138 / 9%); color: #ff9d8a; }
+.status-tag--yellow { background: rgb(244 207 98 / 9%); color: #f4cf62; }
+.status-tag--green { background: rgb(163 230 53 / 9%); color: var(--acid); }
+.box-code-activation-bound { display: flex; align-items: center; min-height: 76px; }
 
 /* v1.9.0 后台数据可视化：KPI 卡 / recharts 图表 / 筛选 / 下钻 Drawer */
 .admin-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 34px; }

@@ -214,4 +214,38 @@ describe("admin check-in page", () => {
     expect(detail).toHaveTextContent("2026-10-30、2026-10-31");
     expect(detail).toHaveTextContent("下方明细、个人趋势与海报仅展示本期 21 天");
   });
+
+  it("登录后挂载独立雷达且雷达失败不影响既有营员列表", async () => {
+    const user = userEvent.setup();
+    const client = getSupabase();
+    (client.rpc as ReturnType<typeof vi.fn>).mockImplementation((name: string) => {
+      if (name === "admin_checkin_overview") {
+        return Promise.resolve({
+          data: [{
+            auth_user_id: "private-uid-radar",
+            email: "camper@example.com",
+            user_code: "JH-RADAR-KEEP",
+            start_date: "2026-10-01",
+            records: {},
+            updated_at: "2026-10-30T10:00:00.000Z",
+          }],
+          error: null,
+        });
+      }
+      if (name === "get_coach_radar_v1") {
+        return Promise.resolve({ data: null, error: { code: "PGRST301", message: "network unavailable" } });
+      }
+      return Promise.resolve({ data: [], error: null });
+    });
+    renderAdmin();
+
+    await user.type(screen.getByLabelText("管理员邮箱"), "radar-admin@example.com");
+    await user.click(screen.getByRole("button", { name: "获取管理员验证码" }));
+    await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
+    await user.click(screen.getByRole("button", { name: "登录并查看统计" }));
+
+    expect(await screen.findByText("JH-RADAR-KEEP")).toBeInTheDocument();
+    expect(await screen.findByText("雷达读取失败，请稍后重试。")).toBeInTheDocument();
+    expect(screen.getByText("JH-RADAR-KEEP")).toBeInTheDocument();
+  });
 });

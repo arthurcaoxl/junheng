@@ -1,13 +1,23 @@
-import { render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { MemoryRouter } from "react-router";
+import { MemoryRouter, useSearchParams } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import { getSupabase } from "../lib/supabase";
 import { STORAGE_KEY, todayKey } from "../utils/checkin";
 
+function SearchParamsProbe() {
+  const [searchParams] = useSearchParams();
+  return <div data-testid="activation-search-params">{searchParams.toString()}</div>;
+}
+
 function renderCheckIn(entry = "/check-in?code=JH-EL-AB23") {
-  return render(<MemoryRouter initialEntries={[entry]}><App /></MemoryRouter>);
+  return render(
+    <MemoryRouter initialEntries={[entry]}>
+      <App />
+      <SearchParamsProbe />
+    </MemoryRouter>,
+  );
 }
 
 describe("打卡页产品码激活", () => {
@@ -91,5 +101,89 @@ describe("打卡页产品码激活", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("尝试次数过多，请稍后再试。");
     expect(screen.queryByText("激活成功，已为你绑定教练。")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("产品激活码")).toHaveValue("JH-EL-AB23");
+    expect(screen.getByRole("button", { name: "激活产品码" })).toBeEnabled();
+    expect(screen.queryByText("已绑定专属教练")).not.toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("初次加载读取本机激活标记并显示已绑定专属教练", async () => {
+    window.localStorage.setItem("junheng-box-code-activated-v1", "true");
+    renderCheckIn("/check-in");
+
+    expect(await screen.findByText("已绑定专属教练")).toBeInTheDocument();
+    expect(screen.queryByLabelText("产品激活码")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "激活产品码" })).not.toBeInTheDocument();
+    expect(getSupabase().rpc).not.toHaveBeenCalled();
+  });
+
+  it("已绑定用户携带 Query 时清除 code 且不显示表单不调用 RPC", async () => {
+    window.localStorage.setItem("junheng-box-code-activated-v1", "true");
+    renderCheckIn();
+
+    expect(await screen.findByText("已绑定专属教练")).toBeInTheDocument();
+    expect(screen.getByTestId("activation-search-params").textContent).toBe("");
+    expect(screen.queryByLabelText("产品激活码")).not.toBeInTheDocument();
+    expect(getSupabase().rpc).not.toHaveBeenCalled();
+  });
+
+  it("激活成功后隐藏表单并在刷新后恢复绑定状态", async () => {
+    (getSupabase().rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { ok: true, state: "active", replayed: false }, error: null,
+    });
+    const user = userEvent.setup();
+    const firstRender = renderCheckIn();
+
+    await user.click(screen.getByRole("button", { name: "激活产品码" }));
+    expect(await screen.findByText("已绑定专属教练")).toBeInTheDocument();
+    expect(screen.queryByLabelText("产品激活码")).not.toBeInTheDocument();
+    expect(window.localStorage.getItem("junheng-box-code-activated-v1")).toBe("true");
+
+    firstRender.unmount();
+    renderCheckIn("/check-in");
+    expect(await screen.findByText("已绑定专属教练")).toBeInTheDocument();
+    expect(screen.queryByLabelText("产品激活码")).not.toBeInTheDocument();
+  });
+
+  it("激活中同步重复 submit 只产生一次 RPC", async () => {
+    const rpc = getSupabase().rpc as ReturnType<typeof vi.fn>;
+    let resolveActivation!: (result: { data: unknown; error: null }) => void;
+    const pending = new Promise<{ data: unknown; error: null }>((resolve) => { resolveActivation = resolve; });
+    rpc.mockReturnValue(pending);
+    renderCheckIn();
+
+    const input = screen.getByLabelText("产品激活码");
+    const button = screen.getByRole("button", { name: "激活产品码" });
+    const form = button.closest("form");
+    expect(form).not.toBeNull();
+    act(() => {
+      fireEvent.submit(form!);
+      fireEvent.submit(form!);
+    });
+
+    expect(input).toBeDisabled();
+    expect(button).toBeDisabled();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const activationCalls = rpc.mock.calls.filter(([name]) => name === "activate_box_code");
+    resolveActivation({ data: { ok: true, state: "active", replayed: false }, error: null });
+    expect(activationCalls).toHaveLength(1);
+  });
+
+  it("激活成功但后续同步离线仍保持绑定且不重复激活", async () => {
+    const rpc = getSupabase().rpc as ReturnType<typeof vi.fn>;
+    rpc.mockResolvedValue({ data: { ok: true, state: "active", replayed: false }, error: null });
+    const query = getSupabase().from("checkin_sync") as unknown as { maybeSingle: ReturnType<typeof vi.fn> };
+    query.maybeSingle
+      .mockResolvedValueOnce({ data: null, error: null })
+      .mockResolvedValueOnce({ data: null, error: { code: "PGRST301", message: "offline" } });
+    const user = userEvent.setup();
+    renderCheckIn();
+
+    await user.click(screen.getByRole("button", { name: "激活产品码" }));
+
+    expect(await screen.findByText("已绑定专属教练")).toBeInTheDocument();
+    expect(screen.getByText("激活已完成，但本次云端同步未成功，请稍后重试。")).toBeInTheDocument();
+    expect(screen.queryByLabelText("产品激活码")).not.toBeInTheDocument();
+    expect(rpc.mock.calls.filter(([name]) => name === "activate_box_code")).toHaveLength(1);
   });
 });
