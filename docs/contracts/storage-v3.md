@@ -129,6 +129,17 @@
 7. 服务端时间戳使用 UTC ISO 8601，与本机 `YYYY-MM-DD` 日期键不冲突；未来服务端打卡必须另立契约，不得修改本 v3。
 8. RLS：体验官只能读写自己 uid 的行；管理员经 `camp_admins` 白名单获得只读权限，走 `admin_checkin_overview()` RPC。新增档案列不改变既有 RLS 或管理员返回字段。
 
+## 教练雷达只读 RPC（10.5 增量）
+
+`get_coach_radar_v1()` 只读当前 `user_coach_relation` 与本人 `checkin_sync` 快照，不改变本机 v3 的权威地位，也不修改云端记录。当前关系通过 `LEFT JOIN` 连接快照，因此刚激活、尚未产生有效打卡的营员仍必须出现在所属教练雷达中。
+
+- 当前体重严格按第 6 节 `getRepresentativeWeight` 语义计算；早晨净重使用每日 `clothes` 快照，有效节点按 60% / 20% / 20% 重归一化并保留既有精度。
+- 初始体重优先使用有效的 `initial_weight_kg`，缺省时取当前 21 天窗口内最早有效代表体重；当前体重取窗口内最晚有效代表体重。
+- 腰围差使用窗口内最早和最晚有效值；BMI 使用当前 `height_cm` 与当前有效代表体重。数据不足时对应派生字段为 `null`。
+- 有效打卡日期沿用第 2 节 `hasContent` 语义；灯号使用服务端 `Asia/Shanghai` 自然日，未打卡、断卡 3 天及以上为红灯，断卡 2 天为黄灯，其余为绿灯。结营未复购红灯优先级保持不变。
+- 10.5 用户行严格返回 `camper_code / weight_delta / waist_delta / bmi / alert_level` 五字段，不返回 `stage`、身高、原始体重、原始腰围或 `records`。
+- 调用者只取服务端 `auth.uid()`。有效 coach 仅看当前 `referrer_id` 为本人且 `valid_to IS NULL` 的关系；有效 admin 按管理职责查看；其他角色默认无结果。RPC 不接受客户端范围参数。
+
 ## CSV 导出
 
 文件为 UTF-8 with BOM、逗号分隔、LF 换行，末尾保留换行。记录按 `record_date` 升序，只包含有内容日期。

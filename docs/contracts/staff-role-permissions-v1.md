@@ -91,7 +91,7 @@
 4. admin 按管理职责获得集合，但返回字段仍受雷达脱敏契约限制。
 5. dormant 生效后的用户归属为 `PLATFORM_ID`，原 coach 与其 staff 不得继续查看；旧分配、旧工单和旧缓存均不能形成平台用户权限。
 
-返回字段统一为 `camper_code / weight_delta / waist_delta / bmi / stage / alert_level`，以及确有必要时的批准库存汇总字段。`alert_level` 仅允许 `red / yellow / green`，由 SQL 层在服务端计算；staff 和其他前端角色均不得自行计算。其余禁止项以 `coach-radar-desensitized-v1.md` 为唯一契约。
+10.5 返回字段统一为 `camper_code / weight_delta / waist_delta / bmi / alert_level`，以及确有必要时的批准库存汇总字段；后续恢复 `stage` 必须重新评审。`alert_level` 仅允许 `red / yellow / green`，由 SQL 层在服务端计算；staff 和其他前端角色均不得自行计算。其余禁止项以 `coach-radar-desensitized-v1.md` 为唯一契约。
 
 staff 不得通过以下方式扩大范围：
 

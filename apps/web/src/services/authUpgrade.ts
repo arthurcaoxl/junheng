@@ -1,4 +1,5 @@
 import { ensureSession, getSupabase } from "../lib/supabase";
+import { hasBoxCodeActivation } from "./boxCodeActivation";
 import { normalizeOtpInput } from "./otp";
 import { openSyncModal } from "./syncUi";
 
@@ -8,14 +9,14 @@ let savePromptOpen = false;
 export type SaveAuthResult = "saved" | "login-required";
 
 /**
- * 打卡保存硬门槛：匿名 session 虽有 uid，但没有邮箱时仍不得写入 v3。
- * 连续输入只更新最新待保存动作；OTP 成功后恢复一次，取消则丢弃待保存动作。
+ * 未激活且未绑邮箱时保留原保存门槛；产品码激活后允许匿名打卡并静默云同步。
+ * 未激活路径连续输入只更新最新待保存动作；OTP 成功后恢复一次，取消则丢弃。
  */
 export function requestCheckinSave(
   save: () => void,
   auth: { configured: boolean; email: string | null },
 ): SaveAuthResult {
-  if (!auth.configured || auth.email) {
+  if (!auth.configured || auth.email || hasBoxCodeActivation()) {
     save();
     return "saved";
   }
