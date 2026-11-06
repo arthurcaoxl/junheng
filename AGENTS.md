@@ -53,7 +53,8 @@ npm run build
 | 10.1 | feature-10-checkin-contracts | 打卡 App 业务重构四份契约 | 已合并 | 合并 a7feb0f；契约 HEAD 371ab48；仅 Markdown，无 SQL 与业务代码 |
 | 10.2 | bugfix-10.2-checkin-hotfixes | 衣物快照与首次保存云端同步修复 | 已合并 | 四提交 TDD；42 文件／293 项全绿；流程纠偏：主任务代写代码并运行测试违反分工，质量合格不予回滚；此后主任务仅登记编号、分发 Prompt、执行合并与更新登记表，实现和测试均由子任务执行 |
 | 10.4 第一阶段 | feature-10.4-box-code | 一盒一码结构、纯函数与 Admin 概览 RPC | 已合并 | 合并 a5acbc0；feature HEAD ff49bcf；长码/短码正则校验与 Admin RPC 脱敏经裁判核验；实现与测试由子任务完成 |
-| 10.4 第二阶段 | feature-10.4-box-code | 一盒一码激活 RPC | 进行中 | 从最新 main 继续；激活、静默绑定与防换设备断层；实现与测试强制锁定由子任务执行，主任务仅登记、审核与合并 |
+| 10.4 第二阶段 | feature-10.4-box-code | 一盒一码激活 RPC | 已合并 | 裁判通报 10.4 底层已全部进入 main；合并 hash 待网络恢复后核验 |
+| 10.5 | feature-10.5-frontend-radar | 前端激活交互与教练雷达 RPC | 方案审核中 | 仅由子任务先输出技术实施方案；裁判批准后方可写代码；分支待网络恢复并从最新 main 切出 |
 
 ## 四、沙盘 CEO 经营需求全局规划
 
