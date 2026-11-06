@@ -3,7 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
-import { STORAGE_KEY, todayKey } from "../utils/checkin";
+import { addDays, emptyDay, STORAGE_KEY, todayKey } from "../utils/checkin";
+import { getRepresentativeWeight } from "../utils/weight";
 
 function renderCheckIn() {
   return render(<MemoryRouter initialEntries={["/check-in"]}><App /></MemoryRouter>);
@@ -72,6 +73,43 @@ describe("极简体重记录与衣物扣减", () => {
     expect(savedState().clothesWeight).toBe("0.8");
     expect(savedState().records[todayKey()].clothes).toBe("0.8");
     expect(savedState().records[todayKey()].weight).toBe("67.2");
+  });
+
+  it("修改默认衣物重量时保留历史快照与代表体重，仅更新今天", async () => {
+    const today = todayKey();
+    const yesterday = addDays(today, -1);
+    const historicalDay = {
+      ...emptyDay(),
+      weight: "59.9",
+      weights: { morning: "60", evening: "62" },
+      clothes: "0.8",
+    };
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      schema: 3,
+      userCode: "JH-SNAP1",
+      startDate: addDays(today, -2),
+      clothesWeight: "0.5",
+      records: {
+        [yesterday]: historicalDay,
+        [today]: { ...emptyDay(), weight: "67.5", weights: { morning: "68" }, clothes: "0.5" },
+      },
+    }));
+    const user = userEvent.setup();
+    renderCheckIn();
+
+    await user.click(screen.getByRole("tab", { name: "第 2 天" }));
+    await user.click(screen.getByRole("button", { name: "修改" }));
+    await user.clear(screen.getByLabelText("衣物重量（kg）"));
+    await user.type(screen.getByLabelText("衣物重量（kg）"), "1.2");
+    await user.click(screen.getByRole("button", { name: "确认" }));
+
+    const state = savedState();
+    expect(state.clothesWeight).toBe("1.2");
+    expect(state.records[yesterday]).toEqual(historicalDay);
+    expect(state.records[yesterday].clothes).toBe("0.8");
+    expect(getRepresentativeWeight(state.records[yesterday])).toBe("59.9");
+    expect(state.records[today].clothes).toBe("1.2");
+    expect(state.records[today].weight).toBe("66.8");
   });
 
   it("展开中晚后仅早晨扣衣物，并用人话展示参考体重", async () => {
