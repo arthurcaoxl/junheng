@@ -17,6 +17,7 @@ import KpiCards from "../components/admin/KpiCards";
 import CampTrendCharts from "../components/admin/CampTrendCharts";
 import CamperTable from "../components/admin/CamperTable";
 import CamperDrawer, { type CamperDrawerTab } from "../components/admin/CamperDrawer";
+import CoachRadar from "../components/admin/CoachRadar";
 
 function percent(value: number | null): string {
   return value === null ? "—" : `${value}%`;
@@ -197,6 +198,8 @@ export default function AdminCheckInPage() {
         </div>
 
         <KpiCards kpis={kpis} />
+
+        <CoachRadar />
 
         <section className="admin-block" aria-labelledby="admin-campers-title">
           <div className="admin-block-heading">
