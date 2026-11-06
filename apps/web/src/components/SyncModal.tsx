@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { confirmEmailUpgrade, upgradeToPermanentAccount } from "../services/authUpgrade";
-import { loginWithEmail, resendRemainingSeconds, sendLoginCode, syncToCloud } from "../services/checkinSync";
+import { flushSyncToCloud, loginWithEmail, resendRemainingSeconds, sendLoginCode, syncToCloud } from "../services/checkinSync";
 import { isValidOtpCode, OTP_INPUT_HINT, OTP_INPUT_PROPS } from "../services/otp";
 import type { SyncMilestoneKind, SyncMode } from "../services/syncUi";
 
@@ -72,12 +72,15 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
 
   // 原地升级保留 auth.uid；只有服务端邮箱真正更新、且云端同步完成后才广播成功。
   const finishEmailChange = async () => {
-    const syncResult = await syncToCloud();
+    // 首次打卡先落本地，再让既有首次合并看到这份种子；直接冲刷可避免随后重复上传。
+    if (mode === "bind") onSuccess?.();
+    const pendingResult = mode === "bind" ? await flushSyncToCloud() : "noop" as const;
+    const syncResult = pendingResult === "noop" ? await syncToCloud() : pendingResult;
     if (mode === "change-email" && syncResult !== "synced") {
       throw new Error("邮箱已验证，但云端数据同步未完成，请检查网络后重试。");
     }
     window.dispatchEvent(new CustomEvent("junheng-sync-changed", { detail: { email } }));
-    onSuccess?.();
+    if (mode !== "bind") onSuccess?.();
     onClose();
   };
 
