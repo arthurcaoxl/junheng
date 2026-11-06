@@ -51,7 +51,8 @@ npm run build
 | 8 | feature-8-sandbox-input-validation | 全局数字输入面板与整数校验 | 已合并 | 合并 2f0e0d7；包含 feature HEAD 910d8b0；10 文件／150 项全绿 |
 | 9 | feature-9-dual-channel-bep-runway | 双渠道财务拆解、动态 BEP 与抗风险 Runway 图表 | 已合并 | 合并 fa433d6；feature HEAD 740db7c；15 文件／185 项全绿 |
 | 10.1 | feature-10-checkin-contracts | 打卡 App 业务重构四份契约 | 已合并 | 合并 a7feb0f；契约 HEAD 371ab48；仅 Markdown，无 SQL 与业务代码 |
-| 10.2 | bugfix-10.2-checkin-hotfixes | 衣物快照与首次保存云端同步修复 | 已合并 | 四提交 TDD；42 文件／293 项全绿 |
+| 10.2 | bugfix-10.2-checkin-hotfixes | 衣物快照与首次保存云端同步修复 | 已合并 | 四提交 TDD；42 文件／293 项全绿；流程纠偏：主任务代写代码并运行测试违反分工，质量合格不予回滚；此后主任务仅登记编号、分发 Prompt、执行合并与更新登记表，实现和测试均由子任务执行 |
+| 10.4 | feature-10.4-box-code | 一盒一码 | 进行中 | 裁判已下发开发任务书；实现与测试强制锁定由子任务执行；主任务仅负责最终合并审查 |
 
 ## 四、沙盘 CEO 经营需求全局规划
 
