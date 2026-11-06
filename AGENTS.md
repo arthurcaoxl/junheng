@@ -4,7 +4,7 @@
 
 ## 项目现状
 - 当前版本：\`v1.13.3\`
-- 测试基线：\`291\` 项
+- 测试基线：\`293\` 项
 - 前端路径：\`apps/web\` (Vite + React + TS + Supabase)
 - 后端：仅 Supabase（浏览器侧仅 \`anon key\`，禁止 \`service_role\` 进仓库）
 
@@ -50,7 +50,8 @@ npm run build
 | 7 | feature-7-inventory-timeline | 库存图表实际历史与模拟预测分界 | 已合并 | 测试先行；实际点只来自有效快照；禁止伪造历史；不接主站、不改核心引擎 |
 | 8 | feature-8-sandbox-input-validation | 全局数字输入面板与整数校验 | 已合并 | 合并 2f0e0d7；包含 feature HEAD 910d8b0；10 文件／150 项全绿 |
 | 9 | feature-9-dual-channel-bep-runway | 双渠道财务拆解、动态 BEP 与抗风险 Runway 图表 | 已合并 | 合并 fa433d6；feature HEAD 740db7c；15 文件／185 项全绿 |
-| 10 | feature-10-checkin-contracts | 打卡 App 业务重构四份契约 | 进行中 | 仅 Markdown；一盒一码、脱敏雷达、休眠托管、staff 权限；禁止 SQL 与业务代码 |
+| 10.1 | feature-10-checkin-contracts | 打卡 App 业务重构四份契约 | 已合并 | 合并 a7feb0f；契约 HEAD 371ab48；仅 Markdown，无 SQL 与业务代码 |
+| 10.2 | bugfix-10.2-checkin-hotfixes | 衣物快照与首次保存云端同步修复 | 已合并 | 四提交 TDD；42 文件／293 项全绿 |
 
 ## 四、沙盘 CEO 经营需求全局规划
 
