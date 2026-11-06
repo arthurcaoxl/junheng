@@ -4,7 +4,8 @@ import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import { getSupabase } from "../lib/supabase";
-import { STORAGE_KEY, todayKey } from "../utils/checkin";
+import { flushSyncToCloud } from "../services/checkinSync";
+import { addDays, emptyDay, STORAGE_KEY, todayKey } from "../utils/checkin";
 
 function renderCheckIn() {
   return render(<MemoryRouter initialEntries={["/check-in"]}><App /></MemoryRouter>);
@@ -61,6 +62,41 @@ describe("保存打卡强制登录", () => {
     expect(getSupabase().auth.verifyOtp).toHaveBeenCalledTimes(1);
     const state = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}");
     expect(Object.keys(state.records)).toEqual([todayKey()]);
+  });
+
+  it("首次保存进入既有同步路径，上传新记录且不丢失云端已有日期", async () => {
+    const today = todayKey();
+    const yesterday = addDays(today, -1);
+    const cloudDay = { ...emptyDay(), weight: "61" };
+    const query = getSupabase().from("checkin_sync") as unknown as {
+      maybeSingle: ReturnType<typeof vi.fn>;
+      update: ReturnType<typeof vi.fn>;
+      insert: ReturnType<typeof vi.fn>;
+    };
+    query.maybeSingle.mockResolvedValue({
+      data: { user_code: "JH-CLOUD", start_date: today, records: { [yesterday]: cloudDay } },
+      error: null,
+    });
+    const user = userEvent.setup();
+    renderCheckIn();
+
+    await user.type(screen.getByLabelText("早晨体重（空腹）"), "68");
+    await user.type(screen.getByLabelText("邮箱地址"), "first-save@example.com");
+    await user.click(screen.getByRole("button", { name: "获取邮箱验证码" }));
+    await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
+    await user.click(screen.getByRole("button", { name: "完成绑定" }));
+
+    expect(await screen.findByText(/已绑定邮箱：first-save@example.com/)).toBeInTheDocument();
+    expect(savedToday().weights.morning).toBe("68");
+    await flushSyncToCloud();
+
+    expect(query.insert).not.toHaveBeenCalled();
+    expect(query.update).toHaveBeenCalledTimes(1);
+    const [payload] = query.update.mock.calls[0];
+    expect(payload.records[yesterday]).toEqual(cloudDay);
+    expect(payload.records[today].weights.morning).toBe("68");
+    await expect(flushSyncToCloud()).resolves.toBe("noop");
+    expect(query.update).toHaveBeenCalledTimes(1);
   });
 
   it("已完成 OTP 的用户保存时不重复弹窗", async () => {
