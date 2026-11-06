@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { Link, useLocation } from "react-router";
+import { BoxCodeActivation } from "../components/BoxCodeActivation";
 import { SevenDayCheckIn } from "../components/SevenDayCheckIn";
 import { SyncPanel } from "../components/SyncPanel";
 
@@ -21,6 +22,7 @@ export default function CheckInPage() {
       <nav className="check-in-page-nav" aria-label="打卡页导航">
         <Link to="/">← 返回首页</Link>
       </nav>
+      <BoxCodeActivation />
       <SevenDayCheckIn />
       <SyncPanel />
     </div>
