@@ -11,6 +11,7 @@ coverage/
 *.local
 
 # Validation output and temporary files
+.tmp/
 validation-*/
 cloud-verify-*/
 artifacts/
