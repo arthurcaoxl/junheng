@@ -6,7 +6,7 @@ import { readV3Snapshot, writeV3Snapshot } from "../utils/storageBridge";
 
 const MERGED_FLAG_KEY = "junheng-checkin-merged-flag";
 const OLD_DATA_VERSION = "junheng-checkin-v3";
-const PROFILE_DATA_VERSION = "junheng-checkin-v3-profile-v1";
+const PROFILE_DATA_VERSION = "junheng-checkin-v3-union-v1";
 const DATE = "2026-11-01";
 
 function day(weight: string) {
@@ -116,7 +116,7 @@ describe("BMI 基础档案幂等云端同步", () => {
     expect(cloudQuery().maybeSingle).not.toHaveBeenCalled();
   });
 
-  it("本地与云端档案冲突时以本地为准，云端独有日期不回填本地", async () => {
+  it("本地与云端档案冲突时以本地为准，云端独有日期回填本地", async () => {
     const local = snapshot({
       heightCm: "168",
       initialWeightKg: "73",
@@ -140,7 +140,7 @@ describe("BMI 基础档案幂等云端同步", () => {
     expect(payload).toMatchObject({ height_cm: "168", initial_weight_kg: "73" });
     expect(payload.records["2026-11-02"].weight).toBe("cloud-only");
     expect(readV3Snapshot()).toMatchObject({ heightCm: "168", initialWeightKg: "73" });
-    expect(readV3Snapshot().records["2026-11-02"]).toBeUndefined();
+    expect(readV3Snapshot().records["2026-11-02"]).toEqual(day("cloud-only"));
   });
 
   it("本地无打卡时恢复云端记录，但保留本地明确填写的档案并同步差异", async () => {

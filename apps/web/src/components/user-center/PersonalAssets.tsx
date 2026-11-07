@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { RecordTrends } from "../RecordTrends";
 import { GraduationCert } from "../GraduationCert";
 import { createRecordPoster } from "../../utils/recordPoster";
@@ -78,6 +79,7 @@ export function PersonalAssets({ state, records, recordName, endDate, requiresMi
           <button type="button" className="trend-unlock-button" onClick={requestTrends}>查看趋势图</button>
         </section>
       )}
+      <Link className="user-center-checkin-link" to="/check-in">继续记录今日体重与腰围</Link>
       <section className="poster-export" aria-labelledby="poster-export-title">
         <div className="poster-export-copy">
           <span>PERSONAL RECORD POSTER</span>

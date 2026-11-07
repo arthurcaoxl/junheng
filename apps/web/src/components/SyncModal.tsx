@@ -92,17 +92,16 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
       return;
     }
     const source = await loginWithEmail(email, code);
-    if (source === "cloud-restored") {
-      setNotice("数据已恢复，正在刷新…");
+    if (source === "cloud-restored" || source === "local-merged") {
+      setNotice(source === "local-merged" ? "数据已合并，正在刷新…" : "数据已恢复，正在刷新…");
       window.location.reload();
       return;
     }
     window.dispatchEvent(new CustomEvent("junheng-sync-changed", { detail: { email } }));
     setNotice(
       source === "local-seeded" ? "云端暂无记录，已将本机数据上传到云端。"
-        : source === "local-merged" ? "本机与云端记录已按日期合并，本机新增记录已补传到云端。"
-          : source === "empty" ? "当前暂无打卡记录，账号同步已就绪。"
-            : "当前账号的数据已完成同步。",
+        : source === "empty" ? "当前暂无打卡记录，账号同步已就绪。"
+          : "当前账号的数据已完成同步。",
     );
     setPhase("email");
     setCode("");

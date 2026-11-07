@@ -140,9 +140,19 @@ describe("sync panel", () => {
       expect(submit).toBeEnabled();
     });
 
-    it("seeds local data to the cloud when restoring on a new device with no cloud row", async () => {
+    it("merges cloud-only dates into non-empty local data and reloads to hydrate the UI", async () => {
       const user = userEvent.setup();
       seedRecordedDays(1);
+      const cloudOnlyDate = addDays(todayKey(), -1);
+      const query = getSupabase().from("checkin_sync") as unknown as { maybeSingle: ReturnType<typeof vi.fn> };
+      query.maybeSingle.mockResolvedValueOnce({
+        data: {
+          user_code: "JH-CLOUD",
+          start_date: todayKey(),
+          records: { [cloudOnlyDate]: { ...emptyDay(), weight: "64" } },
+        },
+        error: null,
+      });
       renderCheckIn();
       await user.click(screen.getByRole("button", { name: "使用原邮箱登录恢复" }));
 
@@ -157,10 +167,11 @@ describe("sync panel", () => {
 
       await user.type(screen.getByLabelText("邮箱验证码"), "123456");
       await user.click(screen.getByRole("button", { name: "登录并恢复数据" }));
-      expect(await screen.findByText(/已绑定邮箱：restore@example.com/)).toBeInTheDocument();
+      expect(await screen.findByText("数据已合并，正在刷新…")).toBeInTheDocument();
       expect(getSupabase().auth.verifyOtp).toHaveBeenCalledWith({ email: "restore@example.com", token: "123456", type: "email" });
-      // 登录与数据同步成功后必须自动卸载弹窗，不能让用户手动点关闭
-      expect(screen.queryByRole("dialog", { name: "恢复您的脂代谢档案" })).not.toBeInTheDocument();
+      const saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}");
+      expect(saved.records[cloudOnlyDate].weight).toBe("64");
+      expect(saved.records[todayKey()].weight).toBe("65");
     });
 
     it("surfaces a friendly rate-limit error from the server", async () => {
