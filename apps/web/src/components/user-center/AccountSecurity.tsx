@@ -107,9 +107,9 @@ export function AccountSecurity({ configured, email }: { configured: boolean; em
           </p>
         </div>
         {consentReady && (consent === true ? (
-          <button type="button" disabled={busy} onClick={() => void withdrawConsent()}>
-            {busy ? "正在撤回…" : "撤回授权"}
-          </button>
+          <p className="account-consent-notice" style={{ fontSize: '11px', opacity: 0.6 }}>
+            如需撤回数据授权，请联系平台客服处理。
+          </p>
         ) : (
           <button type="button" className="account-consent-agree" onClick={() => setAgreePrompt(true)}>
             同意参与

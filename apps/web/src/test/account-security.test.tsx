@@ -118,14 +118,14 @@ describe("账号安全", () => {
       expect(screen.queryByRole("button", { name: "退出登录" })).not.toBeInTheDocument();
     });
 
-    describe("数据授权状态（可撤回/可重新同意）", () => {
-      it("已授权用户：显示已授权状态与撤回授权按钮", async () => {
+    describe("数据授权状态（仅展示，撤回走客服）", () => {
+      it("已授权用户：撤回授权入口被移走，仅展示联系客服提示", async () => {
         cloudQuery().maybeSingle.mockResolvedValue({ data: { consent_granted: true }, error: null });
         renderUserCenter();
 
         expect(await screen.findByText("已授权参与数据研究")).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "撤回授权" })).toBeInTheDocument();
-        expect(screen.queryByRole("button", { name: "同意参与" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "撤回授权" })).not.toBeInTheDocument();
+        expect(screen.getByText(/如需撤回数据授权，请联系平台客服处理/)).toBeInTheDocument();
       });
 
       it("未授权用户（含建档默认 false）：统一显示未参与与同意参与按钮", async () => {
@@ -135,20 +135,6 @@ describe("账号安全", () => {
         expect(await screen.findByText("当前未参与数据研究")).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "同意参与" })).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "撤回授权" })).not.toBeInTheDocument();
-      });
-
-      it("撤回授权：云端写入 consent_granted=false，界面同步翻转", async () => {
-        const user = userEvent.setup();
-        cloudQuery().maybeSingle.mockResolvedValue({ data: { consent_granted: true }, error: null });
-        renderUserCenter();
-        await user.click(await screen.findByRole("button", { name: "撤回授权" }));
-
-        expect(cloudQuery().update).toHaveBeenCalledWith(expect.objectContaining({
-          consent_granted: false,
-          consent_at: expect.any(String),
-        }));
-        expect(await screen.findByText("当前未参与数据研究")).toBeInTheDocument();
-        expect(await screen.findByRole("button", { name: "同意参与" })).toBeInTheDocument();
       });
 
       it("同意参与：经授权弹窗勾选确认后云端写入 consent_granted=true，界面同步翻转", async () => {
@@ -169,5 +155,5 @@ describe("账号安全", () => {
         expect(screen.queryByRole("dialog", { name: "开启前，请确认数据授权" })).not.toBeInTheDocument();
       });
     });
-  });
-});
+  }); // 外层 describe 的闭合
+});   // 最外层 describe 的闭合
