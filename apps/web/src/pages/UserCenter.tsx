@@ -37,13 +37,13 @@ export default function UserCenter() {
         <span>品牌会员称号，不代表科研或职业身份。</span>
       </div>
       <HealthStats records={records} recordedDays={stats.recordedDays} />
-      <BmiTracker state={state} onSave={saveBmiProfile} />
       <PersonalAssets
         state={state}
         records={records}
         recordName={recordName}
         endDate={stats.endDate}
         requiresMilestoneBinding={configured && !email && stats.elapsedDays >= 7}
+        bmiTracker={<BmiTracker state={state} onSave={saveBmiProfile} />}
       />
       <AccountSecurity configured={configured} email={email} />
       <SyncPanel />

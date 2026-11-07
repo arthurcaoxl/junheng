@@ -64,11 +64,17 @@ function TrendChart({ records, metric }: TrendChartProps) {
   );
 }
 
-export function RecordTrends({ records }: { records: DayRecord[] }) {
+type RecordTrendsProps = {
+  records: DayRecord[];
+  metricOrder?: "weight-first" | "waist-first";
+};
+
+export function RecordTrends({ records, metricOrder = "weight-first" }: RecordTrendsProps) {
+  const metrics = metricOrder === "waist-first" ? ["waist", "weight"] as const : ["weight", "waist"] as const;
   return (
     <section className="record-trends" aria-label="21 天身体记录趋势">
       <div className="record-trends-heading"><span>MY 21-DAY RECORD</span><h3>真实记录，看得见。</h3><p>体重与腰围分别呈现；只连接相邻有记录的日期，不用推测值补齐。</p></div>
-      <div className="trend-grid trend-grid-stacked"><TrendChart records={records} metric="weight" /><TrendChart records={records} metric="waist" /></div>
+      <div className="trend-grid trend-grid-stacked">{metrics.map((metric) => <TrendChart key={metric} records={records} metric={metric} />)}</div>
     </section>
   );
 }

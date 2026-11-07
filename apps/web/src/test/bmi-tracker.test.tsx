@@ -5,7 +5,7 @@ import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { BmiTracker } from "../components/user-center/BmiTracker";
 import UserCenter from "../pages/UserCenter";
-import { emptyDay, STORAGE_KEY, type CheckInState } from "../utils/checkin";
+import { addDays, emptyDay, STORAGE_KEY, todayKey, type CheckInState } from "../utils/checkin";
 
 vi.mock("recharts", () => ({
   ResponsiveContainer: ({ children }: { children: ReactNode }) => <div>{children}</div>,
@@ -170,15 +170,25 @@ describe("BmiTracker", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("身高档案已更新，BMI 已重新计算");
   });
 
-  it("用户中心将 BMI 放在健康统计之后，并把档案写回 v3", async () => {
+  it("用户中心按腰围、体重、BMI 排列，并把档案写回 v3", async () => {
     const user = userEvent.setup();
+    const startDate = addDays(todayKey(), -1);
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state({
-      records: { "2026-11-01": day("70"), "2026-11-02": day("68") },
+      startDate,
+      records: {
+        [startDate]: { ...day("70"), waist: "90" },
+        [todayKey()]: { ...day("68"), waist: "89" },
+      },
     })));
     render(<MemoryRouter><UserCenter /></MemoryRouter>);
 
     const health = screen.getByRole("region", { name: "本期健康统计" });
-    expect(health.nextElementSibling).toHaveAttribute("aria-label", "BMI 动态追踪");
+    const waistTrend = screen.getByRole("img", { name: "腰围趋势图" });
+    const weightTrend = screen.getByRole("img", { name: "体重趋势图" });
+    const bmiTracker = screen.getByRole("region", { name: "BMI 动态追踪" });
+    expect(health.compareDocumentPosition(waistTrend)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(waistTrend.compareDocumentPosition(weightTrend)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(weightTrend.compareDocumentPosition(bmiTracker)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
 
     await user.click(screen.getByRole("button", { name: "完善基础档案" }));
     await user.type(screen.getByLabelText("身高（cm）"), "175");

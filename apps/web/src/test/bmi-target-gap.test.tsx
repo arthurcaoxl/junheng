@@ -20,14 +20,15 @@ function renderTracker(state: CheckInState) {
 }
 
 describe("BMI 目标差距数据看板", () => {
-  it("超重时将减脂目标与放大的体重数字紧凑成组", () => {
+  it("超重时使用鼓励式文案并保留弱化后的差距数据", () => {
     renderTracker(stateWithWeight("175", "80"));
 
     const banner = screen.getByTestId("bmi-target-gap");
     const copy = banner.querySelector(".bmi-target-gap-copy") as HTMLElement;
     expect(banner).toHaveAttribute("data-state", "reduce");
     expect(copy).toBeInTheDocument();
-    expect(within(copy).getByText("距离健康体重还需减脂")).toHaveClass("bmi-target-gap-label");
+    expect(within(copy).getByText("你正在向健康体重稳步迈进")).toHaveClass("bmi-target-gap-label");
+    expect(within(copy).queryByText(/距离健康体重还需减脂/)).not.toBeInTheDocument();
     expect(within(copy).getByText("6.5 kg")).toHaveClass("bmi-target-gap-value");
     expect(within(copy).getByText("6.5 kg").tagName).toBe("STRONG");
   });

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { RecordTrends } from "../RecordTrends";
 import { GraduationCert } from "../GraduationCert";
@@ -14,10 +14,11 @@ type PersonalAssetsProps = {
   recordName: string;
   endDate: string;
   requiresMilestoneBinding: boolean;
+  bmiTracker?: ReactNode;
 };
 
 /** 趋势、海报与 CSV 均接收明确的档案 props，不读取打卡页组件状态。 */
-export function PersonalAssets({ state, records, recordName, endDate, requiresMilestoneBinding }: PersonalAssetsProps) {
+export function PersonalAssets({ state, records, recordName, endDate, requiresMilestoneBinding, bmiTracker }: PersonalAssetsProps) {
   const [posterUrl, setPosterUrl] = useState("");
   const [posterError, setPosterError] = useState(false);
   const [trendUnlocked, setTrendUnlocked] = useState(false);
@@ -72,13 +73,14 @@ export function PersonalAssets({ state, records, recordName, endDate, requiresMi
   return (
     <div className="personal-assets">
       {!requiresMilestoneBinding || trendUnlocked ? (
-        <RecordTrends records={records} />
+        <RecordTrends records={records} metricOrder="waist-first" />
       ) : (
         <section className="record-trends record-trends-locked" aria-label="21 天身体记录趋势">
           <div className="record-trends-heading"><span>MY 21-DAY RECORD</span><h3>真实记录，看得见。</h3><p>专属健康趋势已经生成。绑定邮箱后即可查看，换手机或清理缓存也能恢复记录。</p></div>
           <button type="button" className="trend-unlock-button" onClick={requestTrends}>查看趋势图</button>
         </section>
       )}
+      {bmiTracker}
       <Link className="user-center-checkin-link" to="/check-in">继续记录今日体重与腰围</Link>
       <section className="poster-export" aria-labelledby="poster-export-title">
         <div className="poster-export-copy">

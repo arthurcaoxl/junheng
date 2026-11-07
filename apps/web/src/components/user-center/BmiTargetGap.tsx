@@ -21,7 +21,7 @@ export function BmiTargetGap({ currentWeightKg, initialWeightKg, heightCm }: Bmi
       ) : (
         <span className="bmi-target-gap-copy">
           <span className="bmi-target-gap-label">
-            {target.status === "reduce" ? "距离健康体重还需减脂" : "✅ 已处于健康体重范围"}
+            {target.status === "reduce" ? "你正在向健康体重稳步迈进" : "✅ 已处于健康体重范围"}
           </span>
           <strong className="bmi-target-gap-value">
             {target.status === "reduce"
