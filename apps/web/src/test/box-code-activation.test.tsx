@@ -39,6 +39,7 @@ describe("打卡页产品码激活", () => {
     renderCheckIn();
 
     expect(screen.getByLabelText("产品激活码")).toHaveValue("JH-EL-AB23");
+    expect(screen.getByText("输入盒内产品码，激活后将自动绑定对应教练。绑定邮箱可跨设备保留数据，随时查看您的动态追踪。")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "激活产品码" }));
 
     expect(await screen.findByText("激活成功，已为你绑定教练。")).toBeInTheDocument();
