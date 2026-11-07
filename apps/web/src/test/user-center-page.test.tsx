@@ -203,7 +203,7 @@ describe("用户中心 D7 与绑定状态", () => {
     expect(await screen.findByRole("img", { name: "21 天代谢重塑见证预览" })).toBeInTheDocument();
   });
 
-  it("已绑定邮箱显示研究员称号且资产不再拦截", async () => {
+  it("已绑定邮箱显示研究员称号、资产不拦截且账号安全位于页面底部", async () => {
     (getSupabase().auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { session: { user: { email: "bound@example.com" } } },
     });
@@ -217,5 +217,8 @@ describe("用户中心 D7 与绑定状态", () => {
     await user.click(screen.getByRole("button", { name: "生成专属成就海报" }));
     expect(screen.getByRole("img", { name: "21 天健康记录海报预览" })).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    const userCenter = screen.getByRole("region", { name: "我的脂代谢追踪档案" });
+    const accountSecurity = screen.getByRole("region", { name: "账号安全" });
+    expect(accountSecurity).toBe(userCenter.lastElementChild);
   });
 });

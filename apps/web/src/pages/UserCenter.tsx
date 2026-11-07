@@ -46,10 +46,10 @@ export default function UserCenter() {
         endDate={stats.endDate}
         requiresMilestoneBinding={configured && !email && stats.elapsedDays >= 7}
       />
-      <AccountSecurity configured={configured} email={email} />
       <SyncPanel />
       <Link className="user-center-checkin-link" to="/check-in">继续记录今日体重与腰围</Link>
       <p className="platform-disclaimer user-center-disclaimer">{siteConfig.platformDisclaimer}</p>
+      <AccountSecurity configured={configured} email={email} />
     </section>
   );
 }
