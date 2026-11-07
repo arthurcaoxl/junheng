@@ -53,22 +53,6 @@ export function AccountSecurity({ configured, email }: { configured: boolean; em
     }
   };
 
-  /** 撤回授权：合规要求用户可随时撤回，写回云端并同步翻转界面。 */
-  const withdrawConsent = async () => {
-    if (busy) return;
-    setBusy(true);
-    setError("");
-    setNotice("");
-    try {
-      await saveCloudConsent(false).catch((syncError: unknown) => {
-        console.warn("撤回授权云端同步失败，已保留本机记录。", syncError);
-      });
-      setConsent(false);
-      setNotice("已撤回数据研究授权，可随时重新同意。");
-    } finally {
-      setBusy(false);
-    }
-  };
 
   /** 重新同意：复用总授权弹窗走“勾选确认”的完整交互。 */
   const agreeFromDialog = async () => {
