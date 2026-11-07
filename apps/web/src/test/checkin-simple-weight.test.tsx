@@ -28,6 +28,8 @@ describe("极简体重记录与衣物扣减", () => {
     renderCheckIn();
 
     expect(screen.getByText("晨起称重衣物扣减：默认 0.5 kg（可调整）")).toBeInTheDocument();
+    expect(screen.getByText("仅晨起空腹记录会扣除该重量。建议晨起穿轻便睡衣测量。")).toBeInTheDocument();
+    expect(screen.getByText("测量方式：沿着肚脐一周进行测量")).toHaveClass("measurement-hint");
     expect(screen.queryByLabelText("中午体重")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("晚间体重")).not.toBeInTheDocument();
 
