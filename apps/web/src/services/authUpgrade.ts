@@ -1,5 +1,5 @@
 import { ensureSession, getSupabase } from "../lib/supabase";
-import { hasBoxCodeActivation } from "./boxCodeActivation";
+import { hasBoxCodeActivation } from "./activationStorage";
 import { normalizeOtpInput } from "./otp";
 import { openSyncModal } from "./syncUi";
 

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router";
 import { activateBoxCode, hasBoxCodeActivation } from "../services/boxCodeActivation";
+import { requestCheckinQuotaRefresh } from "../services/checkinQuota";
 import { validateBoxCode } from "../utils/boxCode";
 
 function createIdempotencyKey(): string {
@@ -53,6 +54,7 @@ export function BoxCodeActivation() {
       setCode("");
       setPhase("bound");
       setNotice("激活成功，已为你绑定教练。");
+      requestCheckinQuotaRefresh();
       if (syncResult === "offline") {
         setSyncWarning("激活已完成，但本次云端同步未成功，请稍后重试。");
       }
