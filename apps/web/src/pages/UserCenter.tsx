@@ -1,4 +1,3 @@
-import { Link } from "react-router";
 import { useUserCenterData } from "../hooks/useUserCenterData";
 import { HealthStats } from "../components/user-center/HealthStats";
 import { BmiTracker } from "../components/user-center/BmiTracker";
@@ -48,7 +47,6 @@ export default function UserCenter() {
       />
       <AccountSecurity configured={configured} email={email} />
       <SyncPanel />
-      <Link className="user-center-checkin-link" to="/check-in">继续记录今日体重与腰围</Link>
       <p className="platform-disclaimer user-center-disclaimer">{siteConfig.platformDisclaimer}</p>
     </section>
   );

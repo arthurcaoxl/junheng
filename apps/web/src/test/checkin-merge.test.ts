@@ -59,7 +59,7 @@ describe("按日期键补全式首次合并", () => {
     expect(readV3Snapshot()).toEqual({ ...local, userCode: "JH-CLOUD" });
   });
 
-  it("同日期冲突以本地为准，云端独有日期保留且不回填非空本地", async () => {
+  it("同日期冲突以本地为准，云端独有日期保留并回填非空本地", async () => {
     const local = snapshot("2026-10-01", { "2026-10-02": day("local") });
     const cloud = snapshot("2026-10-01", {
       "2026-10-01": day("cloud-only-before"),
@@ -75,10 +75,18 @@ describe("按日期键补全式首次合并", () => {
     expect(payload.records["2026-10-02"].weight).toBe("local");
     expect(payload.records["2026-10-01"].weight).toBe("cloud-only-before");
     expect(payload.records["2026-10-03"].weight).toBe("cloud-only-after");
-    expect(Object.keys(readV3Snapshot().records)).toEqual(["2026-10-02"]);
+    expect(readV3Snapshot()).toEqual({
+      ...local,
+      userCode: "JH-CLOUD",
+      records: {
+        "2026-10-01": day("cloud-only-before"),
+        "2026-10-02": day("local"),
+        "2026-10-03": day("cloud-only-after"),
+      },
+    });
   });
 
-  it("本地记录与云端一致时无需上传，也绝不在对齐体验官代码时回填云端日期", async () => {
+  it("同日记录一致时无需上传，并对齐体验官代码与云端独有日期", async () => {
     const local = snapshot("2026-10-01", { "2026-10-02": day("same") });
     const cloud = snapshot("2026-10-01", {
       "2026-10-01": day("cloud-only"),
@@ -90,7 +98,7 @@ describe("按日期键补全式首次合并", () => {
     await expect(ensureInitialMerge()).resolves.toBe("local-merged");
 
     expect(cloudQuery().update).not.toHaveBeenCalled();
-    expect(readV3Snapshot()).toEqual({ ...local, userCode: "JH-CLOUD" });
+    expect(readV3Snapshot()).toEqual({ ...local, userCode: "JH-CLOUD", records: cloud.records });
   });
 
   it("只有本地为空时才用云端快照覆盖本地并保留备份", async () => {
