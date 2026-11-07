@@ -339,6 +339,7 @@ export function SevenDayCheckIn() {
             })}
             <div className="weight-node waist-node">
               <label><span className="weight-node-label">腰围（cm）</span><input type="number" inputMode="decimal" min="0" step="0.1" placeholder="选填" value={current.waist} onChange={(event) => updateDay({ waist: event.target.value })} /></label>
+              <p className="measurement-hint">测量方式：沿着肚脐一周进行测量</p>
             </div>
           </div>
           {extraNodesVisible ? (

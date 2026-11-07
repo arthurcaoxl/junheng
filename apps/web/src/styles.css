@@ -688,6 +688,7 @@ section { scroll-margin-top: 78px; }
 .metrics-input-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; align-items: start; }
 .weight-node { min-width: 0; }
 .weight-node-label { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.measurement-hint { margin-top: 8px; font-size: 11px; line-height: 1.8; opacity: .6; }
 .weight-net, .weight-net-warning { min-height: 20px; }
 
 /* v1.10.0 · 体重多节点（早晚加权 + 扣衣物） */
