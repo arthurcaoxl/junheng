@@ -73,7 +73,7 @@ export function BoxCodeActivation() {
         </div>
       ) : (
         <>
-          <p className="sync-panel-status">输入盒内产品码，激活后将自动绑定对应教练，无需绑定邮箱。</p>
+          <p className="sync-panel-status">输入盒内产品码，激活后将自动绑定对应教练。绑定邮箱可跨设备保留数据，随时查看您的动态追踪。</p>
           <form className="sync-panel-form" onSubmit={submit}>
             <label htmlFor="box-code-activation-input">产品激活码</label>
             <input
