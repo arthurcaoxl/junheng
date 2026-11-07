@@ -1,7 +1,7 @@
-# 业务逻辑中枢字典 v1.0（Logic Hub）
+# 业务逻辑中枢字典 v1.1（Logic Hub）
 
-- 版本：v1.0
-- 基线：main @ 0e1d51e（V7.1 四份核心文档落盘）
+- 版本：v1.1（2026-11-07 同步：10.7 打卡防刷已合并，核对实现一致性）
+- 基线：main @ 5707c69（10.7 已闭环，测试基线 352 项）
 - 定位：打卡 App（10 号体系）后续所有子任务的**唯一业务事实源**。本字典只做契约提炼，不包含任何 RPC SQL、迁移或前端代码。
 - 事实来源：
   - `docs/business/operation-guide-v7.1.md`（V7.1 运营指南）
@@ -51,6 +51,12 @@ interface SystemConfig {
   coach_restock_point: 12;
 }
 ```
+
+**落地状态（v1.1 核对）：**
+
+- ✅ **10.7 已实现配置物理载体**：`system_configs` 表（RLS 锁死、客户端零权限）+ `system_config_audit` 审计表 + 变更触发器（自动记录旧值/新值/操作者/时间），迁移 `20261107120000_verify_checkin.sql`。
+- ✅ 已播种 `max_checkins_per_box = 21`、`default_box_spec = '21_bags'`。
+- ⏳ `radar_yellow_hours` / `radar_red_hours` / `coach_restock_point` **尚未播种**：雷达灯号（10.5 已落库 RPC）当前按 `coach-radar-desensitized-v1.md` 的 Asia/Shanghai 自然日差语义计算（2 天黄、≥3 天红，与 48/72 小时口径等价），先于本字典存在；补货预警属 10.8 边界。**10.8 开工时须先播种 `coach_restock_point` 并由 RPC 动态读取**；雷达阈值如需参数化，按第四节变更四步法另行升版。
 
 ### 1.2 参数事实依据
 
@@ -118,9 +124,13 @@ interface BoxCode {
 }
 ```
 
-> 说明：`box_spec` / `max_checkins` / `used_checkins` 是本次契约新增的逻辑字段，落库迁移由后续对应子任务在其边界内实现；本子任务不产出 SQL。
+> 落地状态（v1.1 核对）：✅ **三个预留字段已由 10.7 落库**（迁移 `20261107120000_verify_checkin.sql`）：`box_codes` 新增 `max_checkins`（默认 21，非空）、`used_checkins`（默认 0，非空）、`box_spec`（默认 `'21_bags'`，非空），带 CHECK 约束（`used_checkins <= max_checkins`、`box_spec in ('21_bags','30_bags')`）；历史码按当前配置值回填。
+>
+> ⚠️ **10.8 衔接注意**：新列的数据库默认值（21 / `'21_bags'`）只是兜底。生成新码（尤其未来 30 袋装）时，生成路径必须**显式从 `system_configs` 读取并快照写入** `max_checkins` / `box_spec`，不得依赖列默认值——这是"配置驱动"纪律在码生成环节的落点。
 
-### 2.2 码状态机（继承 10.1 契约，不可变更）
+### 2.2 码状态机（继承 10.1 契约，不可变更）✅ 已落库
+
+> 10.4 已建表（`box_codes.state` CHECK 约束限定四态），10.7 的 `verify_checkin` 只对 `active` 态放行，与状态机一致。
 
 ```text
 unused ──提交申请──> pending_review ──审核通过──> active
@@ -138,8 +148,8 @@ unused / active ──授权撤销或作废──> revoked（终态，不可逆�
 
 | 子任务 | 唯一职责 | 明确禁止 |
 | --- | --- | --- |
-| **10.7** | **打卡防刷**：物理日幂等锁（一天只扣 1 次）、行级锁防并发连点、`used_checkins` 超额拦截、`pending_review` 拦截 | 不碰云库存分配、不碰审核流、不改雷达逻辑 |
-| **10.8** | **云库存分配**：教练箱/码与云库存的扣减、补货预警（读 `coach_restock_point`）、库存台账流水（inventory_logs 逐笔出入库） | 不碰打卡扣次、不碰审核、不碰归属变更 |
+| **10.7** ✅ 已合并（5707c69） | **打卡防刷**：物理日幂等锁（一天只扣 1 次）、行级锁防并发连点、`used_checkins` 超额拦截、`pending_review` 拦截 | 不碰云库存分配、不碰审核流、不改雷达逻辑 |
+| **10.8** ⏳ 待开工 | **云库存分配**：教练箱/码与云库存的扣减、补货预警（读 `coach_restock_point`）、库存台账流水（inventory_logs 逐笔出入库） | 不碰打卡扣次、不碰审核、不碰归属变更 |
 | **10.9** | **人工审核流**：`pending_review → active / revoked` 的人工核验工单、发货与线下收款凭证核验、操作审计留痕（audit_logs） | 不碰打卡扣次、不碰库存扣减、不设自动审核通过 |
 
 - 越权判定：任何子任务在其边界外新增了写入路径或改变了其他模块的状态语义，即视为越权，直接打回。
@@ -149,7 +159,19 @@ unused / active ──授权撤销或作废──> revoked（终态，不可逆�
 
 ## 三、阻断与并发契约
 
-### 3.1 RPC `verify_checkin` 拦截逻辑（契约级，非实现）
+### 3.1 RPC `verify_checkin` 拦截逻辑 ✅ 10.7 已实现
+
+> 落库于迁移 `20261107120000_verify_checkin.sql`。v1.1 已逐条核对实现与本契约一致，映射如下：
+>
+> | 闸门 | 10.7 实现 | 拒绝错误码 |
+> | --- | --- | --- |
+> | `status_active` | `v_code.state <> 'active'` 即拒绝（`unused` / `pending_review` / `revoked` 全覆盖） | `CHECKIN_NOT_ACTIVE` |
+> | `quota_available` | `used_checkins >= max_checkins` 即拒绝 | `CHECKIN_QUOTA_EXHAUSTED` |
+> | `physical_day_idempotent` | `checkin_daily_claims` 表主键 `(code_id, physical_day)`，物理日取 `Asia/Shanghai` 当日；同日重复打卡返回幂等结果（`idempotent: true`），不重复扣次 | —（幂等返回，非错误） |
+> | `row_locked` | 码行 `select ... for update` 覆盖状态、幂等、额度、扣次全过程 | — |
+> | `atomic` | 单函数事务；扣次、幂等记录、`CheckinVerified` 事件、快照保存同生共死，任一步失败整体回滚 | — |
+>
+> 附加防绕过：`checkin_sync` 表挂 `guard_checkin_sync_quota` 触发器，已激活用户未经 RPC 直接写云端打卡会被 `CHECKIN_RPC_REQUIRED` 拦截，与本契约"前端不得绕过闸门"一致。前端（`checkinQuota.ts`）只调 RPC 并做返回值结构校验，无额度字面值硬编码。
 
 ```typescript
 /**
@@ -219,7 +241,8 @@ interface VerifyCheckinContract {
 
 | 日期 | 版本 | 变更 | 依据 | Hash |
 | --- | --- | --- | --- | --- |
-| 2026-11-07 | v1.0 | 首版落盘：SystemConfig、BoxCode 扩展接口、10.7/10.8/10.9 任务边界、阻断与并发契约、变更四步法 | V7.1 四份业务文档（main @ 0e1d51e） | 见提交记录 |
+| 2026-11-07 | v1.0 | 首版落盘：SystemConfig、BoxCode 扩展接口、10.7/10.8/10.9 任务边界、阻断与并发契约、变更四步法 | V7.1 四份业务文档（main @ 0e1d51e） | ce1da76 |
+| 2026-11-07 | v1.1 | 同步 10.7 落地：SystemConfig 物理载体、BoxCode 三字段、状态机、`verify_checkin` 五闸门逐条标记已实现；补充 10.8 衔接注意（码生成须从 `system_configs` 显式快照）；雷达阈值/补货点待播种说明 | 迁移 `20261107120000_verify_checkin.sql` 与前端 `checkinQuota.ts` 核对（main @ 5707c69） | 见提交记录 |
 
 ---
 
