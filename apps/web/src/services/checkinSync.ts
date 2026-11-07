@@ -12,7 +12,7 @@ export type SyncResult = "synced" | "offline";
 export type InitialMergeResult = "already-merged" | "cloud-restored" | "local-seeded" | "local-merged" | "empty";
 
 export const MERGED_FLAG_KEY = "junheng-checkin-merged-flag";
-const MERGED_DATA_VERSION = "junheng-checkin-v3-profile-v1";
+const MERGED_DATA_VERSION = "junheng-checkin-v3-union-v1";
 
 type MergedFlag = { dataVersion: string; mergedAt: string };
 type MergedFlags = Record<string, MergedFlag>;
@@ -151,10 +151,8 @@ async function runInitialMerge(uid: string): Promise<InitialMergeResult> {
   if (recordsChanged || cloud.startDate !== local.startDate || hasProfileDifference(merged, cloud)) {
     await writeCloudSnapshot(uid, merged, cloud.userCode);
   }
-  if (cloud.userCode !== local.userCode || heightCm !== local.heightCm || initialWeightKg !== local.initialWeightKg) {
-    // 只对齐体验官代码和补全档案，绝不把云端日期回填到非空本地。
-    writeV3Snapshot({ ...local, userCode: cloud.userCode, heightCm, initialWeightKg });
-  }
+  // 完整并集写回本机；调用方在 local-merged 后刷新，让 React 状态重新水合。
+  writeV3Snapshot(merged);
   return "local-merged";
 }
 

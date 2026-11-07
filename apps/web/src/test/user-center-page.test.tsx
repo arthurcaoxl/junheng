@@ -203,7 +203,7 @@ describe("用户中心 D7 与绑定状态", () => {
     expect(await screen.findByRole("img", { name: "21 天代谢重塑见证预览" })).toBeInTheDocument();
   });
 
-  it("已绑定邮箱显示研究员称号且资产不再拦截", async () => {
+  it("已绑定邮箱显示研究员称号、资产不拦截且用户中心布局顺序正确", async () => {
     (getSupabase().auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { session: { user: { email: "bound@example.com" } } },
     });
@@ -217,5 +217,13 @@ describe("用户中心 D7 与绑定状态", () => {
     await user.click(screen.getByRole("button", { name: "生成专属成就海报" }));
     expect(screen.getByRole("img", { name: "21 天健康记录海报预览" })).toBeInTheDocument();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    const trends = screen.getByRole("region", { name: "21 天身体记录趋势" });
+    const continueLink = screen.getByRole("link", { name: "继续记录今日体重与腰围" });
+    const poster = screen.getByRole("region", { name: "把坚持的成果，变成你的专属成就。" });
+    const certificate = screen.getByRole("region", { name: "21 天代谢重塑见证" });
+    const accountSecurity = screen.getByRole("region", { name: "账号安全" });
+    expect(trends.compareDocumentPosition(continueLink)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(continueLink.compareDocumentPosition(poster)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(certificate.compareDocumentPosition(accountSecurity)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 });
