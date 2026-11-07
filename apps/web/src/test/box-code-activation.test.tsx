@@ -115,17 +115,17 @@ describe("打卡页产品码激活", () => {
     expect(await screen.findByText("已绑定专属教练")).toBeInTheDocument();
     expect(screen.queryByLabelText("产品激活码")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "激活产品码" })).not.toBeInTheDocument();
-    expect(getSupabase().rpc).not.toHaveBeenCalled();
+    expect(getSupabase().rpc).not.toHaveBeenCalledWith("activate_box_code", expect.anything());
   });
 
-  it("已绑定用户携带 Query 时清除 code 且不显示表单不调用 RPC", async () => {
+  it("已绑定用户携带 Query 时清除 code 且不显示表单不调用激活 RPC", async () => {
     window.localStorage.setItem("junheng-box-code-activated-v1", "true");
     renderCheckIn();
 
     expect(await screen.findByText("已绑定专属教练")).toBeInTheDocument();
     expect(screen.getByTestId("activation-search-params").textContent).toBe("");
     expect(screen.queryByLabelText("产品激活码")).not.toBeInTheDocument();
-    expect(getSupabase().rpc).not.toHaveBeenCalled();
+    expect(getSupabase().rpc).not.toHaveBeenCalledWith("activate_box_code", expect.anything());
   });
 
   it("激活成功后隐藏表单并在刷新后恢复绑定状态", async () => {

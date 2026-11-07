@@ -1,5 +1,11 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
+import { hasBoxCodeActivation } from "../services/activationStorage";
+import {
+  CHECKIN_QUOTA_EVENT,
+  getCheckinQuota,
+  type CheckinQuota,
+} from "../services/checkinQuota";
 import { WaterFluctuation } from "./WaterFluctuation";
 import { useSyncStatus } from "../hooks/useSyncStatus";
 import { openSyncModal } from "../services/syncUi";
@@ -75,6 +81,36 @@ export function SevenDayCheckIn() {
   const actualDayIndex = diffDays(state.startDate, today) + 1; // 真实今天在本期第几天；回看历史日期不影响折叠阶段
   const isNovice = actualDayIndex <= 2; // 破冰期：科普直接展示；熟练期：默认折叠，表单上移
   const [isKnowledgeExpanded, setIsKnowledgeExpanded] = useState(false);
+  const [checkinQuota, setCheckinQuota] = useState<CheckinQuota | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    const refreshQuota = async () => {
+      if (!hasBoxCodeActivation()) {
+        if (mounted) setCheckinQuota(null);
+        return;
+      }
+      try {
+        const quota = await getCheckinQuota();
+        if (mounted) setCheckinQuota(quota);
+      } catch {
+        // 额度读取失败时不展示猜测值，也不影响本地打卡编辑。
+        if (mounted) setCheckinQuota(null);
+      }
+    };
+    const onQuotaUpdate = (event: Event) => {
+      const quota = (event as CustomEvent<CheckinQuota | undefined>).detail;
+      if (quota) setCheckinQuota(quota);
+      else void refreshQuota();
+    };
+
+    void refreshQuota();
+    window.addEventListener(CHECKIN_QUOTA_EVENT, onQuotaUpdate);
+    return () => {
+      mounted = false;
+      window.removeEventListener(CHECKIN_QUOTA_EVENT, onQuotaUpdate);
+    };
+  }, []);
 
   const persistState = (next: CheckInState) => {
     setState(next);
@@ -211,6 +247,11 @@ export function SevenDayCheckIn() {
         <h2 id="check-in-title">21 天，构建你的脂代谢稳态。</h2>
         <p>第 1 天建立基线，第 21 天回看趋势。记录体重、腰围与每餐执行情况。</p>
         <p className="camp-range">本期周期：{state.startDate} 至 {stats.endDate} · 修改后自动保存，无需注册</p>
+        {checkinQuota && (
+          <p className="check-in-quota" role="status">
+            剩余 {checkinQuota.remainingCheckins}/{checkinQuota.maxCheckins} 次
+          </p>
+        )}
       </header>
       <div className="knowledge-section-wrapper">
         {!isNovice && (

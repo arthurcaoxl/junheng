@@ -1,7 +1,8 @@
 import { ensureSession, getSupabase } from "../lib/supabase";
 import { syncToCloud, type SyncResult } from "./checkinSync";
+import { markBoxCodeActivated } from "./activationStorage";
 
-const ACTIVATED_FLAG_KEY = "junheng-box-code-activated-v1";
+export { hasBoxCodeActivation } from "./activationStorage";
 
 type ActivationErrorCode =
   | "UNAUTHORIZED"
@@ -33,22 +34,6 @@ const ERROR_MESSAGES: Record<ActivationErrorCode, string> = {
   CODE_HASH_NOT_CONFIGURED: "激活服务暂不可用，请联系运营方。",
 };
 
-export function hasBoxCodeActivation(): boolean {
-  try {
-    return window.localStorage.getItem(ACTIVATED_FLAG_KEY) === "true";
-  } catch {
-    return false;
-  }
-}
-
-function markBoxCodeActivated(): void {
-  try {
-    window.localStorage.setItem(ACTIVATED_FLAG_KEY, "true");
-  } catch {
-    // 标记只用于免除本机强制邮箱拦截，不影响服务端已完成的激活事实。
-  }
-}
-
 export async function activateBoxCode(
   code: string,
   idempotencyKey: string,
@@ -73,6 +58,6 @@ export async function activateBoxCode(
   }
 
   markBoxCodeActivated();
-  // 激活已经成功；后续同步失败只返回 offline，绝不重复激活或伪造回滚。
-  return { syncResult: await syncToCloud() };
+  // 激活后的保持性同步不是新打卡，不消耗物理日额度。
+  return { syncResult: await syncToCloud(false) };
 }

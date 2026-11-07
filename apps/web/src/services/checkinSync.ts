@@ -7,6 +7,8 @@ import {
   writeV3Snapshot,
 } from "../utils/storageBridge";
 import { normalizeOtpInput } from "./otp";
+import { hasBoxCodeActivation } from "./activationStorage";
+import { verifyCheckinSnapshot } from "./checkinQuota";
 
 export type SyncResult = "synced" | "offline";
 export type InitialMergeResult = "already-merged" | "cloud-restored" | "local-seeded" | "local-merged" | "empty";
@@ -70,17 +72,26 @@ async function readCloudSnapshot(uid: string): Promise<CheckInState | null> {
   });
 }
 
-async function writeCloudSnapshot(uid: string, state: CheckInState, cloudUserCode: string | null): Promise<void> {
+async function writeCloudSnapshot(
+  uid: string,
+  state: CheckInState,
+  cloudUserCode: string | null,
+  consumeQuota = false,
+): Promise<void> {
   const client = getSupabase();
   if (cloudUserCode !== null) {
-    const { error } = await client.from("checkin_sync").update({
-      start_date: state.startDate,
-      records: state.records,
-      height_cm: state.heightCm ?? null,
-      initial_weight_kg: state.initialWeightKg ?? null,
-      updated_at: new Date().toISOString(),
-    }).eq("auth_user_id", uid);
-    if (error) throw new Error("云端数据写入失败，请稍后重试。");
+    if (consumeQuota && hasBoxCodeActivation()) {
+      await verifyCheckinSnapshot(state);
+    } else {
+      const { error } = await client.from("checkin_sync").update({
+        start_date: state.startDate,
+        records: state.records,
+        height_cm: state.heightCm ?? null,
+        initial_weight_kg: state.initialWeightKg ?? null,
+        updated_at: new Date().toISOString(),
+      }).eq("auth_user_id", uid);
+      if (error) throw new Error("云端数据写入失败，请稍后重试。");
+    }
     if (cloudUserCode && cloudUserCode !== state.userCode) {
       writeV3Snapshot({ ...state, userCode: cloudUserCode });
     }
@@ -176,7 +187,7 @@ export function ensureInitialMerge(): Promise<InitialMergeResult> {
   return ensureSession().then((session) => ensureInitialMergeForUid(session.user.id));
 }
 
-async function uploadCurrentSnapshot(uid: string): Promise<void> {
+async function uploadCurrentSnapshot(uid: string, consumeQuota: boolean): Promise<void> {
   const v3 = readV3SnapshotStrict();
   const client = getSupabase();
   // 体验官代码终身唯一：云端已有记录时以云端 user_code 为准，绝不覆盖
@@ -186,16 +197,21 @@ async function uploadCurrentSnapshot(uid: string): Promise<void> {
     .eq("auth_user_id", uid)
     .maybeSingle();
   if (lookupError) throw lookupError;
-  await writeCloudSnapshot(uid, v3, existing ? (existing as { user_code: string }).user_code : null);
+  await writeCloudSnapshot(
+    uid,
+    v3,
+    existing ? (existing as { user_code: string }).user_code : null,
+    consumeQuota,
+  );
 }
 
-/** 首次调用先做日期并集合并；后续保持既有覆盖式增量备份语义。失败不影响本地。 */
-export async function syncToCloud(): Promise<SyncResult> {
+/** 首次合并不扣次；普通增量上传才进入已激活盒码的物理日额度校验。 */
+export async function syncToCloud(consumeQuota = true): Promise<SyncResult> {
   try {
     const session = await ensureSession();
     const mergeResult = await ensureInitialMergeForUid(session.user.id);
     if (mergeResult !== "already-merged") return "synced";
-    await uploadCurrentSnapshot(session.user.id);
+    await uploadCurrentSnapshot(session.user.id, consumeQuota);
     return "synced";
   } catch {
     return "offline"; // 断网/未配置/RLS 拒绝：本地为准，下次保存自动重试

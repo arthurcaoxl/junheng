@@ -128,6 +128,9 @@
 6. 服务端认证身份（Supabase uid）与本机 `userCode` 是两套标识；未来服务端体验官身份另立 `identity-v1` 契约，不得把 `userCode` 当登录账号。
 7. 服务端时间戳使用 UTC ISO 8601，与本机 `YYYY-MM-DD` 日期键不冲突；未来服务端打卡必须另立契约，不得修改本 v3。
 8. RLS：体验官只能读写自己 uid 的行；管理员经 `camp_admins` 白名单获得只读权限，走 `admin_checkin_overview()` RPC。新增档案列不改变既有 RLS 或管理员返回字段。
+9. **10.7 盒码额度增量**：已激活用户的普通增量备份必须改走 `verify_checkin(p_start_date, p_records, p_height_cm, p_initial_weight_kg)`，由服务端在同一事务内锁定当前盒码、校验 active 状态与剩余额度、保存云端快照、按 Asia/Shanghai 物理日写幂等记录并追加审计。首次合并、激活前建档及激活后的无变化保持性同步不消耗额度；未激活用户沿用既有直接同步路径。
+10. 同一盒码同一物理日的重复保存仍更新快照并返回 `idempotent=true`，但 `used_checkins` 不得重复递增；跨物理日才允许再扣 1 次。非 active（含 `pending_review`）或 `used_checkins >= max_checkins` 时 RPC 抛错并整体回滚，前端不得伪造成功或自行推算服务端额度。
+11. 历史盒码迁移时以 `SystemConfig.max_checkins_per_box` / `default_box_spec` 补齐额度快照，`used_checkins` 初始为 0；该兼容不回写或绕过既有码生命周期状态。前端通过 `get_checkin_quota()` 读取 `remainingCheckins / maxCheckins`，不把默认值当作已激活凭证。
 
 ## 教练雷达只读 RPC（10.5 增量）
 
