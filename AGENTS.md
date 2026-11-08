@@ -4,7 +4,7 @@
 
 ## 项目现状
 - 当前版本：\`v1.13.3\`
-- 测试基线：\`55\` 个文件 / \`378\` 项
+- 测试基线：\`56\` 个文件 / \`385\` 项
 - 前端路径：\`apps/web\` (Vite + React + TS + Supabase)
 - 后端：仅 Supabase（浏览器侧仅 \`anon key\`，禁止 \`service_role\` 进仓库）
 
@@ -87,6 +87,9 @@ npm run build
 | TASK-10.8 | feature-10.8-cloud-inventory | 云库存与流水 | 已合并 | 执行 [TASK-10.8]；遵循 [BIZ-V1.1]；等待中枢字典升版与裁判派工 |
 | TASK-10.9 | feature-10.9-manual-review | 激活人工审核与教练托管 | 已合并 | 执行 [TASK-10.9]；遵循 [BIZ-V1.3]；最终基线 b5987f6；55 个测试文件／378 项测试全绿 |
 | TASK-10.10-PRE-BIZ-V1.5 | docs/biz-v1.5 | 字典 BIZ-V1.5 升版备案 | 已合并 | 五角架构规范已生效；遵循 [BIZ-V1.5]；基于 [CORE-v1.13.3]；中枢 0 已按变更四步法完成升版 |
+| TASK-10.10 | feature-10.10-auth-limiter | 申请入口限流与设备指纹 | 已合并（带 P2 技术债） | 遵循 [BIZ-V1.5]；origin/main @ 5f1a9d7；56 个测试文件／385 项全绿 |
+
+下一阶段预研：产品有效期 `expires_at` 已入 [BIZ-V1.5] 第七节 Backlog（P1），待裁判终裁后转为正式任务派工。
 
 **10.4 漏合事故复盘：** 第一阶段合并前曾执行 `git diff --stat`，但它仅证明当时远程分支中的 4 个文件，不能覆盖尚未推送的激活迁移，更不能据此认定 10.4 全阶段闭环。`20261106150000_activate_box_code.sql` 后因网络推送失败遗漏，由裁判补推并补合至 main（HEAD 73b9df7）。后续每次合并均须按第二节第 6 条重新核对当次目标 HEAD、任务书文件清单和 `git diff --stat`，并确认目标文件实际进入 main。
 

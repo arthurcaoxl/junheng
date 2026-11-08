@@ -3,11 +3,11 @@
 handoff_snapshot:
   current_core_version: "CORE-v1.13.3"
   current_biz_version: "BIZ-V1.5"
-  active_task: "TASK-10.10"
-  task_status: "In Progress"
-  last_merged_commit: "见本合并 commit"
+  active_task: "None"
+  task_status: "Awaiting Assignment"
+  last_merged_commit: "5f1a9d7"
   test_baseline: "56 文件 / 385 项全绿"
-  handoff_notes: "10.9 已合并于 b5987f6 并完成登记；10.10 申请入口三维限流与设备指纹代码已合入，运行时四项冒烟待补（P2 测试基建触发时首批补齐）；部署 10.9 托管功能前必须向 system_configs 播种 platform_official_account_id。"
+  handoff_notes: "TASK-10.10 已合并（带 P2 技术债，运行时四项冒烟待补）；产品有效期 expires_at 已入 [BIZ-V1.5] 第七节 Backlog（P1），待裁判终裁后转正式任务派工；部署 10.9 托管功能前必须向 system_configs 播种 platform_official_account_id。"
 
 # 项目接力工作日志 (WORKLOG)
 
@@ -44,3 +44,6 @@ handoff_snapshot:
     29.5.2
     $ docker ps --format '{{.Names}} {{.Image}} {{.Ports}}' 2>&1
     lifewavefield lifewavefield:v19 0.0.0.0:3000->3000/tcp, [::]:3000->3000/tcp
+    ```
+- TASK-10.10：申请入口限流与设备指纹已合并（带 P2 技术债），origin/main @ 5f1a9d7，56 个测试文件／385 项全绿。
+- 下一阶段预研：产品有效期 `expires_at` 已入 [BIZ-V1.5] 第七节 Backlog（P1），待裁判终裁后转为正式任务派工。
