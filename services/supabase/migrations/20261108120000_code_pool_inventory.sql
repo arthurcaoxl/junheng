@@ -149,6 +149,7 @@ declare
   v_auth_user_id uuid := auth.uid();
   v_max_checkins integer;
   v_box_spec text;
+  v_expires_at timestamptz;
   v_pepper text;
   v_alphabet constant text := 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
   v_case_id uuid;
@@ -195,6 +196,14 @@ begin
     raise exception 'BOX_SPEC_CONFIG_MISMATCH';
   end if;
 
+  select (c.config_value ->> 'default_expires_at')::timestamptz into v_expires_at
+  from public.system_configs c
+  where c.config_key = 'box_code_expiry_policy'
+  for update;
+  if not found or v_expires_at is null then
+    raise exception 'SYSTEM_CONFIG_MISSING';
+  end if;
+
   v_pepper := nullif(current_setting('app.box_code_pepper', true), '');
   if v_pepper is null then
     raise exception 'CODE_HASH_NOT_CONFIGURED';
@@ -234,7 +243,8 @@ begin
         used_checkins,
         box_spec,
         inventory_status,
-        code_ciphertext
+        code_ciphertext,
+        expires_at
       ) values (
         v_code_hash,
         'experience',
@@ -246,7 +256,8 @@ begin
         0,
         v_box_spec,
         'platform',
-        pgp_sym_encrypt(v_code, v_pepper)
+        pgp_sym_encrypt(v_code, v_pepper),
+        v_expires_at
       );
     end loop;
 

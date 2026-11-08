@@ -131,6 +131,9 @@
 9. **10.7 盒码额度增量**：已激活用户的普通增量备份必须改走 `verify_checkin(p_start_date, p_records, p_height_cm, p_initial_weight_kg)`，由服务端在同一事务内锁定当前盒码、校验 active 状态与剩余额度、保存云端快照、按 Asia/Shanghai 物理日写幂等记录并追加审计。首次合并、激活前建档及激活后的无变化保持性同步不消耗额度；未激活用户沿用既有直接同步路径。
 10. 同一盒码同一物理日的重复保存仍更新快照并返回 `idempotent=true`，但 `used_checkins` 不得重复递增；跨物理日才允许再扣 1 次。非 active（含 `pending_review`）或 `used_checkins >= max_checkins` 时 RPC 抛错并整体回滚，前端不得伪造成功或自行推算服务端额度。
 11. 历史盒码迁移时以 `SystemConfig.max_checkins_per_box` / `default_box_spec` 补齐额度快照，`used_checkins` 初始为 0；该兼容不回写或绕过既有码生命周期状态。前端通过 `get_checkin_quota()` 读取 `remainingCheckins / maxCheckins`，不把默认值当作已激活凭证。
+12. **10.11 产品有效期增量**：`box_codes.expires_at` 为可空 `timestamptz` 快照。`SystemConfig.box_code_expiry_policy` 使用 JSON 对象 `{"default_expires_at": "<RFC 3339 时间戳>"}` 提供发码批次默认截止时刻；不播种业务字面值，运营必须通过受控配置层写入真实批次有效期。
+13. `generate_platform_codes` 必须在服务端读取并锁定 `box_code_expiry_policy`，将 `default_expires_at` 显式写入本次生成的每枚码；RPC 不新增有效期入参，前端不得传参覆盖。配置缺失、字段缺失或值为 `null` 时以 `SYSTEM_CONFIG_MISSING` 整体回滚，不使用默认值放行。
+14. `verify_checkin` 在 active 状态校验之后、同日幂等与额度扣减之前读取 `box_code_expiry_policy`。配置缺失或无效时以 `SYSTEM_CONFIG_MISSING` 拒绝；`expires_at` 缺失或 `expires_at <= now()` 时以 `CHECKIN_CODE_EXPIRED` 拒绝并整体回滚。未过期码才进入既有幂等与额度流程；过期不删除或改写历史打卡及归属事实。
 
 ## 教练雷达只读 RPC（10.5 增量）
 

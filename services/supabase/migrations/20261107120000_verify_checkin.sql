@@ -105,6 +105,9 @@ alter table public.box_codes
     box_spec in ('21_bags', '30_bags')
   );
 
+alter table public.box_codes
+  add column if not exists expires_at timestamptz;
+
 -- 一盒一物理日一条扣次记录；客户端不能直接读写或删除。
 create table public.checkin_daily_claims (
   code_id uuid not null references public.box_codes(code_id) on delete restrict,
@@ -225,6 +228,7 @@ declare
   v_physical_day date := (now() at time zone 'Asia/Shanghai')::date;
   v_claimed_code_id uuid;
   v_idempotent boolean := false;
+  v_expiry_policy_expires_at timestamptz;
 begin
   if v_auth_user_id is null then
     raise exception 'UNAUTHORIZED';
@@ -256,6 +260,19 @@ begin
 
   if v_code.state <> 'active' then
     raise exception 'CHECKIN_NOT_ACTIVE';
+  end if;
+
+  -- 有效期策略缺失或码快照缺失均 fail-closed；过期只阻断后续打卡。
+  select (c.config_value ->> 'default_expires_at')::timestamptz
+  into v_expiry_policy_expires_at
+  from public.system_configs c
+  where c.config_key = 'box_code_expiry_policy';
+  if not found or v_expiry_policy_expires_at is null then
+    raise exception 'SYSTEM_CONFIG_MISSING';
+  end if;
+
+  if v_code.expires_at is null or v_code.expires_at <= now() then
+    raise exception 'CHECKIN_CODE_EXPIRED';
   end if;
 
   perform 1
