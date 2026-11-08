@@ -3,9 +3,13 @@ import { HealthStats } from "../components/user-center/HealthStats";
 import { BmiTracker } from "../components/user-center/BmiTracker";
 import { PersonalAssets } from "../components/user-center/PersonalAssets";
 import { AccountSecurity } from "../components/user-center/AccountSecurity";
+import { CoachContactCard } from "../components/user-center/CoachContactCard";
+import { GraduationCert } from "../components/GraduationCert";
 import { SyncPanel } from "../components/SyncPanel";
 import { siteConfig } from "../config/site";
 import { scheduleSyncToCloud } from "../services/checkinSync";
+import { openSyncModal } from "../services/syncUi";
+import { createGraduationCertificate } from "../utils/graduationCertificate";
 import { writeV3Snapshot } from "../utils/storageBridge";
 import type { CheckInState } from "../utils/checkin";
 
@@ -17,6 +21,16 @@ export default function UserCenter() {
     writeV3Snapshot(next);
     setState(next);
     scheduleSyncToCloud();
+  };
+  const requiresMilestoneBinding = configured && !email && stats.elapsedDays >= 7;
+  const requestCertificate = (action: () => void) => {
+    if (!requiresMilestoneBinding) {
+      action();
+      return;
+    }
+    let posterUrl = "";
+    try { posterUrl = createGraduationCertificate(state, recordName); } catch { /* 无 Canvas 时仅降级头图 */ }
+    openSyncModal("bind", { milestone: true, milestoneKind: "certificate", posterUrl, onSuccess: action });
   };
 
   return (
@@ -36,17 +50,19 @@ export default function UserCenter() {
         <strong>{memberTitle}</strong>
         <span>品牌会员称号，不代表科研或职业身份。</span>
       </div>
+      <CoachContactCard configured={configured} />
       <HealthStats records={records} recordedDays={stats.recordedDays} />
       <PersonalAssets
         state={state}
         records={records}
         recordName={recordName}
         endDate={stats.endDate}
-        requiresMilestoneBinding={configured && !email && stats.elapsedDays >= 7}
+        requiresMilestoneBinding={requiresMilestoneBinding}
         bmiTracker={<BmiTracker state={state} onSave={saveBmiProfile} />}
       />
       <AccountSecurity configured={configured} email={email} />
       <SyncPanel />
+      <GraduationCert state={state} recordName={recordName} onRequest={requestCertificate} />
       <p className="platform-disclaimer user-center-disclaimer">{siteConfig.platformDisclaimer}</p>
     </section>
   );

@@ -157,6 +157,12 @@
 5. `activate_box_code` 在既有码、激活申请和归属锁之后锁定教练库存行；教练码激活时必须同步扣减一个可用库存并追加流水，库存不存在或不足时以 `INVENTORY_INSUFFICIENT` 整体回滚。历史平台码没有库存行时不得伪造教练扣减。
 6. 多表写锁顺序遵循 [BIZ-V1.2]：`box_codes` → `code_activations` → `user_coach_relation` → `coach_inventory`；所有 RPC 由数据库函数提供单事务原子性。
 
+## 服务教练联系方式（TASK-10.12 增量）
+
+1. `coach_contact_profiles` 仅保存教练 `coach_id`、业务手机号 `phone` 与微信号 `wechat`，由受控服务端配置；表启用 RLS，浏览器角色无直读或直写权限。
+2. `get_my_coach_contact_v1` 仅按服务端 `auth.uid()` 查找 `user_coach_relation` 中当前有效归属，并返回该教练的 `phone / wechat`；不接受用户 ID、教练 ID 或范围参数。
+3. RPC 不返回营员代码、身高、体重、原始记录或其他教练资料。无当前归属、未配置联系方式或匿名调用时均返回空结果，前端不得用本地输入或硬编码联系方式补齐。
+
 ## CSV 导出
 
 文件为 UTF-8 with BOM、逗号分隔、LF 换行，末尾保留换行。记录按 `record_date` 升序，只包含有内容日期。
