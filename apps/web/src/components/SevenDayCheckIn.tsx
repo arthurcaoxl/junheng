@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
-import { hasBoxCodeActivation } from "../services/activationStorage";
+import { BOX_CODE_REVIEW_EVENT, hasBoxCodeActivation, hasPendingBoxCodeReview } from "../services/activationStorage";
 import {
   CHECKIN_QUOTA_EVENT,
   getCheckinQuota,
@@ -82,6 +82,13 @@ export function SevenDayCheckIn() {
   const isNovice = actualDayIndex <= 2; // 破冰期：科普直接展示；熟练期：默认折叠，表单上移
   const [isKnowledgeExpanded, setIsKnowledgeExpanded] = useState(false);
   const [checkinQuota, setCheckinQuota] = useState<CheckinQuota | null>(null);
+  const [pendingReview, setPendingReview] = useState(hasPendingBoxCodeReview);
+
+  useEffect(() => {
+    const refreshReviewState = () => setPendingReview(hasPendingBoxCodeReview());
+    window.addEventListener(BOX_CODE_REVIEW_EVENT, refreshReviewState);
+    return () => window.removeEventListener(BOX_CODE_REVIEW_EVENT, refreshReviewState);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -124,6 +131,7 @@ export function SevenDayCheckIn() {
   };
 
   const commitState = (next: CheckInState) => {
+    if (pendingReview) return;
     // 匿名时只保留内存草稿，保证连续输入完整；OTP 成功后才由 pendingSave 写入 v3。
     if (syncConfigured && !syncEmail) setState(next);
     requestCheckinSave(() => persistState(next), { configured: syncConfigured, email: syncEmail });
@@ -247,7 +255,8 @@ export function SevenDayCheckIn() {
         <h2 id="check-in-title">21 天，构建你的脂代谢稳态。</h2>
         <p>第 1 天建立基线，第 21 天回看趋势。记录体重、腰围与每餐执行情况。</p>
         <p className="camp-range">本期周期：{state.startDate} 至 {stats.endDate} · 修改后自动保存，无需注册</p>
-        {checkinQuota && (
+        {pendingReview && <p className="check-in-quota" role="status">审核中，暂不能打卡</p>}
+        {!pendingReview && checkinQuota && (
           <p className="check-in-quota" role="status">
             剩余 {checkinQuota.remainingCheckins}/{checkinQuota.maxCheckins} 次
           </p>
@@ -271,10 +280,10 @@ export function SevenDayCheckIn() {
       </div>
       <div className="record-identity">
         <label htmlFor="record-name">姓名或网名</label>
-        <input id="record-name" name="recordName" type="text" autoComplete="nickname" maxLength={30} placeholder="真实姓名或网名都可以（选填）" value={recordName} onChange={(event) => updateName(event.target.value)} />
+        <input id="record-name" name="recordName" type="text" autoComplete="nickname" maxLength={30} placeholder="真实姓名或网名都可以（选填）" value={recordName} disabled={pendingReview} onChange={(event) => updateName(event.target.value)} />
         <p className="poster-identity-note">海报署名：{recordName.trim() || "健康体验官"}</p>
         <label htmlFor="camp-start-date">开营日期</label>
-        <input id="camp-start-date" name="campStartDate" type="date" value={state.startDate} onChange={(event) => updateStartDate(event.target.value)} />
+        <input id="camp-start-date" name="campStartDate" type="date" value={state.startDate} disabled={pendingReview} onChange={(event) => updateStartDate(event.target.value)} />
         <p>调整开营日会重排第 1–21 天的日期；窗口外的记录不会在打卡日历、趋势和海报中显示，但仍按真实日期保留。</p>
         <span className="record-code-label">体验官代码</span>
         <div className="record-code"><strong>{state.userCode}</strong></div>
@@ -313,7 +322,7 @@ export function SevenDayCheckIn() {
           );
         })}
       </div>
-      <div className="check-in-panel" role="tabpanel" id="day-panel" aria-labelledby={`day-tab-${activeDate}`}>
+      <fieldset className="check-in-panel" role="tabpanel" id="day-panel" aria-labelledby={`day-tab-${activeDate}`} disabled={pendingReview}>
         <div className="check-in-panel-heading">
           <div><span>第 {activeIndex + 1} 天 · {activeIndex === 0 ? "建立基线" : activeIndex === TOTAL_DAYS - 1 ? "回看趋势" : "保持记录"}（{formatShortDate(activeDate)}）</span><h3>{actualDayIndex <= 1 ? "建立你的初始基线" : "记录今日体重与腰围"}</h3></div>
           <div className="check-in-panel-count"><strong>{recordedItems}<span> / 8 项已记录</span></strong><p className="check-in-panel-note">今天，照顾好这些小事。</p></div>
@@ -415,7 +424,7 @@ export function SevenDayCheckIn() {
             <button type="button" onClick={() => openSyncModal("bind")}>立即绑定</button>
           </div>
         )}
-      </div>
+      </fieldset>
       <Link className="check-in-assets-link" to="/user-center">查看我的脂代谢报告</Link>
       <p className="check-in-note">21 天用于建立观察习惯，不设定固定减重目标。体重管理应结合合理饮食、适量运动与良好作息，个体结果存在差异。</p>
       {toastDays !== null && (

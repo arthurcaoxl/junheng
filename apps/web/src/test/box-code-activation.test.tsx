@@ -20,7 +20,13 @@ function renderCheckIn(entry = "/check-in?code=JH-EL-AB23") {
   );
 }
 
-describe("打卡页产品码激活", () => {
+function mockPendingReview() {
+  (getSupabase().rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
+    data: { ok: true, state: "pending_review", replayed: false }, error: null,
+  });
+}
+
+describe("打卡页产品码人工审核申请", () => {
   beforeEach(() => {
     window.localStorage.clear();
     vi.clearAllMocks();
@@ -31,61 +37,56 @@ describe("打卡页产品码激活", () => {
     });
   });
 
-  it("从 URL Query 自动填入产品码并调用激活 RPC", async () => {
-    (getSupabase().rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: { ok: true, state: "active", replayed: false }, error: null,
-    });
+  it("从 URL Query 填入产品码，提交后只进入 pending_review", async () => {
+    mockPendingReview();
     const user = userEvent.setup();
     renderCheckIn();
 
     expect(screen.getByLabelText("产品激活码")).toHaveValue("JH-EL-AB23");
-    expect(screen.getByText("输入盒内产品码，激活后将自动绑定对应教练。绑定邮箱可跨设备保留数据，随时查看您的动态追踪。")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "激活产品码" }));
+    await user.click(screen.getByRole("button", { name: "提交激活审核" }));
 
-    expect(await screen.findByText("激活成功，已为你绑定教练。")).toBeInTheDocument();
-    expect(getSupabase().rpc).toHaveBeenCalledWith("activate_box_code", {
+    expect((await screen.findAllByText("审核中，暂不能打卡")).length).toBeGreaterThan(0);
+    expect(getSupabase().rpc).toHaveBeenCalledWith("request_box_code_activation", {
       p_code: "JH-EL-AB23",
       p_idempotency_key: expect.any(String),
     });
+    expect(getSupabase().rpc).not.toHaveBeenCalledWith("activate_box_code", expect.anything());
   });
 
-  it("激活成功不弹强制邮箱窗口，并静默同步云端", async () => {
-    (getSupabase().rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: { ok: true, state: "active", replayed: false }, error: null,
-    });
+  it("待审核不弹强制邮箱窗口，也不写入已激活标记", async () => {
+    mockPendingReview();
     const user = userEvent.setup();
     renderCheckIn();
 
-    await user.click(screen.getByRole("button", { name: "激活产品码" }));
-    expect(await screen.findByText("激活成功，已为你绑定教练。")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "提交激活审核" }));
+    await screen.findAllByText("审核中，暂不能打卡");
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(getSupabase().auth.updateUser).not.toHaveBeenCalled();
-    const query = getSupabase().from("checkin_sync") as unknown as { insert: ReturnType<typeof vi.fn> };
-    expect(query.insert).toHaveBeenCalled();
+    expect(window.localStorage.getItem("junheng-box-code-activated-v1")).not.toBe("true");
+    expect(window.localStorage.getItem("junheng-box-code-pending-review-v1")).toBe("true");
+    expect(getSupabase().from).toHaveBeenCalledWith("checkin_sync");
   });
 
-  it("激活后的匿名营员保存打卡时不再被强制绑邮箱", async () => {
-    (getSupabase().rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: { ok: true, state: "active", replayed: false }, error: null,
-    });
+  it("审核中禁用打卡输入，不产生本地打卡记录", async () => {
+    mockPendingReview();
     const user = userEvent.setup();
     renderCheckIn();
 
-    await user.click(screen.getByRole("button", { name: "激活产品码" }));
-    await screen.findByText("激活成功，已为你绑定教练。");
-    await user.type(screen.getByLabelText("早晨体重（空腹）"), "68");
+    await user.click(screen.getByRole("button", { name: "提交激活审核" }));
+    await screen.findAllByText("审核中，暂不能打卡");
 
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("早晨体重（空腹）")).toBeDisabled();
+    expect(screen.getByLabelText("开营日期")).toBeDisabled();
     const state = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}");
-    expect(state.records[todayKey()].weights.morning).toBe("68");
+    expect(state.records?.[todayKey()]?.weights?.morning).toBeUndefined();
   });
 
-  it("非法产品码在前端拦截，不消耗服务端激活尝试", async () => {
+  it("非法产品码在前端拦截，不消耗服务端申请尝试", async () => {
     const user = userEvent.setup();
     renderCheckIn("/check-in?code=invalid");
 
-    await user.click(screen.getByRole("button", { name: "激活产品码" }));
+    await user.click(screen.getByRole("button", { name: "提交激活审核" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("请输入有效的产品激活码。");
     expect(getSupabase().rpc).not.toHaveBeenCalled();
@@ -98,76 +99,58 @@ describe("打卡页产品码激活", () => {
     const user = userEvent.setup();
     renderCheckIn();
 
-    await user.click(screen.getByRole("button", { name: "激活产品码" }));
+    await user.click(screen.getByRole("button", { name: "提交激活审核" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("尝试次数过多，请稍后再试。");
-    expect(screen.queryByText("激活成功，已为你绑定教练。")).not.toBeInTheDocument();
+    expect(screen.queryByText("审核中，暂不能打卡")).not.toBeInTheDocument();
     expect(screen.getByLabelText("产品激活码")).toHaveValue("JH-EL-AB23");
-    expect(screen.getByRole("button", { name: "激活产品码" })).toBeEnabled();
-    expect(screen.queryByText("已绑定专属教练")).not.toBeInTheDocument();
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "提交激活审核" })).toBeEnabled();
   });
 
-  it("教练库存不足时激活失败且不显示绑定成功", async () => {
-    (getSupabase().rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: { ok: false, errorCode: "INVENTORY_INSUFFICIENT" }, error: null,
-    });
-    const user = userEvent.setup();
-    renderCheckIn();
-
-    await user.click(screen.getByRole("button", { name: "激活产品码" }));
-
-    expect(await screen.findByRole("alert")).toHaveTextContent("教练库存不足，激活已取消，请联系运营方补货。");
-    expect(screen.queryByText("已绑定专属教练")).not.toBeInTheDocument();
-  });
-
-  it("初次加载读取本机激活标记并显示已绑定专属教练", async () => {
-    window.localStorage.setItem("junheng-box-code-activated-v1", "true");
+  it("初次加载读取本机待审核标记并隐藏申请表单", async () => {
+    window.localStorage.setItem("junheng-box-code-pending-review-v1", "true");
     renderCheckIn("/check-in");
 
-    expect(await screen.findByText("已绑定专属教练")).toBeInTheDocument();
+    expect((await screen.findAllByText("审核中，暂不能打卡")).length).toBeGreaterThan(0);
     expect(screen.queryByLabelText("产品激活码")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "激活产品码" })).not.toBeInTheDocument();
-    expect(getSupabase().rpc).not.toHaveBeenCalledWith("activate_box_code", expect.anything());
+    expect(screen.queryByRole("button", { name: "提交激活审核" })).not.toBeInTheDocument();
+    expect(getSupabase().rpc).not.toHaveBeenCalledWith("request_box_code_activation", expect.anything());
   });
 
-  it("已绑定用户携带 Query 时清除 code 且不显示表单不调用激活 RPC", async () => {
-    window.localStorage.setItem("junheng-box-code-activated-v1", "true");
+  it("待审核用户携带 Query 时清除 code 且不重复申请", async () => {
+    window.localStorage.setItem("junheng-box-code-pending-review-v1", "true");
     renderCheckIn();
 
-    expect(await screen.findByText("已绑定专属教练")).toBeInTheDocument();
+    await screen.findAllByText("审核中，暂不能打卡");
     expect(screen.getByTestId("activation-search-params").textContent).toBe("");
     expect(screen.queryByLabelText("产品激活码")).not.toBeInTheDocument();
-    expect(getSupabase().rpc).not.toHaveBeenCalledWith("activate_box_code", expect.anything());
+    expect(getSupabase().rpc).not.toHaveBeenCalledWith("request_box_code_activation", expect.anything());
   });
 
-  it("激活成功后隐藏表单并在刷新后恢复绑定状态", async () => {
-    (getSupabase().rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: { ok: true, state: "active", replayed: false }, error: null,
-    });
+  it("提交审核后刷新仍恢复待审核状态", async () => {
+    mockPendingReview();
     const user = userEvent.setup();
     const firstRender = renderCheckIn();
 
-    await user.click(screen.getByRole("button", { name: "激活产品码" }));
-    expect(await screen.findByText("已绑定专属教练")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "提交激活审核" }));
+    await screen.findAllByText("审核中，暂不能打卡");
     expect(screen.queryByLabelText("产品激活码")).not.toBeInTheDocument();
-    expect(window.localStorage.getItem("junheng-box-code-activated-v1")).toBe("true");
 
     firstRender.unmount();
     renderCheckIn("/check-in");
-    expect(await screen.findByText("已绑定专属教练")).toBeInTheDocument();
+    expect((await screen.findAllByText("审核中，暂不能打卡")).length).toBeGreaterThan(0);
     expect(screen.queryByLabelText("产品激活码")).not.toBeInTheDocument();
   });
 
-  it("激活中同步重复 submit 只产生一次 RPC", async () => {
+  it("申请提交中重复 submit 只产生一次 RPC", async () => {
     const rpc = getSupabase().rpc as ReturnType<typeof vi.fn>;
-    let resolveActivation!: (result: { data: unknown; error: null }) => void;
-    const pending = new Promise<{ data: unknown; error: null }>((resolve) => { resolveActivation = resolve; });
+    let resolveRequest!: (result: { data: unknown; error: null }) => void;
+    const pending = new Promise<{ data: unknown; error: null }>((resolve) => { resolveRequest = resolve; });
     rpc.mockReturnValue(pending);
     renderCheckIn();
 
     const input = screen.getByLabelText("产品激活码");
-    const button = screen.getByRole("button", { name: "激活产品码" });
+    const button = screen.getByRole("button", { name: "提交激活审核" });
     const form = button.closest("form");
     expect(form).not.toBeNull();
     act(() => {
@@ -178,26 +161,17 @@ describe("打卡页产品码激活", () => {
     expect(input).toBeDisabled();
     expect(button).toBeDisabled();
     await new Promise((resolve) => setTimeout(resolve, 0));
-    const activationCalls = rpc.mock.calls.filter(([name]) => name === "activate_box_code");
-    resolveActivation({ data: { ok: true, state: "active", replayed: false }, error: null });
-    expect(activationCalls).toHaveLength(1);
+    const requestCalls = rpc.mock.calls.filter(([name]) => name === "request_box_code_activation");
+    resolveRequest({ data: { ok: true, state: "pending_review", replayed: false }, error: null });
+    expect(requestCalls).toHaveLength(1);
   });
 
-  it("激活成功但后续同步离线仍保持绑定且不重复激活", async () => {
-    const rpc = getSupabase().rpc as ReturnType<typeof vi.fn>;
-    rpc.mockResolvedValue({ data: { ok: true, state: "active", replayed: false }, error: null });
-    const query = getSupabase().from("checkin_sync") as unknown as { maybeSingle: ReturnType<typeof vi.fn> };
-    query.maybeSingle
-      .mockResolvedValueOnce({ data: null, error: null })
-      .mockResolvedValueOnce({ data: null, error: { code: "PGRST301", message: "offline" } });
-    const user = userEvent.setup();
-    renderCheckIn();
-
-    await user.click(screen.getByRole("button", { name: "激活产品码" }));
+  it("既有已激活用户仍显示绑定状态且不退回审核", async () => {
+    window.localStorage.setItem("junheng-box-code-activated-v1", "true");
+    renderCheckIn("/check-in");
 
     expect(await screen.findByText("已绑定专属教练")).toBeInTheDocument();
-    expect(screen.getByText("激活已完成，但本次云端同步未成功，请稍后重试。")).toBeInTheDocument();
+    expect(screen.queryByText("审核中，暂不能打卡")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("产品激活码")).not.toBeInTheDocument();
-    expect(rpc.mock.calls.filter(([name]) => name === "activate_box_code")).toHaveLength(1);
   });
 });
