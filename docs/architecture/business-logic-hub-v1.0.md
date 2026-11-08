@@ -1,8 +1,8 @@
 # 业务逻辑中枢字典 [BIZ-V1.5]（Logic Hub）
 
-- 版本：**[BIZ-V1.5]**（2026-11-08 升版：申请入口限流契约 + 产品有效期 Backlog 登记）
+- 版本：**[BIZ-V1.5]**（2026-11-08 升版：申请入口限流契约 + 产品有效期 Backlog 登记；同日 TASK-10.10 落地核对通过）
 - 四轨标识：**[BIZ-V1.5]**（本字典即 BIZ 轨业务规则载体）
-- 基线：[CORE-v1.13.3]，本地 main @ 9aabaf8（TASK-10.10-PRE-BIZ-V1.5 已备案，测试基线 378 项）
+- 基线：[CORE-v1.13.3]，main @ 5f1a9d7（TASK-10.10 已闭环）
 - 定位：打卡 App（10 号体系）后续所有子任务的**唯一业务事实源**。本字典只做契约提炼，不包含任何 RPC SQL、迁移或前端代码。
 - 文件约定：字典固定维护在本路径 `business-logic-hub-v1.0.md`，版本号以内嵌 [BIZ-Vx.x] 标识为准；`business-logic-hub-v1.2.md` 为历史快照。
 - 事实来源：
@@ -55,13 +55,13 @@ interface SystemConfig {
 
   /**
    * 申请入口限流阈值：单 IP 每分钟最多提交的激活申请次数。默认 30。
-   * ⏳ 待播种，随 TASK-10.10 实现；消费端为 request_box_code_activation（见 3.3）。
+   * ✅ 已播种并动态读取（TASK-10.10）；消费端为 request_box_code_activation（见 3.3）。
    */
   activation_request_ip_rate_limit_per_minute: 30;
 
   /**
    * 申请入口限流阈值：单设备每分钟最多提交的激活申请次数。默认 3。
-   * ⏳ 待播种，随 TASK-10.10 实现；依赖 5.3 设备指纹（device 维）一并落地。
+   * ✅ 已播种并动态读取（TASK-10.10）；设备维指纹已随 10.10 一并落地。
    */
   activation_request_device_rate_limit_per_minute: 3;
 
@@ -79,7 +79,7 @@ interface SystemConfig {
 - ✅ 配置物理载体（10.7）：`system_configs` 表（RLS 锁死、客户端零权限）+ `system_config_audit` 审计表 + 变更触发器。
 - ✅ 已播种：`max_checkins_per_box = 21`、`default_box_spec = '21_bags'`（10.7）；`coach_restock_point = 12`（10.8）。
 - ✅ 配置消费端核对：`generate_platform_codes` 生成码时显式加锁读配置并快照写入新码；`get_my_code_inventory` 动态读取 `coach_restock_point`；10.9 的审核与托管 RPC 动态读取 `platform_official_account_id`，缺失即 `PLATFORM_ACCOUNT_NOT_CONFIGURED` fail-closed。
-- ⏳ 待播种（TASK-10.10 边界）：`activation_request_ip_rate_limit_per_minute = 30`、`activation_request_device_rate_limit_per_minute = 3`。实现时 RPC 必须动态读取，严禁把 30 / 3 写进代码。
+- ✅ 已播种（TASK-10.10）：`activation_request_ip_rate_limit_per_minute = 30`、`activation_request_device_rate_limit_per_minute = 3`。RPC 动态读取，缺失或非法即 `SYSTEM_CONFIG_MISSING` fail-closed，无字面值兜底。
 - ⚠️ 运营待办：`platform_official_account_id` 尚未播种真实 UUID（属运营配置动作，不是代码缺陷）；播种前"来源教练已休眠的激活归属"与"托管转移"两条路径会被正确拒绝。
 - ⏳ `radar_yellow_hours` / `radar_red_hours` 仍未播种：雷达灯号（10.5 RPC）按 `coach-radar-desensitized-v1.md` 的自然日差语义计算（2 天黄、≥3 天红，与 48/72 小时口径等价）。如需参数化，按第四节变更四步法另行升版。
 
@@ -295,6 +295,7 @@ unused / active ──授权撤销或作废──> revoked（终态，不可逆�
 | **TASK-10.7** | 打卡防刷：物理日幂等锁、行级锁防并发连点、超额拦截、`pending_review` 拦截 | ✅ 已合并（5707c69） |
 | **TASK-10.8** | 云库存分配：平台码池生成、教练划拨与激活扣减、补货预警、库存台账流水、发码审计 | ✅ 已合并（d8666dc） |
 | **TASK-10.9** | 人工审核流：`pending_review → active / revoked` 人工核验工单、发货与线下收款凭证核验、操作审计留痕、休眠托管（人工确认＋原子批量＋逐条审计） | ✅ 已合并（b5987f6） |
+| **TASK-10.10** | 申请入口三维限流与设备指纹（契约见 3.3，阈值动态读 `SystemConfig`） | ✅ 已合并（5f1a9d7） |
 
 - 越权判定：任何子任务在其边界外新增了写入路径或改变了其他模块的状态语义，即视为越权，直接打回。
 - 跨模块协作只通过本字典与 10.1 契约族定义的接口和事件，不私开后门。
@@ -348,9 +349,19 @@ interface VerifyCheckinContract {
 3. **不开放自行解绑**：用户激活后无自助解绑/换教练入口；仅休眠托管、平台审核确认或用户权益保护需要时启动变更，且必须新建关系区间、留存原因/审核人/时间，不改写原始激活绑定事实。✅ 10.9 托管路径按此实现。
 4. **充值码不改绑**：已有当前归属时，充值码审核沿用现归属；休眠托管后复购继续归平台，不回绑原教练。✅ 10.9 落实。
 
-### 3.3 申请入口限流契约（TASK-10.10 边界，v1.5 新增）
+### 3.3 申请入口限流契约 ✅ TASK-10.10 已实现（v1.5 新增）
 
-> 目标：封堵字典第六节知悉事项第 1 条记录的码枚举攻击面。本契约只定义规则形状，阈值数值一律进 `SystemConfig`，实现归 TASK-10.10，本字典版本不产出代码。
+> 目标：封堵字典第六节知悉事项第 1 条记录的码枚举攻击面。**已封堵**：落库于迁移 `20261108140000_activation_request_rate_limit.sql`，核对映射如下——
+>
+> | 契约条款 | 10.10 实现 | 结论 |
+> | --- | --- | --- |
+> | 三维限流 | auth_user（既有 guards）+ ip + device 三维分别求值，不短路跳维 | ✅ |
+> | 阈值动态读取 | 两项阈值从 `system_configs` 读取，缺失/非法即 `SYSTEM_CONFIG_MISSING` fail-closed | ✅ |
+> | 一分钟窗口语义 | IP/设备维独立固定窗口，第 N 次放行、第 N+1 次起拒绝并置 `blocked_until` | ✅ |
+> | 共享 IP 兼容 | 取不到受信 IP 时跳过 IP 维（默认放行），不并入未知桶；IP 维（30）显著高于个人量级，设备维（3）承担"人"粒度 | ✅ |
+> | 失败请求计数 | 格式非法/码不存在计入 auth_user 维失败；超限统一 `TOO_MANY_ATTEMPTS`，不泄露维度信息 | ✅ |
+> | 设备指纹隐私 | 前端仅存本地随机 UUID；服务端二次 HMAC 落库，不可逆；`scope_type` 扩展 `'device'`；指纹不出现在返回与事件 | ✅ |
+> | 防绕过 | 旧两参 `request_box_code_activation` 重载已删除，三维入口唯一 | ✅ |
 
 ```typescript
 /**
@@ -409,7 +420,8 @@ interface ActivationRequestRateLimit {
 | 2026-11-08 | v1.2 | 吸收裁判五条前瞻建议（第五节）；对齐四轨制 | 裁判批令 + AGENTS.md 〇节（main @ fb86715） | 2d2334c |
 | 2026-11-08 | v1.3 | TASK-10.8 落地核对：云库存/流水/发码审计/并发锁标记已实现并同步接口；字典固定回本路径 | 迁移 `20261108120000_code_pool_inventory.sql` 核对（main @ d8666dc，368 项） | 4c20d44 |
 | 2026-11-08 | v1.4 | TASK-10.9 落地核对：人工审核流与休眠托管标记已实现；SystemConfig 新增 `platform_official_account_id`；新增 `AuditLog` / `CoachLifecycle` 接口；记录申请入口限流缺口等知悉事项 | 迁移 `20261108130000_manual_review_trusteeship.sql` 与前端 `manualReview.ts` 核对（main @ b5987f6，378 项） | d7c4254 |
-| 2026-11-08 | v1.5 | 新增 3.3 申请入口限流契约并登记阈值 `activation_request_ip_rate_limit_per_minute=30` / `activation_request_device_rate_limit_per_minute=3`（含企业共享 IP 兼容语义）；新增第七节 Backlog，登记 `expires_at` 产品有效期（P1，仅记录不实现）；知悉事项第 1 条改指 TASK-10.10 | 裁判批令 TASK-10.10-PRE-BIZ-V1.5（本地 main @ 9aabaf8，[CORE-v1.13.3]） | 见提交记录 |
+| 2026-11-08 | v1.5 | 新增 3.3 申请入口限流契约并登记阈值 `activation_request_ip_rate_limit_per_minute=30` / `activation_request_device_rate_limit_per_minute=3`（含企业共享 IP 兼容语义）；新增第七节 Backlog，登记 `expires_at` 产品有效期（P1，仅记录不实现）；知悉事项第 1 条改指 TASK-10.10 | 裁判批令 TASK-10.10-PRE-BIZ-V1.5（本地 main @ 9aabaf8，[CORE-v1.13.3]） | 0f3fae8 |
+| 2026-11-08 | v1.5（落地核对） | TASK-10.10 实现与 3.3 契约逐条核对一致；两项限流阈值标记已播种；知悉事项第 1 条"限流缺口"标记已封堵；5.3 申请入口部分标记已落地 | 迁移 `20261108140000_activation_request_rate_limit.sql` 与前端 `boxCodeActivation.ts` 核对（main @ 5f1a9d7） | 见提交记录 |
 
 ---
 
@@ -467,7 +479,7 @@ type LockOrder = typeof LOCK_ORDER;
 2. 幂等键与乐观版本继续强制；锁不替代幂等，幂等不替代锁。`box_codes` 的 version 恰好 +1 由触发器强制。
 3. 新增写路径必须在方案中声明加锁表清单与顺序，裁判审查时逐条核对 `LOCK_ORDER`。
 
-### 5.3 防刷设备指纹（Device Fingerprint Anti-fraud）— 预留，落地另派任务
+### 5.3 防刷设备指纹（Device Fingerprint Anti-fraud）— 申请入口已落地（TASK-10.10），打卡入口 device 维仍预留
 
 ```typescript
 /**
@@ -482,9 +494,9 @@ interface DeviceFingerprint {
 type AttemptScope = 'auth_user' | 'ip' | 'device';
 ```
 
-1. 落地点：`box_code_attempt_guards.scope_type` 扩展 `'device'`（现有表已支持 auth_user / ip 两维，10.4 落库）；激活申请与打卡请求均纳入三维限流。
-2. 隐私红线：`device_hash` 不得出现在雷达返回、公共事件、普通日志与错误详情中；散列算法与盐属安全实现，不进仓库。
-3. 本条为预留契约；启用前须完成隐私与合规评审。**已并入 TASK-10.10 边界（见 3.3 申请入口限流契约），设备维限流与设备指纹同一任务落地。**
+1. 落地点：`box_code_attempt_guards.scope_type` 扩展 `'device'` ✅ 10.10 已落库；激活申请入口已纳入三维限流 ✅。打卡入口（`verify_checkin`）的 device 维仍预留，落地另派任务。
+2. 隐私红线：`device_hash` 不得出现在雷达返回、公共事件、普通日志与错误详情中；散列算法与盐属安全实现，不进仓库。✅ 10.10 已落实（前端仅存本地随机 UUID，服务端二次 HMAC 落库）。
+3. 启用前须完成隐私与合规评审。✅ 申请入口部分经 TASK-10.10 落地，见 3.3。
 
 ### 5.4 监控与告警（Ops Monitoring）— 预留，归属后续运维任务
 
@@ -530,7 +542,7 @@ interface OpsMetrics {
 
 ## 六、裁判知悉事项（非阻断观察，v1.5 已更新）
 
-1. **申请入口限流缺口 → 已立项 TASK-10.10**：10.9 新设的 `request_box_code_activation` 未接入限流（10.4 的旧 `activate_box_code` 有 auth_user/ip 双维限流，但该 RPC 权限已回收）。v1.5 已将限流规则与阈值固化为契约（见 3.3：IP 30 次/分钟、设备 3 次/分钟、企业共享 IP 兼容语义），实现归 TASK-10.10，落地后本条目关闭。
+1. ~~申请入口限流缺口~~ → **✅ 已封堵（TASK-10.10，main @ 5f1a9d7）**：`request_box_code_activation` 已接入三维限流（auth_user / ip / device），阈值动态读 `SystemConfig`，共享 IP 兼容语义按 3.3 落实；旧两参重载已删除。本条目关闭，历史描述保留备查：10.9 新设的申请入口曾未接入限流（10.4 旧 RPC 的限流随权限回收失效），码枚举攻击面曾集中在申请入口。
 2. **平台池标识方式**：平台池以 `inventory_status = 'platform'` 标识，`coach_id` 记录生成操作的管理员；归属终点则以配置 `platform_official_account_id` 为准。两套"平台"标识各司其职（库存归属 vs 关系归属），无冲突；若裁判认可，建议下一轮契约升版时回写 10.1 契约的 `PLATFORM_ID` 表述。
 3. **平台码激活不扣教练库存**：仅 `inventory_status = 'coach'` 的码在审核通过时扣减云库存，平台码不伪造教练库存——语义正确，无需处理。
 4. **运营待办**：`platform_official_account_id` 需运营播种真实平台账号 UUID；播种前相关路径正确 fail-closed。
