@@ -131,3 +131,5 @@ npm run build
 3. 研发任务编号：[TASK-x.x]（如 TASK-10.8）
 4. 前端发布版本：[APP-Vx.x]（线上可见版本）
 派工红线：提到业务规则必须写“遵循 [BIZ-V1.1]”；核对基线必须写“基于 [CORE-vx.x.x]”；指派任务必须写“执行 [TASK-x.x]”。
+
+| TASK-10.9 | feature-10.9-manual-review | 激活人工审核与教练托管 | 进行中 | 裁判兜底登记 |
