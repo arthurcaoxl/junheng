@@ -143,6 +143,17 @@
 - 10.5 用户行严格返回 `camper_code / weight_delta / waist_delta / bmi / alert_level` 五字段，不返回 `stage`、身高、原始体重、原始腰围或 `records`。
 - 调用者只取服务端 `auth.uid()`。有效 coach 仅看当前 `referrer_id` 为本人且 `valid_to IS NULL` 的关系；有效 admin 按管理职责查看；其他角色默认无结果。RPC 不接受客户端范围参数。
 
+## 教练云库存与码池流水（10.8 增量）
+
+本增量不改变本机 v3 快照、打卡记录或既有激活状态机，只扩展服务端盒码库存：
+
+1. `coach_inventory` 以 `coach_id` 唯一标识教练，记录累计划拨数、当前可用码数与并发版本；可用数不得为负。平台未划拨码由 `box_codes.inventory_status = 'platform'` 的码行构成，不另设可被客户端改写的库存计数。
+2. `inventory_logs` 为追加式台账，逐笔记录平台生成、教练划拨和激活扣减的操作者、数量、服务端时间、关联码/箱及 `offline_receipt_no`。平台生成必须填写非空线下打款凭证号；流水不得记录完整码面。
+3. `generate_platform_codes` 与 `allocate_codes_to_coach` 仅允许 `camp_admins` 中有效 `role = 'admin'` 的调用者执行。生成时分别读取并锁定 `max_checkins_per_box` 与 `default_box_spec` 配置，显式写入每枚码的快照；配置缺失或与请求规格不一致时 fail-closed。划拨在同事务内锁定平台未分配码行，数量不足整体失败，不得超发。
+4. 码面仅以服务端密钥加密后的 `code_ciphertext` 保存；表权限继续对客户端关闭。教练只能通过 `get_my_code_inventory` 读取本人 `unused` 且已划拨码的解密码面，其他角色与其他教练的码不得返回。
+5. `activate_box_code` 在既有码、激活申请和归属锁之后锁定教练库存行；教练码激活时必须同步扣减一个可用库存并追加流水，库存不存在或不足时以 `INVENTORY_INSUFFICIENT` 整体回滚。历史平台码没有库存行时不得伪造教练扣减。
+6. 多表写锁顺序遵循 [BIZ-V1.2]：`box_codes` → `code_activations` → `user_coach_relation` → `coach_inventory`；所有 RPC 由数据库函数提供单事务原子性。
+
 ## CSV 导出
 
 文件为 UTF-8 with BOM、逗号分隔、LF 换行，末尾保留换行。记录按 `record_date` 升序，只包含有内容日期。
