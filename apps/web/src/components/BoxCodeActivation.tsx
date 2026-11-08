@@ -76,7 +76,7 @@ export function BoxCodeActivation() {
         </div>
       ) : (
         <>
-          <p className="sync-panel-status">输入盒内产品码并提交人工审核。审核通过后将绑定对应教练并开通打卡。</p>
+          <p className="sync-panel-status">输入盒内产品码并提交人工审核。审核通过后将绑定对应教练指导，每日记录腰围、体重等数据，形成动态的健康指标。</p>
           <form className="sync-panel-form" onSubmit={submit}>
             <label htmlFor="box-code-activation-input">产品激活码</label>
             <input
