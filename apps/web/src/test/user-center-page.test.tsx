@@ -203,7 +203,7 @@ describe("用户中心 D7 与绑定状态", () => {
     expect(await screen.findByRole("img", { name: "21 天代谢重塑见证预览" })).toBeInTheDocument();
   });
 
-  it("已绑定邮箱显示研究员称号、资产不拦截且账号安全位于尾部 21 天 Banner 前", async () => {
+  it("已绑定邮箱显示研究员称号、资产不拦截且账号安全位于尾部 21 天 Banner 后", async () => {
     (getSupabase().auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { session: { user: { email: "bound@example.com" } } },
     });
@@ -224,10 +224,10 @@ describe("用户中心 D7 与绑定状态", () => {
     const accountSecurity = screen.getByRole("region", { name: "账号安全" });
     expect(trends.compareDocumentPosition(continueLink)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
     expect(continueLink.compareDocumentPosition(poster)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(accountSecurity.compareDocumentPosition(certificate)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(certificate.compareDocumentPosition(accountSecurity)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
-  it("用户中心静态深链保留同一个尾部 21 天 Banner", async () => {
+  it("用户中心静态深链保留同一个尾部 21 天 Banner 与账号安全顺序", async () => {
     (getSupabase().auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { session: { user: { email: "bound@example.com" } } },
     });
@@ -235,7 +235,7 @@ describe("用户中心 D7 与绑定状态", () => {
 
     const accountSecurity = await screen.findByRole("region", { name: "账号安全" });
     const certificate = screen.getByRole("region", { name: "21 天代谢重塑见证" });
-    expect(accountSecurity.compareDocumentPosition(certificate)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(certificate.compareDocumentPosition(accountSecurity)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });
 
   it("已激活用户在主页看到当前服务教练的手机号与微信号", async () => {

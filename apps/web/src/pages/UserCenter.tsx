@@ -60,9 +60,9 @@ export default function UserCenter() {
         requiresMilestoneBinding={requiresMilestoneBinding}
         bmiTracker={<BmiTracker state={state} onSave={saveBmiProfile} />}
       />
-      <AccountSecurity configured={configured} email={email} />
       <SyncPanel />
       <GraduationCert state={state} recordName={recordName} onRequest={requestCertificate} />
+      <AccountSecurity configured={configured} email={email} />
       <p className="platform-disclaimer user-center-disclaimer">{siteConfig.platformDisclaimer}</p>
     </section>
   );
