@@ -1,10 +1,10 @@
-# 业务逻辑中枢字典 [BIZ-V1.3]（Logic Hub）
+# 业务逻辑中枢字典 [BIZ-V1.4]（Logic Hub）
 
-- 版本：**[BIZ-V1.3]**（2026-11-08 升版：TASK-10.8 云库存与流水落地核对）
-- 四轨标识：**[BIZ-V1.3]**（本字典即 BIZ 轨业务规则载体）
-- 基线：main @ d8666dc（[CORE] TASK-10.8 已闭环，测试基线 49 文件 / 368 项）
+- 版本：**[BIZ-V1.4]**（2026-11-08 升版：TASK-10.9 人工审核流与休眠托管落地核对）
+- 四轨标识：**[BIZ-V1.4]**（本字典即 BIZ 轨业务规则载体）
+- 基线：main @ b5987f6（[CORE] TASK-10.9 已闭环，测试基线 378 项）
 - 定位：打卡 App（10 号体系）后续所有子任务的**唯一业务事实源**。本字典只做契约提炼，不包含任何 RPC SQL、迁移或前端代码。
-- 版本谱系与文件约定：v1.0（首版，ce1da76）→ v1.1（10.7 核对，c361a02）→ v1.2（裁判五条前瞻建议，2d2334c，曾短暂独立为 `business-logic-hub-v1.2.md`）→ **v1.3（本文档）**。**自 v1.3 起，字典固定维护在本路径 `business-logic-hub-v1.0.md`，版本号以内嵌 [BIZ-Vx.x] 标识为准**；`business-logic-hub-v1.2.md` 冻结为历史快照，不再维护。
+- 文件约定：字典固定维护在本路径 `business-logic-hub-v1.0.md`，版本号以内嵌 [BIZ-Vx.x] 标识为准；`business-logic-hub-v1.2.md` 为历史快照。
 - 事实来源：
   - `docs/business/operation-guide-v7.1.md`（V7.1 运营指南）
   - `docs/business/ceo-business-report.md`（CEO 经营驾驶舱解读）
@@ -18,12 +18,12 @@
 
 > **🔥 最高指令：必须保留后期业务变更的便利性。**
 
-1. 本字典中所有**业务参数**（打卡额度、盒规格、雷达阈值、补货点等）一律归入 `SystemConfig`，由配置驱动。
+1. 本字典中所有**业务参数**（打卡额度、盒规格、雷达阈值、补货点、平台账号等）一律归入 `SystemConfig`，由配置驱动。
 2. 前端组件、RPC、SQL 函数**严禁硬编码任何业务参数的字面值**；必须动态读取 `SystemConfig`。
-3. 未来业务调整（如出 30 袋装、雷达时间窗变更、补货点调整）**只需修改配置值，严禁改动核心逻辑代码**。
+3. 未来业务调整（如出 30 袋装、雷达时间窗变更、补货点调整、平台账号更换）**只需修改配置值，严禁改动核心逻辑代码**。
 4. 逻辑代码只描述"规则的形状"（如"未打卡时长超过黄灯阈值则亮黄灯"），不描述"阈值是几"（如 48 小时）。
 5. 本字典与 `docs/business/` 文档冲突时，以裁判终裁的最新版业务文档为准，并按第四节"变更四步法"同步修订本字典。
-6. 代号规范遵循 AGENTS.md 〇节四轨制：业务规则引用本字典写 `[BIZ-V1.3]`，核对基线写 `[CORE-<hash>]`，派工写 `[TASK-x.x]`，前端发布写 `[APP-Vx.x.x]`；严禁裸写无前缀版本号。
+6. 代号规范遵循 AGENTS.md 〇节四轨制：业务规则引用本字典写 `[BIZ-V1.4]`，核对基线写 `[CORE-<hash>]`，派工写 `[TASK-x.x]`，前端发布写 `[APP-Vx.x.x]`；严禁裸写无前缀版本号。
 
 ---
 
@@ -50,16 +50,24 @@ interface SystemConfig {
   /** 雷达红灯阈值：超过此时长（小时）未打卡亮红灯。默认 72。⏳ 未播种（见下）。 */
   radar_red_hours: 72;
 
-  /** 教练云库存补货预警点（盒）。库存低于该值触发预警，等于该值不触发。默认 12。✅ TASK-10.8 已播种并由 RPC 动态读取。 */
+  /** 教练云库存补货预警点（盒）。库存低于该值触发预警，等于该值不触发。默认 12。✅ 已播种（10.8）。 */
   coach_restock_point: 12;
+
+  /**
+   * 平台官方账号 ID（uuid 字符串）。休眠托管转移与"来源教练已休眠"激活的归属终点。
+   * ✅ 10.9 起被 RPC 动态读取；无默认字面值，必须由运营播种真实账号 UUID。
+   * 未播种时相关路径 fail-closed（PLATFORM_ACCOUNT_NOT_CONFIGURED），严禁代码内置兜底账号。
+   */
+  platform_official_account_id: string;
 }
 ```
 
-**落地状态（v1.3 核对）：**
+**落地状态（v1.4 核对）：**
 
 - ✅ 配置物理载体（10.7）：`system_configs` 表（RLS 锁死、客户端零权限）+ `system_config_audit` 审计表 + 变更触发器。
-- ✅ 已播种：`max_checkins_per_box = 21`、`default_box_spec = '21_bags'`（10.7）；`coach_restock_point = 12`（10.8，`20261108120000_code_pool_inventory.sql`）。
-- ✅ 配置消费端核对：`generate_platform_codes` 生成码时**显式从 `system_configs` 加锁读取并快照写入** `max_checkins` / `box_spec`（配置缺失即 `SYSTEM_CONFIG_MISSING` fail-closed，规格不匹配即 `BOX_SPEC_CONFIG_MISMATCH`）——v1.1 提出的"码生成不得依赖列默认值"衔接注意已被 10.8 完整落实；`get_my_code_inventory` 动态读取 `coach_restock_point` 计算 `needsRestock`。
+- ✅ 已播种：`max_checkins_per_box = 21`、`default_box_spec = '21_bags'`（10.7）；`coach_restock_point = 12`（10.8）。
+- ✅ 配置消费端核对：`generate_platform_codes` 生成码时显式加锁读配置并快照写入新码；`get_my_code_inventory` 动态读取 `coach_restock_point`；10.9 的审核与托管 RPC 动态读取 `platform_official_account_id`，缺失即 `PLATFORM_ACCOUNT_NOT_CONFIGURED` fail-closed。
+- ⚠️ 运营待办：`platform_official_account_id` 尚未播种真实 UUID（属运营配置动作，不是代码缺陷）；播种前"来源教练已休眠的激活归属"与"托管转移"两条路径会被正确拒绝。
 - ⏳ `radar_yellow_hours` / `radar_red_hours` 仍未播种：雷达灯号（10.5 RPC）按 `coach-radar-desensitized-v1.md` 的自然日差语义计算（2 天黄、≥3 天红，与 48/72 小时口径等价）。如需参数化，按第四节变更四步法另行升版。
 
 ### 1.2 参数事实依据
@@ -71,12 +79,13 @@ interface SystemConfig {
 | `radar_yellow_hours` | 48 | 沙盘算法规范模块五：未打卡 48~72 小时为黄灯 |
 | `radar_red_hours` | 72 | 沙盘算法规范模块五：未打卡 > 72 小时为红灯 |
 | `coach_restock_point` | 12 | 沙盘算法规范模块三：库存低于 12 盒触发补货预警；雷达契约 §6：`unusedCodesCount < 12` 触发 |
+| `platform_official_account_id` | 无字面默认，运营播种 | V7.1 指南第七章：休眠托管转至平台官方账号；10.1 激活契约：`PLATFORM_ID` 归属 |
 
 ### 1.3 读取纪律
 
 1. `SystemConfig` 是**运行期配置**，不是编译期常量。前端通过受控查询接口读取；RPC 在服务端读取。
-2. 判断逻辑中只允许出现配置项的**引用**，不允许出现 `21`、`48`、`72`、`12` 等业务字面值。
-3. 配置读取失败时必须 **fail-closed**（拒绝写入类操作并告警），严禁用兜底字面值静默降级。✅ 10.8 已落实（`SYSTEM_CONFIG_MISSING`）。
+2. 判断逻辑中只允许出现配置项的**引用**，不允许出现 `21`、`48`、`72`、`12` 等业务字面值或任何账号 UUID 字面值。
+3. 配置读取失败时必须 **fail-closed**（拒绝写入类操作并告警），严禁用兜底字面值静默降级。✅ 10.8 / 10.9 已落实（`SYSTEM_CONFIG_MISSING` / `PLATFORM_ACCOUNT_NOT_CONFIGURED`）。
 4. 配置变更必须留审计记录（谁、何时、旧值、新值、依据的业务文档版本）——物理载体 `system_config_audit` 已落库。
 5. 雷达灯号与自然日口径的**计算语义**属于逻辑，留在 `coach-radar-desensitized-v1.md` 契约；只有**阈值数值**进 `SystemConfig`。
 
@@ -93,7 +102,7 @@ type BoxSpec = '21_bags' | '30_bags';
 /** 码生命周期状态机（物理列：box_codes.state）。 */
 type BoxCodeStatus = 'unused' | 'pending_review' | 'active' | 'revoked';
 
-/** 库存归属。✅ TASK-10.8 已落库：平台池 / 教练云库存。 */
+/** 库存归属。平台池 / 教练云库存。 */
 type InventoryStatus = 'platform' | 'coach';
 
 interface BoxCode {
@@ -132,7 +141,7 @@ interface BoxCode {
 }
 ```
 
-> 物理安全补记（10.8 落库）：码面以 `code_hash`（HMAC-SHA256）核验、`code_ciphertext`（pgp_sym_encrypt）存储，触发器强制密文不可变（`BOX_CODE_SECRET_IMMUTABLE`）；码面明文只在 `get_my_code_inventory` 中对持有教练本人解密返回。
+> 物理安全补记（10.8 落库）：码面以 `code_hash`（HMAC-SHA256）核验、`code_ciphertext`（pgp_sym_encrypt）存储，触发器强制密文不可变；码面明文只在 `get_my_code_inventory` 对持有教练本人、以及 `admin_get_pending_box_code_reviews` 对管理员以**遮蔽形式**（前 6 + … + 后 4）返回。
 
 ### 2.2 云库存与流水接口 ✅ TASK-10.8 已落库
 
@@ -178,45 +187,103 @@ interface InventoryLog {
 }
 ```
 
-**10.8 落库核对映射：**
+### 2.3 审核与托管审计接口 ✅ TASK-10.9 已落库
 
-| 契约要求 | 10.8 实现 | 结论 |
+```typescript
+/** 审核与托管动作类型（物理表：audit_logs，10.9 落库）。 */
+type AuditAction =
+  | 'code_activation_approved'   // 人工审核通过
+  | 'code_activation_rejected'   // 人工审核拒绝（含补发码关联）
+  | 'coach_users_trusteed';      // 休眠托管单用户转移（逐用户一条）
+
+/**
+ * 操作审计流水（append-only）。
+ * 触发器禁止 update / delete（AUDIT_LOG_APPEND_ONLY）。
+ * 谁发起、谁审核、何时、从谁到谁，全部留痕。
+ */
+interface AuditLog {
+  audit_id: string;
+  action: AuditAction;
+  /** 审核动作指向 activation_id；托管动作指向被转移用户的不透明 ID。 */
+  target_id: string;
+  /** 发起人（服务端 auth.uid）。 */
+  actor_id: string;
+  /** 审核人 / 确认人。 */
+  reviewer_id: string;
+  /** 托管来源教练（审核动作为 null）。 */
+  from_coach_id: string | null;
+  /** 托管终点（平台官方账号；审核动作为 null）。 */
+  to_coach_id: string | null;
+  /** 附加事实（码 ID、补发码 ID、原因码、生效时间等），不含码面与原始健康数据。 */
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
+/** 教练生命周期状态（物理表：coach_lifecycles，10.9 落库）。 */
+type CoachLifecycleState = 'active' | 'buffer' | 'dormant';
+
+interface CoachLifecycle {
+  coach_id: string;
+  /**
+   * 状态由受控服务端或后续生命周期任务写入；
+   * 判定（月新增付费 < 4 人）本身是只读统计，本表不自动推进（对齐 5.5.1）。
+   * dormant 必须带 dormant_at（CHECK 约束强制）。
+   */
+  state: CoachLifecycleState;
+  state_entered_at: string;
+  dormant_at: string | null;
+  version: number;
+}
+```
+
+**10.9 落库核对映射：**
+
+| 契约要求 | 10.9 实现 | 结论 |
 | --- | --- | --- |
-| 云库存表 | `coach_inventory`（`available_count <= allocated_count` CHECK） | ✅ |
-| 逐笔流水 | `inventory_logs` 三类事件 + append-only 触发器 | ✅ |
-| 行级锁 | 划拨 `for update skip locked`（并发划拨不重叠）；激活先锁码行→激活行→关系行→库存行再扣减 | ✅ |
-| 线下凭证号 | `generate_platform_codes` 缺凭证即 `OFFLINE_RECEIPT_REQUIRED`，CHECK 约束双保险 | ✅ |
-| 权限白名单 | 生成/划拨 RPC 校验 `camp_admins` 中 `role='admin'` 且 `is_active`，否则 `FORBIDDEN`；全部 RPC 先 revoke 再按需 grant | ✅ |
-| 箱规格 | `p_count % 24 = 0`，按箱生成并逐箱写流水 | ✅ |
-| 配置驱动 | 生成时加锁读 `system_configs` 快照写入新码；`coach_restock_point` 动态读取 | ✅ |
-| 码不变性守卫 | `guard_box_code_mutation` 触发器：身份字段不可变、状态机非法跃迁拒绝、version 强制 +1、库存迁移只许划拨 RPC | ✅ |
-| 补货预警 | `needsRestock = availableCount < restockPoint`（11 触发、12 不触发），教练端 UI 提示 | ✅ |
+| 用户申请只进 `pending_review` | `request_box_code_activation`：只建审核单＋状态推进，不写归属、不授权、不扣库存 | ✅ |
+| 并发申请不排队共享 | 码行行级锁，非 `unused` 即 `ACTIVATION_STATE_CONFLICT`，先占先得 | ✅ |
+| 审核列表脱敏 | `admin_get_pending_box_code_reviews` 白名单鉴权，码面遮蔽（前 6…后 4） | ✅ |
+| 人工终审原子开通 | `admin_review_box_code_activation` 单事务：凭证核验→归属→扣库存→事件→审计 | ✅ |
+| 发货/收款凭证 | 缺发货凭证 `SHIPMENT_VERIFICATION_REQUIRED`；充值码缺收款凭证 `PAYMENT_VERIFICATION_REQUIRED` | ✅ |
+| 拒绝留痕＋补发 | 原因码必填；原码 `revoked` 永不回库存；补发全新码（同类型同格式）并双向关联 | ✅ |
+| 充值码不改绑 | 已有当前归属时审批沿用现归属，不看发码教练 | ✅ |
+| 来源教练休眠 | 归入 `system_configs.platform_official_account_id`，未配置 fail-closed | ✅ |
+| 托管判定只读 | `coach_lifecycles` 不自动推进；`admin_get_dormant_coaches` 只读 | ✅ |
+| 托管人工确认 | `admin_transfer_dormant_coaches(p_confirmed)` 必须显式 `true`，否则 `MANUAL_CONFIRMATION_REQUIRED` | ✅ |
+| 托管原子批量 | 单函数事务；逐教练咨询锁＋关系行锁；任一失败整体回滚，无部分转移 | ✅ |
+| 托管审计逐条 | 每用户一条 `audit_logs(coach_users_trusteed)`，含 from/to 教练与生效时间 | ✅ |
+| 历史不改写 | 旧关系置 `valid_to`＋`reason='dormancy_trusteeship'`，新关系开新区间；原始激活绑定不动 | ✅ |
+| 权限白名单 | 全部 admin RPC 校验 `camp_admins`（`role='admin'` 且 `is_active`）；旧用户自助激活 RPC `activate_box_code` 权限已回收，终审入口唯一 | ✅ |
 
-### 2.3 码状态机（继承 10.1 契约，不可变更）✅ 已落库并由触发器强制
+### 2.4 码状态机（继承 10.1 契约，不可变更）✅ 已落库并由触发器强制，10.9 实现人工审核闭环
 
 ```text
 unused ──提交申请──> pending_review ──审核通过──> active
-  │                     │
+  │                     │                （10.9：request_box_code_activation /
+  │                     │                 admin_review_box_code_activation）
   │                     └──审核拒绝──> revoked ──补发──> 新 code_id 的 unused
+  │                                       （10.9：补发含双向关联与审计）
   │
 unused / active ──授权撤销或作废──> revoked（终态，不可逆）
 ```
 
-- 10.8 起状态跃迁由 `guard_box_code_mutation` 触发器白名单强制（非法跃迁 `BOX_CODE_STATE_CONFLICT`，删除 `BOX_CODE_HISTORY_IMMUTABLE`）。
-- `pending_review` 状态下**不得**打卡、不得扣次、不得预写归属。
-- `revoked` 为终态：不得恢复 `unused`、不得重新激活、不得换绑。
-- 审核拒绝必须补发全新码，原码永不回库存。
+- 状态跃迁由 `guard_box_code_mutation` 触发器白名单强制（非法跃迁 `BOX_CODE_STATE_CONFLICT`，删除 `BOX_CODE_HISTORY_IMMUTABLE`）。
+- `pending_review` 状态下**不得**打卡、不得扣次、不得预写归属。✅ 10.7（打卡拦截）与 10.9（申请不产生任何权益）双重落实。
+- `revoked` 为终态：不得恢复 `unused`、不得重新激活、不得换绑。✅ 触发器状态白名单中无 `revoked` 出口。
+- 审核拒绝必须补发全新码，原码永不回库存。✅ 10.9 已实现。
+- **10.9 后激活完成点**：用户不再自助终审；唯一激活推进入口是管理员人工审核 RPC（旧 `activate_box_code` 已回收权限）。激活完成时刻 = 审核通过时刻。
 
-### 2.4 任务边界（严禁越权开发）
+### 2.5 任务边界（严禁越权开发）
 
-| 子任务 | 唯一职责 | 明确禁止 |
+| 子任务 | 唯一职责 | 状态 |
 | --- | --- | --- |
-| **TASK-10.7** ✅ 已合并（5707c69） | **打卡防刷**：物理日幂等锁、行级锁防并发连点、超额拦截、`pending_review` 拦截 | 不碰云库存分配、不碰审核流、不改雷达逻辑 |
-| **TASK-10.8** ✅ 已合并（d8666dc） | **云库存分配**：平台码池生成、教练划拨与激活扣减、补货预警（读 `coach_restock_point`）、库存台账流水、发码审计 | 不碰打卡扣次、不碰审核、不碰归属变更 |
-| **TASK-10.9** ⏳ 待开工 | **人工审核流**：`pending_review → active / revoked` 的人工核验工单、发货与线下收款凭证核验、操作审计留痕（audit_logs）、托管转移的人工确认环节（见 5.5） | 不碰打卡扣次、不碰库存扣减、不设自动审核通过 |
+| **TASK-10.7** | 打卡防刷：物理日幂等锁、行级锁防并发连点、超额拦截、`pending_review` 拦截 | ✅ 已合并（5707c69） |
+| **TASK-10.8** | 云库存分配：平台码池生成、教练划拨与激活扣减、补货预警、库存台账流水、发码审计 | ✅ 已合并（d8666dc） |
+| **TASK-10.9** | 人工审核流：`pending_review → active / revoked` 人工核验工单、发货与线下收款凭证核验、操作审计留痕、休眠托管（人工确认＋原子批量＋逐条审计） | ✅ 已合并（b5987f6） |
 
 - 越权判定：任何子任务在其边界外新增了写入路径或改变了其他模块的状态语义，即视为越权，直接打回。
 - 跨模块协作只通过本字典与 10.1 契约族定义的接口和事件，不私开后门。
+- 说明：10.9 将"激活终审"从 10.4 的用户自助 RPC 收归审核流，是裁判批准的职责迁移（旧 RPC 权限已回收），不构成越权。
 
 ---
 
@@ -257,14 +324,14 @@ interface VerifyCheckinContract {
 - `max_checkins` 取自该码自身字段（落码时从 `SystemConfig.max_checkins_per_box` 快照），不实时跟随配置回改历史码；新规格码（如 30 袋装）在生成时写入新额度。
 - 限流与错误响应沿用 10.1 激活契约第 9 节：失败响应不得泄露有效码清单或码面近似信息。
 
-### 3.2 归属唯一性
+### 3.2 归属唯一性 ✅ 10.9 已全面落地
 
-1. **一人只属一教练**：一个 `camper_id` 在同一时间只能绑定一个 `coach_id`（或平台官方账号），以 `user_coach_relation` 当前有效区间为权威；10.8 起激活路径对该关系行使用咨询锁 + 行级锁（`pg_advisory_xact_lock` + `for update`）。
-2. **一码归属唯一**：`box_code` 激活成功后归属即确定——**谁先输入并审核通过，额度就归谁**。
-   - 两个用户同时提交同一码时，最多一个申请能占用该码，其余得到 `ACTIVATION_STATE_CONFLICT`，不得排队共享激活。
-   - 归属确立只在激活原子流程中发生；`pending_review` 不预写归属。
-3. **不开放自行解绑**：用户激活后原则上无自助解绑/换教练入口；仅休眠托管、平台审核确认或用户权益保护需要时启动变更，且必须新建关系区间、留存原因/审核人/时间，不得改写原始激活绑定事实。
-4. **充值码不改绑**：已有当前归属时，充值码激活不得改绑发码教练；休眠托管后复购继续归平台，不回绑原教练。
+1. **一人只属一教练**：一个 `camper_id` 同一时间只能绑定一个 `coach_id`（或平台官方账号），以 `user_coach_relation` 当前有效区间（`valid_to is null`）为权威；审核与托管路径对该关系行使用咨询锁 + 行级锁。
+2. **一码归属唯一**：码激活成功后归属即确定——**谁先输入并审核通过，额度就归谁**。
+   - 申请阶段即先占先得：并发申请同一码，后取得锁的请求得到 `ACTIVATION_STATE_CONFLICT`，不得排队共享激活。✅ 10.9 落实。
+   - 归属确立只在审核通过的原子流程中发生；`pending_review` 不预写归属。✅ 10.9 落实。
+3. **不开放自行解绑**：用户激活后无自助解绑/换教练入口；仅休眠托管、平台审核确认或用户权益保护需要时启动变更，且必须新建关系区间、留存原因/审核人/时间，不改写原始激活绑定事实。✅ 10.9 托管路径按此实现。
+4. **充值码不改绑**：已有当前归属时，充值码审核沿用现归属；休眠托管后复购继续归平台，不回绑原教练。✅ 10.9 落实。
 
 ---
 
@@ -272,7 +339,7 @@ interface VerifyCheckinContract {
 
 ### 变更四步法
 
-当业务参数发生变更（如出 30 袋装、雷达阈值调整、补货点调整、额度变更）时，严格按以下四步执行，**绝不允许跳过文档直接改代码**：
+当业务参数发生变更（如出 30 袋装、雷达阈值调整、补货点调整、平台账号更换）时，严格按以下四步执行，**绝不允许跳过文档直接改代码**：
 
 | 步骤 | 动作 | 产出物 |
 | --- | --- | --- |
@@ -284,7 +351,7 @@ interface VerifyCheckinContract {
 ### 演进纪律
 
 1. 步骤 1、2 未完成并形成物理证据前，禁止进入步骤 3、4。
-2. 纯参数变更（阈值、额度、规格取值）只允许改配置与测试期望值，不得改规则形状。
+2. 纯参数变更（阈值、额度、规格取值、账号配置）只允许改配置与测试期望值，不得改规则形状。
 3. 规则形状变更（如雷达从单维度升级为多维综合指标）属于契约变更，必须重新评审并升版对应契约文档，不得混入参数变更。
 4. 每次演进必须在本字典的修订记录中追加一行：日期、变更项、旧值 → 新值、依据文档版本、合并 Hash。
 
@@ -295,21 +362,22 @@ interface VerifyCheckinContract {
 | 2026-11-07 | v1.0 | 首版落盘：SystemConfig、BoxCode 扩展接口、10.7/10.8/10.9 任务边界、阻断与并发契约、变更四步法 | V7.1 四份业务文档（main @ 0e1d51e） | ce1da76 |
 | 2026-11-07 | v1.1 | 同步 10.7 落地核对；补充 10.8 衔接注意 | 迁移 `20261107120000_verify_checkin.sql` 核对（main @ 5707c69） | c361a02 |
 | 2026-11-08 | v1.2 | 吸收裁判五条前瞻建议（第五节）；对齐四轨制 | 裁判批令 + AGENTS.md 〇节（main @ fb86715） | 2d2334c |
-| 2026-11-08 | v1.3 | TASK-10.8 落地核对：`coach_inventory` / `inventory_logs` / 发码审计 / 并发锁纪律标记已实现并同步接口；`coach_restock_point` 已播种；字典固定回本路径；代号排查 P0（版本号单一事实源）随 10.8 一并闭环 | 迁移 `20261108120000_code_pool_inventory.sql` 与前端 `codePool.ts` 核对（main @ d8666dc，368 项测试） | 见提交记录 |
+| 2026-11-08 | v1.3 | TASK-10.8 落地核对：云库存/流水/发码审计/并发锁标记已实现并同步接口；字典固定回本路径 | 迁移 `20261108120000_code_pool_inventory.sql` 核对（main @ d8666dc，368 项） | 4c20d44 |
+| 2026-11-08 | v1.4 | TASK-10.9 落地核对：人工审核流与休眠托管标记已实现；SystemConfig 新增 `platform_official_account_id`；新增 `AuditLog` / `CoachLifecycle` 接口；记录申请入口限流缺口等知悉事项 | 迁移 `20261108130000_manual_review_trusteeship.sql` 与前端 `manualReview.ts` 核对（main @ b5987f6，378 项） | 见提交记录 |
 
 ---
 
-## 五、前瞻演进契约（裁判批令 v1.2 新增，v1.3 更新落地状态）
+## 五、前瞻演进契约（裁判批令 v1.2 新增，v1.4 更新落地状态）
 
 ### 5.1 发码审计（Code Issuance Audit）✅ TASK-10.8 已实现（风控标红面板除外）
 
 > 落库于迁移 `20261108120000_code_pool_inventory.sql`。核对映射：
 >
-> | 契约 | 10.8 实现 | 结论 |
+> | 契约 | 实现 | 结论 |
 > | --- | --- | --- |
 > | 发码必留痕 | 每箱生成写 `inventory_logs(platform_generated, quantity=24, operator_id, offline_receipt_no)` | ✅ |
 > | 划拨留痕 | `inventory_logs(coach_allocated)` 记教练、数量、操作者 | ✅ |
-> | 激活核销留痕 | `inventory_logs(code_activated)` 记码 ID，云库存同事务 -1 | ✅ |
+> | 激活核销留痕 | `inventory_logs(code_activated)` 记码 ID，云库存同事务 -1（10.9 起核销点在审核通过时刻） | ✅ |
 > | 台账不可改 | append-only 触发器（`INVENTORY_LOG_APPEND_ONLY`） | ✅ |
 > | 超卖不变量 | 划拨与计数同一事务、码行 `skip locked`，结构上不存在"码 > 库存" | ✅ 结构成立 |
 > | 风控标红面板 | 未单列 | ⏳ 预留至 5.4 监控任务 |
@@ -333,7 +401,7 @@ interface OversellInvariant {
 }
 ```
 
-### 5.2 并发锁纪律（Concurrency Locking Discipline）✅ TASK-10.8 已落地执行
+### 5.2 并发锁纪律（Concurrency Locking Discipline）✅ 10.8 / 10.9 已落地执行
 
 ```typescript
 /**
@@ -349,8 +417,8 @@ const LOCK_ORDER = [
 type LockOrder = typeof LOCK_ORDER;
 ```
 
-1. **落地证据**：激活路径按 `box_codes → code_activations → user_coach_relation（咨询锁+行锁）→ coach_inventory` 顺序加锁（源码注释显式声明遵循全局顺序）；划拨路径 `box_codes（skip locked）→ coach_inventory`；均单事务。
-2. 幂等键与乐观版本继续强制；锁不替代幂等，幂等不替代锁。10.8 起 `box_codes` 的 version 恰好 +1 由触发器强制（`BOX_CODE_VERSION_CONFLICT`）。
+1. **落地证据**：审核 RPC 源码显式注释并遵循 `box_codes → code_activations → user_coach_relation → coach_inventory` 顺序；托管转移按教练咨询锁 → 关系行锁（不触碰 box_codes，顺序不冲突）；划拨路径 `box_codes（skip locked）→ coach_inventory`；均单事务。
+2. 幂等键与乐观版本继续强制；锁不替代幂等，幂等不替代锁。`box_codes` 的 version 恰好 +1 由触发器强制。
 3. 新增写路径必须在方案中声明加锁表清单与顺序，裁判审查时逐条核对 `LOCK_ORDER`。
 
 ### 5.3 防刷设备指纹（Device Fingerprint Anti-fraud）— 预留，落地另派任务
@@ -370,7 +438,7 @@ type AttemptScope = 'auth_user' | 'ip' | 'device';
 
 1. 落地点：`box_code_attempt_guards.scope_type` 扩展 `'device'`（现有表已支持 auth_user / ip 两维，10.4 落库）；激活申请与打卡请求均纳入三维限流。
 2. 隐私红线：`device_hash` 不得出现在雷达返回、公共事件、普通日志与错误详情中；散列算法与盐属安全实现，不进仓库。
-3. 本条为预留契约，当前均不实现；启用前须完成隐私与合规评审。
+3. 本条为预留契约；启用前须完成隐私与合规评审。**与第六节知悉事项第 1 条（申请入口限流缺口）建议合并为同一个安全加固任务。**
 
 ### 5.4 监控与告警（Ops Monitoring）— 预留，归属后续运维任务
 
@@ -397,34 +465,43 @@ interface OpsMetrics {
 3. 阈值与通知渠道属运维配置，不进本字典。
 4. 5.1 遗留的风控标红面板（激活码总量 > 云库存时标红）并入本任务一并设计。
 
-### 5.5 休眠托管（Dormancy Trusteeship）— 契约细则以 `coach-lifecycle-trusteeship-v1.md` 为准，本节为人机协同落点
+### 5.5 休眠托管（Dormancy Trusteeship）✅ TASK-10.9 已实现（工单转平台队列除外）
 
-1. **判定只读**：休眠判定（月新增付费 < 4 人）是只读统计，不产生任何写入。
-2. **转移人工确认**：批量托管转移必须经人工审核确认（TASK-10.9 边界），禁止系统全自动转移。
-3. **原子转移**：单教练名下用户的 `referrer_id` 批量转至平台官方账号必须单事务完成，按 5.2 `LOCK_ORDER` 加锁；不得出现部分转移。
-4. **审计留痕**：每次转移逐条写 `audit_logs`——谁发起、谁审核、何时、哪些用户（不透明 ID）、从哪个教练到平台；与 V7.1 第七章"批量操作须可审计、可追责"对齐。
-5. **转移后即时生效**：原 coach 及其 staff 立即失去这些用户的雷达访问（雷达契约 §1 已实现该语义）；未结工单复核后转平台责任队列；已激活权益继续有效；后续复购归平台，不回绑原教练（见 3.2 第 4 条）。
-6. **用户权益不断档**：托管不得降低用户既有权益与服务连续性，平台接管须有人工客服承接记录。
+> 契约细则以 `coach-lifecycle-trusteeship-v1.md` 为准。10.9 落地核对：
+>
+> | 契约条款 | 10.9 实现 | 结论 |
+> | --- | --- | --- |
+> | 判定只读 | `coach_lifecycles` 不自动推进状态；月度判定由受控服务端或后续任务写入；`admin_get_dormant_coaches` 只读 | ✅ |
+> | 转移人工确认 | `p_confirmed is not true` 即 `MANUAL_CONFIRMATION_REQUIRED`，禁止系统自动转移 | ✅ |
+> | 原子批量 | 单函数事务覆盖全部 dormant 教练；逐教练咨询锁；失败整体回滚，无部分转移 | ✅ |
+> | 审计逐条 | 每用户一条 `audit_logs(coach_users_trusteed)`：发起人、确认人、from/to 教练、生效时间 | ✅ |
+> | 转移后雷达访问即时失效 | 雷达按当前有效关系（`valid_to is null`）取数，旧关系关闭即失效 | ✅（继承雷达契约语义） |
+> | 复购归平台不回绑 | 托管后当前归属为平台账号；审核路径沿用现归属 | ✅ |
+> | 未结工单转平台队列 | 工单系统本身尚未实现 | ⏳ 预留（随工单任务一并落地） |
+> | 用户权益不断档 | 托管不改打卡权益与既有激活；平台账号须经 `platform_official_account_id` 配置 | ✅ |
 
 ---
 
-## 六、裁判知悉事项（v1.3 核对中发现的非阻断观察）
+## 六、裁判知悉事项（v1.4 核对中发现的非阻断观察）
 
-1. **平台池标识方式**：10.1 契约设想平台官方库存使用 `PLATFORM_ID` 占位；10.8 实现改为以 `inventory_status = 'platform'` 标识平台池，`coach_id` 记录生成操作的管理员。结构等价且可追溯性更强，但字面与 10.1 契约不同——若裁判认可该实现，建议在下一轮契约升版时回写 10.1 契约表述，保持文档与物理一致。
-2. **平台码激活不扣教练库存**：`activate_box_code` 仅对 `inventory_status = 'coach'` 的码扣减云库存，平台码激活不伪造教练库存——与字典"库存归谁扣谁"语义一致，无需处理。
-3. **雷达阈值参数化**（`radar_yellow_hours` / `radar_red_hours` 播种）仍为开放项，按变更四步法另行升版，不阻塞 TASK-10.9。
+1. **⚠️ 申请入口限流缺口**：10.9 新设的 `request_box_code_activation` 未接入 `box_code_attempt_guards` 限流（10.4 的旧 `activate_box_code` 有 auth_user/ip 双维限流，但该 RPC 权限已回收）。当前码枚举攻击面集中在申请入口，且无效格式/不存在码直接返回 `CODE_NOT_AVAILABLE` 不计失败。建议与 5.3 设备指纹合并为同一个安全加固任务补齐，优先级建议 P1。
+2. **平台池标识方式**：平台池以 `inventory_status = 'platform'` 标识，`coach_id` 记录生成操作的管理员；归属终点则以配置 `platform_official_account_id` 为准。两套"平台"标识各司其职（库存归属 vs 关系归属），无冲突；若裁判认可，建议下一轮契约升版时回写 10.1 契约的 `PLATFORM_ID` 表述。
+3. **平台码激活不扣教练库存**：仅 `inventory_status = 'coach'` 的码在审核通过时扣减云库存，平台码不伪造教练库存——语义正确，无需处理。
+4. **运营待办**：`platform_official_account_id` 需运营播种真实平台账号 UUID；播种前相关路径正确 fail-closed。
+5. **雷达阈值参数化**（`radar_yellow_hours` / `radar_red_hours` 播种）仍为开放项，按变更四步法另行升版。
 
 ---
 
 ## 附：本字典验收清单
 
-- [x] 所有业务参数均收敛于 `SystemConfig`，无散落的字面值口径。
+- [x] 所有业务参数均收敛于 `SystemConfig`（含 `platform_official_account_id`），无散落的字面值口径。
 - [x] `BoxCode` 含 `max_checkins` / `used_checkins` / `box_spec` / `inventory_status` 字段（10.7/10.8 已落库）。
-- [x] `CoachInventory` / `InventoryLog` 接口已同步进字典并与物理表一致。
+- [x] `CoachInventory` / `InventoryLog` / `AuditLog` / `CoachLifecycle` 接口已同步进字典并与物理表一致。
 - [x] `verify_checkin` 五闸门契约与 10.7 实现一致。
 - [x] 云库存三事件流水、行级锁、线下凭证号、权限白名单与 10.8 实现一致。
+- [x] `pending_review` 状态机与人工审核闭环、托管审计流水与 10.9 实现一致。
 - [x] 10.7 / 10.8 / 10.9 职责边界互不重迭，越权判定标准清晰。
-- [x] 归属唯一性（一人一教练、一码一归属、先审先得、不开放自助解绑）有明确契约描述。
+- [x] 归属唯一性（一人一教练、一码一归属、先审先得、不开放自助解绑）已全面落地。
 - [x] 变更四步法完整、可执行、有证据要求。
 - [x] 前瞻演进五契约均有落地状态标注与边界归属。
 - [x] 全文对齐四轨制代号规范，无裸写版本号（历史 Hash 除外）。
