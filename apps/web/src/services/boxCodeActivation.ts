@@ -1,8 +1,8 @@
 import { ensureSession, getSupabase } from "../lib/supabase";
 import { syncToCloud, type SyncResult } from "./checkinSync";
-import { markBoxCodeActivated } from "./activationStorage";
+import { markBoxCodePendingReview } from "./activationStorage";
 
-export { hasBoxCodeActivation } from "./activationStorage";
+export { hasBoxCodeActivation, hasPendingBoxCodeReview } from "./activationStorage";
 
 type ActivationErrorCode =
   | "UNAUTHORIZED"
@@ -36,30 +36,29 @@ const ERROR_MESSAGES: Record<ActivationErrorCode, string> = {
   CODE_HASH_NOT_CONFIGURED: "激活服务暂不可用，请联系运营方。",
 };
 
-export async function activateBoxCode(
+export async function requestBoxCodeActivation(
   code: string,
   idempotencyKey: string,
 ): Promise<{ syncResult: SyncResult }> {
   await ensureSession();
 
-  // 激活 RPC 会核对 checkin_sync 中的终身 userCode，先确保匿名云端档案存在。
+  // 申请 RPC 会核对 checkin_sync 中的终身 userCode，先确保匿名云端档案存在。
   if (await syncToCloud() === "offline") {
     throw new Error("云端数据尚未同步，请检查网络后重试。");
   }
 
-  const { data, error } = await getSupabase().rpc("activate_box_code", {
+  const { data, error } = await getSupabase().rpc("request_box_code_activation", {
     p_code: code,
     p_idempotency_key: idempotencyKey,
   });
-  if (error) throw new Error("激活请求失败，请检查网络后重试。");
+  if (error) throw new Error("激活审核申请失败，请检查网络后重试。");
 
   const result = data as ActivationResult | null;
   if (!result?.ok) {
     const code = result?.errorCode;
-    throw new Error(code ? ERROR_MESSAGES[code] : "激活失败，请稍后重试。");
+    throw new Error(code ? ERROR_MESSAGES[code] : "激活审核申请失败，请稍后重试。");
   }
 
-  markBoxCodeActivated();
-  // 激活后的保持性同步不是新打卡，不消耗物理日额度。
-  return { syncResult: await syncToCloud(false) };
+  markBoxCodePendingReview();
+  return { syncResult: "synced" };
 }
