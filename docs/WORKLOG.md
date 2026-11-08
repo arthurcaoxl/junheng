@@ -4,10 +4,10 @@ handoff_snapshot:
   current_core_version: "CORE-v1.13.3"
   current_biz_version: "BIZ-V1.3"
   active_task: "TASK-10.9"
-  task_status: "In Progress"
-  last_merged_commit: "cec1803"
-  test_baseline: "53 文件 / 368 项全绿"
-  handoff_notes: "10.9 开发中，核心是 pending_review 状态机与教练托管。下一任务必须严格核对中枢字典 v1.3。"
+  task_status: "Merged"
+  last_merged_commit: "b5987f6"
+  test_baseline: "55 文件 / 378 项全绿"
+  handoff_notes: "10.9 激活人工审核与教练托管已合并。部署托管功能前必须向 system_configs 表播种 platform_official_account_id。"
 
 # 项目接力工作日志 (WORKLOG)
 
@@ -31,3 +31,5 @@ handoff_snapshot:
 - 0.2：中枢字典 v1.2 与旧代号排查报告合并于 ba1e263；当前物理基线锁定为 ba1e263。
 - TASK-10.8：云库存与流水（含P0版本号修复），合并于 d8666dc，测试基线 368 项。
 - 技术债：checkin-quota-migration.test.ts:29 存在无效转义的 lint 错误，留待后续微补丁清理。
+- TASK-10.9：激活人工审核与教练托管，合并于 b5987f6；当前物理基线锁定为 b5987f6，55 个测试文件／378 项测试全绿。
+- 技术债／待配置：部署 10.9 托管功能前，必须向 system_configs 表播种 platform_official_account_id，否则托管 RPC 会失败。
