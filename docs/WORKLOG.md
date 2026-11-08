@@ -2,12 +2,12 @@
 # 【主脑接力契约】
 handoff_snapshot:
   current_core_version: "CORE-v1.13.3"
-  current_biz_version: "BIZ-V1.3"
-  active_task: "TASK-10.9"
+  current_biz_version: "BIZ-V1.4"
+  active_task: "TASK-10.10"
   task_status: "In Progress"
-  last_merged_commit: "cec1803"
+  last_merged_commit: "4959fa6"
   test_baseline: "53 文件 / 368 项全绿"
-  handoff_notes: "10.9 开发中，核心是 pending_review 状态机与教练托管。下一任务必须严格核对中枢字典 v1.3。"
+  handoff_notes: "TASK-10.10-PRE-BIZ-V1.5 派工单已备案，目标分支 docs/biz-v1.5；等待逻辑中枢 0 按变更四步法升版，当前仍为 BIZ-V1.4。"
 
 # 项目接力工作日志 (WORKLOG)
 
@@ -31,3 +31,4 @@ handoff_snapshot:
 - 0.2：中枢字典 v1.2 与旧代号排查报告合并于 ba1e263；当前物理基线锁定为 ba1e263。
 - TASK-10.8：云库存与流水（含P0版本号修复），合并于 d8666dc，测试基线 368 项。
 - 技术债：checkin-quota-migration.test.ts:29 存在无效转义的 lint 错误，留待后续微补丁清理。
+- TASK-10.10-PRE-BIZ-V1.5：目标分支 docs/biz-v1.5，派工单已备案，等待逻辑中枢 0 按变更四步法将字典从 [BIZ-V1.4] 升版至 [BIZ-V1.5]；仅文档，未推送。
