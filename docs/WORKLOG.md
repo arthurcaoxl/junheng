@@ -1,3 +1,14 @@
+
+# 【主脑接力契约】
+handoff_snapshot:
+  current_core_version: "CORE-v1.13.3"
+  current_biz_version: "BIZ-V1.3"
+  active_task: "TASK-10.9"
+  task_status: "In Progress"
+  last_merged_commit: "66cbe3a"
+  test_baseline: "53 文件 / 368 项全绿"
+  handoff_notes: "10.9 开发中，核心是 pending_review 状态机与教练托管。下一任务必须严格核对中枢字典 v1.3。"
+
 # 项目接力工作日志 (WORKLOG)
 
 ## 纪律
