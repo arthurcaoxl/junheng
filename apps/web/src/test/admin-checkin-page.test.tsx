@@ -67,6 +67,8 @@ describe("admin check-in page", () => {
     expect(screen.getByText("2 天")).toBeInTheDocument();
     expect(screen.getByText("D21")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "导出脱敏 CSV" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "批量生成码" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "划拨给教练" })).toBeInTheDocument();
     expect(screen.queryByText(/private-uid/)).not.toBeInTheDocument();
     expect(client.auth.verifyOtp).toHaveBeenCalledWith({ email: "admin@example.com", token: "123456", type: "email" });
     expect(client.rpc).toHaveBeenCalledWith("admin_checkin_overview");

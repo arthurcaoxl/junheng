@@ -108,6 +108,19 @@ describe("打卡页产品码激活", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("教练库存不足时激活失败且不显示绑定成功", async () => {
+    (getSupabase().rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { ok: false, errorCode: "INVENTORY_INSUFFICIENT" }, error: null,
+    });
+    const user = userEvent.setup();
+    renderCheckIn();
+
+    await user.click(screen.getByRole("button", { name: "激活产品码" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("教练库存不足，激活已取消，请联系运营方补货。");
+    expect(screen.queryByText("已绑定专属教练")).not.toBeInTheDocument();
+  });
+
   it("初次加载读取本机激活标记并显示已绑定专属教练", async () => {
     window.localStorage.setItem("junheng-box-code-activated-v1", "true");
     renderCheckIn("/check-in");

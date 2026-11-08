@@ -61,6 +61,7 @@ npm run build
 | 编号 | 分支名 | 简述 | 状态 | 备注 |
 | --- | --- | --- | --- | --- |
 | 0 | feature-0-business-logic-hub | 业务逻辑中枢字典 v1.0 | 已合并 | 五角架构规范已生效；合并基线 80df14e |
+| 0.2 | feature-0.2-codename-audit | 中枢字典 v1.2 与旧代号排查报告 | 已合并 | 裁判已合并并推送；最终基线 ba1e263 |
 | 1 | feature-1-domain | 替换旧域名 og/canonical 标签 | 已合并 | 历史登记补录；旧域名已切换 |
 | 2 | feature-2-sandbox-v7.1 | 沙盘 V7.1 CEO 经营驾驶舱 | 已合并 | 初始导入 d24aed0；沙盘 59 项、前端 291 项测试通过；未发布网站 |
 | 3 | bugfix-3-routing-scroll | 修复路由滚动测试的 jsdom 时序依赖 | 已合并 | 裁判验收通过；仅修改测试，未改产品代码；291 项测试全绿 |

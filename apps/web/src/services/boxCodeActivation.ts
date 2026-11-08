@@ -12,6 +12,7 @@ type ActivationErrorCode =
   | "PAYMENT_VERIFICATION_REQUIRED"
   | "ACTIVATION_STATE_CONFLICT"
   | "COACH_NOT_ELIGIBLE"
+  | "INVENTORY_INSUFFICIENT"
   | "IDEMPOTENCY_CONFLICT"
   | "TOO_MANY_ATTEMPTS"
   | "CODE_HASH_NOT_CONFIGURED";
@@ -29,6 +30,7 @@ const ERROR_MESSAGES: Record<ActivationErrorCode, string> = {
   PAYMENT_VERIFICATION_REQUIRED: "付款信息尚未核验完成，请稍后再试。",
   ACTIVATION_STATE_CONFLICT: "激活状态已变化，请刷新页面后重试。",
   COACH_NOT_ELIGIBLE: "当前产品码暂不能绑定教练，请联系运营方。",
+  INVENTORY_INSUFFICIENT: "教练库存不足，激活已取消，请联系运营方补货。",
   IDEMPOTENCY_CONFLICT: "激活请求已变化，请刷新页面后重试。",
   TOO_MANY_ATTEMPTS: "尝试次数过多，请稍后再试。",
   CODE_HASH_NOT_CONFIGURED: "激活服务暂不可用，请联系运营方。",

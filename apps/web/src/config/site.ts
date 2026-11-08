@@ -1,3 +1,7 @@
+import packageMetadata from "../../package.json?raw";
+
+const { version: appVersion } = JSON.parse(packageMetadata) as { version: string };
+
 export const siteConfig = {
   brand: "菌衡计划",
   headerBrand: "菌衡计划 | 脂代谢研究所",
@@ -10,7 +14,7 @@ export const siteConfig = {
   subtitle: "——23种菌菇精华 × 优质蛋白 × 复合维生素——",
   complianceNote: "本品含有B族维生素，根据 GB 28050 规定，B族维生素有助于维持正常的能量代谢。",
   category: "特殊膳食食品·运动营养食品",
-  version: "1.9.0",
+  version: appVersion,
 } as const;
 
 export const actionConfig = {

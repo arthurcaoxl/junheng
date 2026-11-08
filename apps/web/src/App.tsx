@@ -7,6 +7,7 @@ import { SiteFooter } from "./components/SiteFooter";
 import Home from "./pages/Home";
 import CheckInPage from "./pages/CheckInPage";
 import AdminCheckInPage from "./pages/AdminCheckIn";
+import CoachCodesPage from "./pages/CoachCodes";
 import UserCenterPage from "./pages/UserCenter";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
@@ -98,6 +99,8 @@ export default function App() {
           {/* 管理入口不进入公开导航；RLS 负责数据权限。 */}
           <Route path="/admin/check-in" element={<AdminCheckInPage />} />
           <Route path="/admin/check-in/index.html" element={<AdminCheckInPage />} />
+          <Route path="/coach/codes" element={<CoachCodesPage />} />
+          <Route path="/coach/codes/index.html" element={<CoachCodesPage />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/terms/index.html" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
