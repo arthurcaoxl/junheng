@@ -46,9 +46,13 @@ describe("打卡页产品码人工审核申请", () => {
     await user.click(screen.getByRole("button", { name: "提交激活审核" }));
 
     expect((await screen.findAllByText("审核中，暂不能打卡")).length).toBeGreaterThan(0);
+    const deviceHash = window.localStorage.getItem("junheng-device-fingerprint-v1");
+    expect(deviceHash).not.toBeNull();
+    expect(deviceHash as string).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
     expect(getSupabase().rpc).toHaveBeenCalledWith("request_box_code_activation", {
       p_code: "JH-EL-AB23",
       p_idempotency_key: expect.any(String),
+      p_device_hash: deviceHash,
     });
     expect(getSupabase().rpc).not.toHaveBeenCalledWith("activate_box_code", expect.anything());
   });

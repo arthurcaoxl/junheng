@@ -4,6 +4,21 @@ import { markBoxCodePendingReview } from "./activationStorage";
 
 export { hasBoxCodeActivation, hasPendingBoxCodeReview } from "./activationStorage";
 
+const DEVICE_FINGERPRINT_STORAGE_KEY = "junheng-device-fingerprint-v1";
+const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function getOrCreateDeviceHash(): string {
+  const existing = window.localStorage.getItem(DEVICE_FINGERPRINT_STORAGE_KEY);
+  if (existing && UUID_V4_PATTERN.test(existing)) return existing;
+
+  if (typeof globalThis.crypto?.randomUUID !== "function") {
+    throw new Error("当前浏览器不支持设备标识，请升级浏览器后重试。");
+  }
+  const deviceHash = globalThis.crypto.randomUUID();
+  window.localStorage.setItem(DEVICE_FINGERPRINT_STORAGE_KEY, deviceHash);
+  return deviceHash;
+}
+
 type ActivationErrorCode =
   | "UNAUTHORIZED"
   | "CODE_NOT_AVAILABLE"
@@ -15,7 +30,9 @@ type ActivationErrorCode =
   | "INVENTORY_INSUFFICIENT"
   | "IDEMPOTENCY_CONFLICT"
   | "TOO_MANY_ATTEMPTS"
-  | "CODE_HASH_NOT_CONFIGURED";
+  | "CODE_HASH_NOT_CONFIGURED"
+  | "DEVICE_FINGERPRINT_REQUIRED"
+  | "SYSTEM_CONFIG_MISSING";
 
 type ActivationResult = {
   ok?: boolean;
@@ -34,6 +51,8 @@ const ERROR_MESSAGES: Record<ActivationErrorCode, string> = {
   IDEMPOTENCY_CONFLICT: "激活请求已变化，请刷新页面后重试。",
   TOO_MANY_ATTEMPTS: "尝试次数过多，请稍后再试。",
   CODE_HASH_NOT_CONFIGURED: "激活服务暂不可用，请联系运营方。",
+  DEVICE_FINGERPRINT_REQUIRED: "激活审核申请失败，请刷新页面后重试。",
+  SYSTEM_CONFIG_MISSING: "激活服务暂不可用，请联系运营方。",
 };
 
 export async function requestBoxCodeActivation(
@@ -50,6 +69,7 @@ export async function requestBoxCodeActivation(
   const { data, error } = await getSupabase().rpc("request_box_code_activation", {
     p_code: code,
     p_idempotency_key: idempotencyKey,
+    p_device_hash: getOrCreateDeviceHash(),
   });
   if (error) throw new Error("激活审核申请失败，请检查网络后重试。");
 
