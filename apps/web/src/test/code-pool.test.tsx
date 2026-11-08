@@ -64,12 +64,16 @@ describe("码池服务与界面", () => {
     await user.click(screen.getByRole("button", { name: "批量生成码" }));
     expect(generatePlatformCodes).not.toHaveBeenCalled();
     await user.type(screen.getByLabelText("生成数量"), "24");
-    await user.type(screen.getByLabelText("盒规格"), "21_bags");
-    await user.type(screen.getByLabelText("线下打款凭证号"), "PAY-OFFLINE-88");
+    await user.selectOptions(screen.getByLabelText("盒规格"), "21_bags");
+    await user.type(screen.getByLabelText("激活码审批号"), "PAY-OFFLINE-88");
     await user.click(screen.getByRole("button", { name: "批量生成码" }));
     expect(generatePlatformCodes).toHaveBeenCalledWith(24, "21_bags", "PAY-OFFLINE-88");
 
-    await user.type(screen.getByLabelText("教练用户 ID"), "coach-uuid");
+    (getSupabase().rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: [{ coach_id: "coach-uuid", email: "coach@example.com" }], error: null,
+    });
+    await user.type(screen.getByLabelText("划拨教练邮箱"), "coach");
+    await user.click(await screen.findByRole("option", { name: "coach@example.com" }));
     await user.type(screen.getByLabelText("划拨数量"), "12");
     await user.click(screen.getByRole("button", { name: "划拨给教练" }));
     expect(allocateCodesToCoach).toHaveBeenCalledWith("coach-uuid", 12);

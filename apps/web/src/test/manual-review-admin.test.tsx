@@ -29,7 +29,8 @@ async function login() {
   await user.click(screen.getByRole("button", { name: "获取管理员验证码" }));
   await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
   await user.click(screen.getByRole("button", { name: "登录并查看统计" }));
-  await screen.findByText("打卡统计管理");
+  const productionTab = await screen.findByRole("tab", { name: "生产区" });
+  await user.click(productionTab);
   return user;
 }
 
@@ -44,24 +45,28 @@ describe("Admin 人工审核与休眠托管", () => {
     (getSupabase().rpc as ReturnType<typeof vi.fn>).mockImplementation((name: string) => {
       if (name === "admin_get_pending_box_code_reviews") return Promise.resolve({ data: [pendingReview], error: null });
       if (name === "admin_get_dormant_coaches") return Promise.resolve({ data: [], error: null });
-      if (name === "admin_review_box_code_activation") return Promise.resolve({ data: { ok: true }, error: null });
+      if (name === "admin_get_coach_directory") return Promise.resolve({ data: [{ coach_id: "coach-1", email: "coach@example.com" }], error: null });
+      if (name === "admin_review_box_code_activation_v2") return Promise.resolve({ data: { ok: true }, error: null });
       return Promise.resolve({ data: [], error: null });
     });
   });
 
-  it("列出用户、教练、脱数码和线下凭证并通过 RPC 审核通过", async () => {
+  it("列出用户、脱数码和线下凭证，邮箱选教练后自动提交 UUID 审核", async () => {
     const user = await login();
     expect(await screen.findByText("JH-REVIEW1")).toBeInTheDocument();
-    expect(screen.getByText("coach-1")).toBeInTheDocument();
+    expect(screen.queryByText("coach-1")).not.toBeInTheDocument();
     expect(screen.getByText("JH-EL-…AB23")).toBeInTheDocument();
     expect(screen.getByText("待补录")).toBeInTheDocument();
 
     await user.type(screen.getByLabelText("发货凭证 JH-REVIEW1"), "SHIP-20261108-1");
+    await user.type(screen.getByLabelText("审核教练邮箱 JH-REVIEW1"), "coach");
+    await user.click(await screen.findByRole("option", { name: /coach@example\.com/ }));
     await user.click(screen.getByRole("button", { name: "通过并激活 JH-REVIEW1" }));
 
-    expect(getSupabase().rpc).toHaveBeenCalledWith("admin_review_box_code_activation", expect.objectContaining({
+    expect(getSupabase().rpc).toHaveBeenCalledWith("admin_review_box_code_activation_v2", expect.objectContaining({
       p_activation_id: "activation-1",
       p_decision: "approved",
+      p_target_coach_id: "coach-1",
       p_shipment_verification_ref: "SHIP-20261108-1",
       p_expected_code_version: 2,
       p_expected_activation_version: 1,
@@ -77,9 +82,10 @@ describe("Admin 人工审核与休眠托管", () => {
 
     await user.type(screen.getByLabelText("拒绝原因 JH-REVIEW1"), "凭证与申请不符");
     await user.click(reject);
-    expect(getSupabase().rpc).toHaveBeenCalledWith("admin_review_box_code_activation", expect.objectContaining({
+    expect(getSupabase().rpc).toHaveBeenCalledWith("admin_review_box_code_activation_v2", expect.objectContaining({
       p_activation_id: "activation-1",
       p_decision: "rejected",
+      p_target_coach_id: "coach-1",
       p_rejection_reason_code: "凭证与申请不符",
     }));
   });

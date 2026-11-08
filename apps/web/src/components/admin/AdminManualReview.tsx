@@ -8,8 +8,10 @@ import {
   type PendingBoxCodeReview,
   type ReviewDecisionInput,
 } from "../../services/manualReview";
+import CoachEmailSearchSelect from "./CoachEmailSearchSelect";
 
 type EvidenceDraft = {
+  coachId: string;
   shipment: string;
   payment: string;
   rejectionReason: string;
@@ -39,6 +41,7 @@ export default function AdminManualReview() {
   }, [load]);
 
   const draftFor = (review: PendingBoxCodeReview): EvidenceDraft => drafts[review.activationId] ?? {
+    coachId: review.coachId,
     shipment: review.shipmentVerificationRef ?? "",
     payment: review.paymentVerificationRef ?? "",
     rejectionReason: "",
@@ -46,7 +49,13 @@ export default function AdminManualReview() {
 
   const updateDraft = (activationId: string, patch: Partial<EvidenceDraft>) => {
     setDrafts((current) => {
-      const existing = current[activationId] ?? { shipment: "", payment: "", rejectionReason: "" };
+      const row = reviews.find((review) => review.activationId === activationId);
+      const existing = current[activationId] ?? {
+        coachId: row?.coachId ?? "",
+        shipment: row?.shipmentVerificationRef ?? "",
+        payment: row?.paymentVerificationRef ?? "",
+        rejectionReason: "",
+      };
       return { ...current, [activationId]: { ...existing, ...patch } };
     });
   };
@@ -70,7 +79,7 @@ export default function AdminManualReview() {
     const draft = draftFor(row);
     void run(async () => {
       await reviewBoxCodeActivation({
-        review: row,
+        review: { ...row, coachId: draft.coachId },
         decision,
         shipmentVerificationRef: draft.shipment,
         paymentVerificationRef: draft.payment,
@@ -116,7 +125,15 @@ export default function AdminManualReview() {
                   return (
                     <tr key={row.activationId}>
                       <td>{row.camperCode}</td>
-                      <td>{row.coachId}</td>
+                      <td>
+                        <CoachEmailSearchSelect
+                          id={`review-coach-${row.activationId}`}
+                          label={`审核教练邮箱 ${row.camperCode}`}
+                          selectedId={draft.coachId}
+                          disabled={busy}
+                          onSelect={(coach) => updateDraft(row.activationId, { coachId: coach?.coachId ?? "" })}
+                        />
+                      </td>
                       <td>{row.codeMasked}<br /><small>{row.codeType === "recharge" ? "充值码" : "体验码"}</small></td>
                       <td>
                         {!row.shipmentVerificationRef && !draft.shipment && <span>待补录</span>}
@@ -152,10 +169,10 @@ export default function AdminManualReview() {
                         />
                       </td>
                       <td>
-                        <button type="button" className="admin-primary" disabled={busy} onClick={() => review(row, "approved")}>
+                        <button type="button" className="admin-primary" disabled={busy || !draft.coachId} onClick={() => review(row, "approved")}>
                           通过并激活 {row.camperCode}
                         </button>
-                        <button type="button" className="admin-secondary" disabled={busy} onClick={() => review(row, "rejected")}>
+                        <button type="button" className="admin-secondary" disabled={busy || !draft.coachId} onClick={() => review(row, "rejected")}>
                           拒绝并退回 {row.camperCode}
                         </button>
                       </td>

@@ -70,9 +70,10 @@ export async function reviewBoxCodeActivation(input: ReviewDecisionInput): Promi
     throw new Error("请填写拒绝原因。");
   }
 
-  const { data, error } = await getSupabase().rpc("admin_review_box_code_activation", {
+  const { data, error } = await getSupabase().rpc("admin_review_box_code_activation_v2", {
     p_activation_id: review.activationId,
     p_decision: input.decision,
+    p_target_coach_id: review.coachId,
     p_shipment_verification_ref: input.shipmentVerificationRef?.trim() || null,
     p_payment_verification_ref: input.paymentVerificationRef?.trim() || null,
     p_rejection_reason_code: input.rejectionReasonCode?.trim() || null,

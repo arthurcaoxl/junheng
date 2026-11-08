@@ -163,6 +163,12 @@
 2. `get_my_coach_contact_v1` 仅按服务端 `auth.uid()` 查找 `user_coach_relation` 中当前有效归属，并返回该教练的 `phone / wechat`；不接受用户 ID、教练 ID 或范围参数。
 3. RPC 不返回营员代码、身高、体重、原始记录或其他教练资料。无当前归属、未配置联系方式或匿名调用时均返回空结果，前端不得用本地输入或硬编码联系方式补齐。
 
+## 管理端教练目录与审核归属（TASK-10.12 增量）
+
+1. `admin_get_coach_directory(p_query)` 仅允许服务端 `auth.uid()` 对应的有效 `camp_admins.role = 'admin'` 调用；查询至少 2 个字符，仅搜索有效教练邮箱，最多返回 10 条 `coach_id / email`。浏览器不得直读 `camp_admins`，RPC 不返回健康原始记录、手机号或微信号。
+2. 管理端划拨与人工审核只通过邮箱搜索选择教练，选中后由前端提交服务端返回的 `coach_id`，页面不展示或要求手填 UUID；服务端仍须独立校验管理员权限与教练有效状态，不信任前端选择结果。
+3. `admin_review_box_code_activation_v2` 在原有原子审核事务前接收 `p_target_coach_id`，要求其为有效教练且与待审核产品码当前 `box_codes.coach_id` 一致，否则以 `COACH_SELECTION_MISMATCH` 拒绝。审核凭证、乐观版本与原审核状态机保持不变；本包装不提供任意改派归属能力。
+
 ## CSV 导出
 
 文件为 UTF-8 with BOM、逗号分隔、LF 换行，末尾保留换行。记录按 `record_date` 升序，只包含有内容日期。

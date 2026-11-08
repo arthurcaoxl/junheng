@@ -46,6 +46,7 @@ export default function AdminCheckInPage() {
   const [filter, setFilter] = useState<CamperFilter>("all");
   const [selected, setSelected] = useState<AdminCamper | null>(null);
   const [drawerTab, setDrawerTab] = useState<CamperDrawerTab>("detail");
+  const [activeSection, setActiveSection] = useState<"stats" | "production">("stats");
   const today = todayKey();
   const campMetrics = useMemo(() => buildCampDayMetrics(campers), [campers]);
   const kpis = useMemo(() => buildCampKpis(campers, today), [campers, today]);
@@ -199,72 +200,101 @@ export default function AdminCheckInPage() {
           </div>
         </div>
 
-        <KpiCards kpis={kpis} />
+        <div className="admin-tabs admin-section-tabs" role="tablist" aria-label="管理后台功能区">
+          <button
+            type="button"
+            id="admin-stats-tab"
+            role="tab"
+            aria-selected={activeSection === "stats"}
+            aria-controls="admin-stats-panel"
+            className={`admin-tab${activeSection === "stats" ? " is-active" : ""}`}
+            onClick={() => setActiveSection("stats")}
+          >
+            用户统计区
+          </button>
+          <button
+            type="button"
+            id="admin-production-tab"
+            role="tab"
+            aria-selected={activeSection === "production"}
+            aria-controls="admin-production-panel"
+            className={`admin-tab${activeSection === "production" ? " is-active" : ""}`}
+            onClick={() => setActiveSection("production")}
+          >
+            生产区
+          </button>
+        </div>
 
-        <AdminCodePool />
+        {activeSection === "stats" ? (
+          <div id="admin-stats-panel" role="tabpanel" aria-labelledby="admin-stats-tab">
+            <KpiCards kpis={kpis} />
+            <CoachRadar />
 
-        <AdminManualReview />
+            <section className="admin-block" aria-labelledby="admin-campers-title">
+              <div className="admin-block-heading">
+                <h2 id="admin-campers-title">已备份体验官</h2>
+                <span>点击任意一行查看个人每日明细</span>
+              </div>
+              <CamperTable
+                campers={campers}
+                filter={filter}
+                today={today}
+                onFilterChange={setFilter}
+                onSelect={(camper) => { setDrawerTab("detail"); setSelected(camper); }}
+                onPoster={(camper) => { setDrawerTab("poster"); setSelected(camper); }}
+              />
+            </section>
 
-        <CoachRadar />
-
-        <section className="admin-block" aria-labelledby="admin-campers-title">
-          <div className="admin-block-heading">
-            <h2 id="admin-campers-title">已备份体验官</h2>
-            <span>点击任意一行查看个人每日明细</span>
+            <section className="admin-block" aria-labelledby="admin-trend-title">
+              <div className="admin-block-heading">
+                <h2 id="admin-trend-title">D1–D21 对齐趋势</h2>
+                <span>体重/腰围为相对各自首条记录的均值</span>
+              </div>
+              <CampTrendCharts metrics={campMetrics} />
+              <details className="admin-trend-details">
+                <summary>查看详细数据表格</summary>
+                <div className="admin-table-wrap" tabIndex={0} aria-label="D1 至 D21 趋势表，可横向滚动">
+                  <table className="admin-table admin-trend-table">
+                    <thead>
+                      <tr>
+                        <th>营期日</th>
+                        <th>人数</th>
+                        <th>体重变化</th>
+                        <th>腰围变化</th>
+                        <th>三餐前饮用</th>
+                        <th>饮水</th>
+                        <th>运动</th>
+                        <th>作息</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {campMetrics.map((metric) => (
+                        <tr key={metric.dayIndex}>
+                          <td>D{metric.dayIndex}</td>
+                          <td>{metric.participants || "—"}</td>
+                          <td>{percent(metric.avgWeightChangePercent)}</td>
+                          <td>{percent(metric.avgWaistChangePercent)}</td>
+                          <td>
+                            <span className="admin-trend-track" aria-hidden="true"><span style={{ width: `${metric.mealCompletionRate ?? 0}%` }} /></span>
+                            {percent(metric.mealCompletionRate)}
+                          </td>
+                          <td>{percent(metric.waterRate)}</td>
+                          <td>{percent(metric.movementRate)}</td>
+                          <td>{percent(metric.sleepRate)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </details>
+            </section>
           </div>
-          <CamperTable
-            campers={campers}
-            filter={filter}
-            today={today}
-            onFilterChange={setFilter}
-            onSelect={(camper) => { setDrawerTab("detail"); setSelected(camper); }}
-            onPoster={(camper) => { setDrawerTab("poster"); setSelected(camper); }}
-          />
-        </section>
-
-        <section className="admin-block" aria-labelledby="admin-trend-title">
-          <div className="admin-block-heading">
-            <h2 id="admin-trend-title">D1–D21 对齐趋势</h2>
-            <span>体重/腰围为相对各自首条记录的均值</span>
+        ) : (
+          <div id="admin-production-panel" role="tabpanel" aria-labelledby="admin-production-tab">
+            <AdminCodePool />
+            <AdminManualReview />
           </div>
-          <CampTrendCharts metrics={campMetrics} />
-          <details className="admin-trend-details">
-            <summary>查看详细数据表格</summary>
-            <div className="admin-table-wrap" tabIndex={0} aria-label="D1 至 D21 趋势表，可横向滚动">
-              <table className="admin-table admin-trend-table">
-                <thead>
-                  <tr>
-                    <th>营期日</th>
-                    <th>人数</th>
-                    <th>体重变化</th>
-                    <th>腰围变化</th>
-                    <th>三餐前饮用</th>
-                    <th>饮水</th>
-                    <th>运动</th>
-                    <th>作息</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {campMetrics.map((metric) => (
-                    <tr key={metric.dayIndex}>
-                      <td>D{metric.dayIndex}</td>
-                      <td>{metric.participants || "—"}</td>
-                      <td>{percent(metric.avgWeightChangePercent)}</td>
-                      <td>{percent(metric.avgWaistChangePercent)}</td>
-                      <td>
-                        <span className="admin-trend-track" aria-hidden="true"><span style={{ width: `${metric.mealCompletionRate ?? 0}%` }} /></span>
-                        {percent(metric.mealCompletionRate)}
-                      </td>
-                      <td>{percent(metric.waterRate)}</td>
-                      <td>{percent(metric.movementRate)}</td>
-                      <td>{percent(metric.sleepRate)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </details>
-        </section>
+        )}
 
         {error && <p className="admin-error" role="alert">{error}</p>}
         {notice && <p className="admin-notice" role="status">{notice}</p>}

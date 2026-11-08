@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { allocateCodesToCoach, generatePlatformCodes } from "../../services/codePool";
+import CoachEmailSearchSelect from "./CoachEmailSearchSelect";
 
 export default function AdminCodePool() {
   const [count, setCount] = useState("");
@@ -52,18 +53,27 @@ export default function AdminCodePool() {
           <label htmlFor="code-generate-count">生成数量</label>
           <input id="code-generate-count" type="number" min="1" step="1" value={count} onChange={(event) => setCount(event.target.value)} required />
           <label htmlFor="code-generate-spec">盒规格</label>
-          <input id="code-generate-spec" value={boxSpec} onChange={(event) => setBoxSpec(event.target.value)} placeholder="与系统配置一致" required />
-          <label htmlFor="code-offline-receipt">线下打款凭证号</label>
-          <input id="code-offline-receipt" value={receipt} onChange={(event) => setReceipt(event.target.value)} required />
+          <select id="code-generate-spec" value={boxSpec} onChange={(event) => setBoxSpec(event.target.value)} required>
+            <option value="" disabled>请选择盒规格</option>
+            <option value="21_bags">21袋</option>
+            <option value="30_bags">30袋</option>
+          </select>
+          <label htmlFor="code-offline-receipt">激活码审批号</label>
+          <input id="code-offline-receipt" value={receipt} onChange={(event) => setReceipt(event.target.value)} placeholder="TEST / INIT / 线下审批号" required />
           <button type="submit" className="admin-primary" disabled={busy}>批量生成码</button>
         </form>
         <form onSubmit={allocate}>
           <h3>教练库存划拨</h3>
-          <label htmlFor="code-coach-id">教练用户 ID</label>
-          <input id="code-coach-id" value={coachId} onChange={(event) => setCoachId(event.target.value)} required />
+          <CoachEmailSearchSelect
+            id="code-coach-email"
+            label="划拨教练邮箱"
+            selectedId={coachId}
+            disabled={busy}
+            onSelect={(coach) => setCoachId(coach?.coachId ?? "")}
+          />
           <label htmlFor="code-allocate-count">划拨数量</label>
           <input id="code-allocate-count" type="number" min="1" step="1" value={allocateCount} onChange={(event) => setAllocateCount(event.target.value)} required />
-          <button type="submit" className="admin-secondary" disabled={busy}>划拨给教练</button>
+          <button type="submit" className="admin-secondary" disabled={busy || !coachId}>划拨给教练</button>
         </form>
       </div>
       {error && <p className="admin-error" role="alert">{error}</p>}
