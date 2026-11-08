@@ -8,6 +8,7 @@ import Home from "./pages/Home";
 import CheckInPage from "./pages/CheckInPage";
 import AdminCheckInPage from "./pages/AdminCheckIn";
 import CoachCodesPage from "./pages/CoachCodes";
+import CoachDashboardPage from "./pages/CoachDashboard";
 import UserCenterPage from "./pages/UserCenter";
 import TermsPage from "./pages/TermsPage";
 import PrivacyPage from "./pages/PrivacyPage";
@@ -99,6 +100,9 @@ export default function App() {
           {/* 管理入口不进入公开导航；RLS 负责数据权限。 */}
           <Route path="/admin/check-in" element={<AdminCheckInPage />} />
           <Route path="/admin/check-in/index.html" element={<AdminCheckInPage />} />
+          {/* 教练经营看板与 Admin 使用独立页面、独立路由和各自 RPC 权限边界。 */}
+          <Route path="/coach" element={<CoachDashboardPage />} />
+          <Route path="/coach/index.html" element={<CoachDashboardPage />} />
           <Route path="/coach/codes" element={<CoachCodesPage />} />
           <Route path="/coach/codes/index.html" element={<CoachCodesPage />} />
           <Route path="/terms" element={<TermsPage />} />

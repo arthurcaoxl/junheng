@@ -1165,6 +1165,20 @@ section { scroll-margin-top: 78px; }
 .admin-empty { padding: 24px; border: 1px dashed var(--line-light); font-size: 13px; opacity: .65; }
 .coach-radar .admin-empty p + p { margin-top: 8px; font-size: 12px; }
 
+/* TASK-10.12 · 独立教练经营看板 */
+.coach-dashboard-page .admin-shell { width: min(1440px, 100%); }
+.coach-dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(280px, .8fr); gap: 28px; margin-top: 38px; }
+.coach-dashboard-main, .coach-dashboard-side { min-width: 0; }
+.coach-dashboard-panel { margin-top: 0; padding: 24px; border: 1px solid var(--line-light); background: rgb(243 241 232 / 3%); }
+.coach-dashboard-panel + .coach-dashboard-panel { margin-top: 24px; }
+.coach-dashboard-panel .admin-block { margin-top: 20px; padding-top: 20px; }
+.coach-dashboard-table { min-width: 640px; }
+.coach-quarter-card strong { display: block; margin: 18px 0 10px; color: var(--acid); font-size: 26px; }
+.coach-quarter-card p { font-size: 13px; line-height: 1.9; opacity: .72; }
+@media (max-width: 960px) {
+  .coach-dashboard-grid { grid-template-columns: 1fr; }
+}
+
 /* 10.6 · 教练灯号与用户激活状态共用同一套标签样式 */
 .status-tag { display: inline-flex; align-items: center; width: max-content; min-height: 28px; padding: 5px 12px; border: 1px solid currentColor; border-radius: 999px; font-size: 11px; font-weight: 800; letter-spacing: .04em; }
 .status-tag--red { background: rgb(255 157 138 / 9%); color: #ff9d8a; }
