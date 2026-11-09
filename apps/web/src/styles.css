@@ -1259,6 +1259,25 @@ section { scroll-margin-top: 78px; }
 .admin-day-empty td { opacity: .45; }
 .admin-check { color: rgb(243 241 232 / 35%); }
 .admin-check.on { color: var(--acid); font-weight: 800; }
+.coach-email-option-primary, .coach-email-option-meta { display: block; }
+.coach-email-option-primary { font-weight: 750; }
+.coach-email-option-meta { margin-top: 6px; font-size: 11px; line-height: 1.6; opacity: .65; }
+.admin-staff-add { display: grid; grid-template-columns: minmax(0, 1fr) minmax(160px, .3fr); gap: 0 14px; max-width: 760px; }
+.admin-staff-add label { grid-column: 1 / -1; }
+.admin-staff-add .admin-primary { align-self: end; margin-top: 0; }
+.admin-staff-list { display: grid; gap: 18px; margin-top: 26px; }
+.admin-staff-card { padding: 22px; border: 1px solid var(--line-light); background: rgb(243 241 232 / 3%); }
+.admin-staff-card-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; }
+.admin-staff-card-heading > div { min-width: 0; }
+.admin-staff-card-heading h3 { overflow-wrap: anywhere; font-size: 16px; }
+.admin-staff-card-heading p { margin-top: 8px; font-size: 12px; line-height: 1.7; opacity: .65; }
+.admin-staff-card-heading .admin-secondary { flex-shrink: 0; }
+.admin-capacity-warning { padding: 12px 14px; border-left: 3px solid #ff9d8a; background: rgb(255 157 138 / 7%); }
+.admin-staff-assignments { display: grid; gap: 10px; margin: 18px 0 0; padding: 0; list-style: none; }
+.admin-staff-assignments li { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 10px; border-top: 1px solid var(--line-light); font-size: 12px; }
+.admin-staff-assignments li > span { min-width: 0; overflow-wrap: anywhere; }
+.admin-staff-assign-form { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 14px; margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line-light); }
+.admin-staff-assign-form .admin-primary { width: auto; margin-top: 0; white-space: nowrap; }
 @media (max-width: 960px) {
   .admin-kpis { grid-template-columns: repeat(2, 1fr); }
 }
@@ -1269,6 +1288,11 @@ section { scroll-margin-top: 78px; }
   .admin-heading-actions { justify-content: flex-start; margin-top: 22px; }
   .admin-block-heading { display: block; }
   .admin-block-heading span { display: block; margin-top: 8px; }
+  .admin-staff-add, .admin-staff-assign-form { grid-template-columns: 1fr; }
+  .admin-staff-add .admin-primary, .admin-staff-assign-form .admin-primary { width: 100%; margin-top: 16px; }
+  .admin-staff-card { padding: 18px; }
+  .admin-staff-card-heading { display: block; }
+  .admin-staff-card-heading .admin-secondary { margin-top: 16px; }
 }
 
 /* D3/D7 登录转化与个人账号入口 */

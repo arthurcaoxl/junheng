@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import CoachDashboardPanels from "../components/coach/CoachDashboardPanels";
+import type { AccessProfile } from "../services/accessProfile";
 import { getSupabase } from "../lib/supabase";
 import { sendLoginCode } from "../services/checkinSync";
 import { isValidOtpCode, normalizeOtpInput, OTP_INPUT_HINT, OTP_INPUT_PROPS } from "../services/otp";
@@ -10,6 +11,7 @@ export default function CoachDashboardPage() {
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [accessRole, setAccessRole] = useState<AccessProfile["role"] | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -44,10 +46,12 @@ export default function CoachDashboardPage() {
     return (
       <div className="admin-page coach-dashboard-page">
         <section className="admin-shell" aria-labelledby="coach-dashboard-title">
-          <p className="admin-eyebrow">COACH · OPERATIONS</p>
-          <h1 id="coach-dashboard-title">教练经营看板</h1>
-          <p className="admin-intro">查看本人名下脱敏营员灯号、云仓库存与季度服务提醒。</p>
-          <CoachDashboardPanels />
+          <p className="admin-eyebrow">{accessRole === "staff" ? "STAFF · SERVICE" : "COACH · OPERATIONS"}</p>
+          <h1 id="coach-dashboard-title">{accessRole === "staff" ? "员工服务看板" : "教练经营看板"}</h1>
+          <p className="admin-intro">{accessRole === "staff"
+            ? "仅查看当前分配教练名下的脱敏体验官灯号与服务提醒。"
+            : "查看本人名下脱敏营员灯号、云仓库存与季度服务提醒。"}</p>
+          <CoachDashboardPanels onRole={setAccessRole} />
         </section>
       </div>
     );

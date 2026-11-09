@@ -17,11 +17,7 @@ export default function CoachEmailSearchSelect({ id, label, selectedId, disabled
 
   useEffect(() => {
     const keyword = query.trim();
-    if (selectedId || keyword.length < 2) {
-      setOptions([]);
-      setSearchCompleted(false);
-      return;
-    }
+    if (selectedId || keyword.length < 2) return;
     let alive = true;
     const timer = window.setTimeout(() => {
       fetchAdminCoachDirectory(keyword).then((rows) => {
@@ -86,7 +82,10 @@ export default function CoachEmailSearchSelect({ id, label, selectedId, disabled
                   setSearchCompleted(false);
                 }}
               >
-                {coach.email}
+                <span className="coach-email-option-primary">{coach.email}</span>
+                <span className="coach-email-option-meta">
+                  {coach.name ?? "姓名未填写"} · {coach.phone ?? "手机号未填写"}
+                </span>
               </button>
             </li>
           ))}

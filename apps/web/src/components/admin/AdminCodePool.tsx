@@ -34,7 +34,7 @@ export default function AdminCodePool() {
     try {
       setNotice(await action());
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "码池操作失败，请稍后重试。");
+      setError(cause instanceof Error ? cause.message : "产品激活码库操作失败，请稍后重试。");
     } finally {
       setBusy(false);
     }
@@ -67,7 +67,7 @@ export default function AdminCodePool() {
   return (
     <section className="admin-block" aria-labelledby="admin-code-pool-title">
       <div className="admin-block-heading">
-        <h2 id="admin-code-pool-title">平台码池</h2>
+        <h2 id="admin-code-pool-title">平台产品激活码库</h2>
         <span>仅管理员可生成与划拨；所有动作写入库存流水</span>
       </div>
       <div className="admin-code-pool-forms">

@@ -3,6 +3,8 @@ import { getSupabase } from "../lib/supabase";
 export type AdminCoachDirectoryEntry = {
   coachId: string;
   email: string;
+  name: string | null;
+  phone: string | null;
 };
 
 export async function fetchAdminCoachDirectory(query: string): Promise<AdminCoachDirectoryEntry[]> {
@@ -14,7 +16,12 @@ export async function fetchAdminCoachDirectory(query: string): Promise<AdminCoac
   return data.flatMap((raw) => {
     const row = raw as Record<string, unknown>;
     return typeof row.coach_id === "string" && typeof row.email === "string"
-      ? [{ coachId: row.coach_id, email: row.email }]
+      ? [{
+        coachId: row.coach_id,
+        email: row.email,
+        name: typeof row.name === "string" && row.name.trim() ? row.name : null,
+        phone: typeof row.phone === "string" && row.phone.trim() ? row.phone : null,
+      }]
       : [];
   });
 }

@@ -9,6 +9,9 @@ function mockCoachSession() {
     data: { session: { user: { id: "coach-1", email: "coach@example.com" } } },
   });
   (getSupabase().rpc as ReturnType<typeof vi.fn>).mockImplementation((name: string) => {
+    if (name === "get_my_access_profile") return Promise.resolve({
+      data: [{ role: "coach", can_view_radar: true, can_manage_inventory: true }], error: null,
+    });
     if (name === "get_coach_radar_v1") return Promise.resolve({
       data: [
         { camper_code: "JH-GREEN", weight_delta: -1.2, waist_delta: -2, bmi: 22.1, alert_level: "green" },
@@ -51,7 +54,7 @@ describe("独立教练经营看板", () => {
     expect(await screen.findByRole("heading", { name: "教练经营看板" })).toBeInTheDocument();
     const active = screen.getByRole("region", { name: "名下活跃用户" });
     const dormant = screen.getByRole("region", { name: "休眠雷达" });
-    const inventory = screen.getByRole("region", { name: "教练云仓库存" });
+    const inventory = await screen.findByRole("region", { name: "教练云仓库存" });
     expect(await within(active).findByText("JH-GREEN")).toBeInTheDocument();
     expect(within(active).queryByText("JH-RED")).not.toBeInTheDocument();
     expect(await within(dormant).findByText("JH-RED")).toBeInTheDocument();

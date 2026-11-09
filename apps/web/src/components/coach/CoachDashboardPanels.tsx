@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { fetchMyAccessProfile, type AccessProfile } from "../../services/accessProfile";
 import {
   fetchCoachCampers,
   fetchCoachRadar,
@@ -88,14 +89,21 @@ function CoachMetricTable({ rows }: { rows: WorkbenchRow[] }) {
   );
 }
 
+<<<<<<< HEAD
 export default function CoachDashboardPanels() {
   const [rows, setRows] = useState<WorkbenchRow[]>([]);
   const [campers, setCampers] = useState<CoachCamper[]>([]);
+=======
+export default function CoachDashboardPanels({ onRole }: { onRole?: (role: AccessProfile["role"]) => void }) {
+  const [rows, setRows] = useState<CoachRadarRow[]>([]);
+  const [profile, setProfile] = useState<AccessProfile | null>(null);
+>>>>>>> c3e2384 (feat(task-10.12): add admin terminology and rbac)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let alive = true;
+<<<<<<< HEAD
     Promise.all([fetchCoachRadar(), fetchCoachCampers()]).then(([radar, nextCampers]) => {
       if (!alive) return;
       const radarByCode = new Map(radar.map((row) => [row.camperCode, row]));
@@ -104,13 +112,20 @@ export default function CoachDashboardPanels() {
         const metrics = radarByCode.get(camper.camperCode);
         return metrics ? [{ ...metrics, ...camper }] : [];
       }));
+=======
+    Promise.all([fetchMyAccessProfile(), fetchCoachRadar()]).then(([access, radar]) => {
+      if (!alive) return;
+      setProfile(access);
+      onRole?.(access.role);
+      setRows(access.canViewRadar ? radar : []);
+>>>>>>> c3e2384 (feat(task-10.12): add admin terminology and rbac)
     }).catch((cause: unknown) => {
       if (alive) setError(cause instanceof Error ? cause.message : "雷达读取失败，请稍后重试。");
     }).finally(() => {
       if (alive) setLoading(false);
     });
     return () => { alive = false; };
-  }, []);
+  }, [onRole]);
 
   const newRows = rows.filter((row) => row.activityStatus === "new_registered");
   const activeRows = rows.filter((row) => row.activityStatus === "active" && row.alertLevel === "green");
@@ -150,14 +165,25 @@ export default function CoachDashboardPanels() {
         )}
       </div>
       <aside className="coach-dashboard-side">
+<<<<<<< HEAD
         <section className="admin-block coach-dashboard-panel" aria-labelledby="coach-inventory-title">
           <h2 id="coach-inventory-title">教练云仓库存</h2>
           <CoachCodeInventory campers={campers} />
         </section>
+=======
+        {profile?.canManageInventory && (
+          <section className="admin-block coach-dashboard-panel" aria-labelledby="coach-inventory-title">
+            <h2 id="coach-inventory-title">教练云仓库存</h2>
+            <CoachCodeInventory />
+          </section>
+        )}
+>>>>>>> c3e2384 (feat(task-10.12): add admin terminology and rbac)
         <section className="admin-block coach-dashboard-panel coach-quarter-card" aria-labelledby="coach-quarter-title">
           <h2 id="coach-quarter-title">季度推荐提醒</h2>
           <strong>Q{quarter} 服务复盘</strong>
-          <p>优先跟进休眠雷达中的红黄灯营员，并结合本人可用库存安排补货；不以空指标代替首测数据。</p>
+          <p>{profile?.role === "staff"
+            ? "优先跟进分配范围内红黄灯体验官；不得查看库存、财务或原始健康档案。"
+            : "优先跟进休眠雷达中的红黄灯营员，并结合本人可用库存安排补货；不以空指标代替首测数据。"}</p>
         </section>
       </aside>
     </div>

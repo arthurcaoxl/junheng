@@ -31,7 +31,7 @@ function mockRadar(result: RadarResult | (() => Promise<RadarResult>)) {
 
 async function renderReadyPage() {
   render(<AdminCheckInPage />);
-  await screen.findByText("已备份体验官");
+  await screen.findByRole("heading", { name: "体验官" });
 }
 
 function alertRow(camperCode: string, alertLevel: "red" | "yellow" | "green") {

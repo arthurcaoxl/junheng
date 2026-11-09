@@ -4,14 +4,19 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import AdminCodePool from "../components/admin/AdminCodePool";
 import { getSupabase } from "../lib/supabase";
 
-describe("Admin 码池防呆与教练邮箱搜索", () => {
+describe("Admin 产品激活码库防呆与教练搜索", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv("VITE_SUPABASE_URL", "https://test.supabase.co");
     vi.stubEnv("VITE_SUPABASE_ANON_KEY", "test-anon-key");
     (getSupabase().rpc as ReturnType<typeof vi.fn>).mockImplementation((name: string) => {
       if (name === "admin_get_coach_directory") return Promise.resolve({
-        data: [{ coach_id: "11111111-1111-4111-8111-111111111111", email: "alice@example.com" }],
+        data: [{
+          coach_id: "11111111-1111-4111-8111-111111111111",
+          email: "alice@example.com",
+          name: "爱丽丝",
+          phone: "13800000000",
+        }],
         error: null,
       });
       if (name === "generate_platform_codes") return Promise.resolve({ data: { generatedCount: 24 }, error: null });
@@ -46,7 +51,7 @@ describe("Admin 码池防呆与教练邮箱搜索", () => {
 
     expect(screen.queryByLabelText("教练用户 ID")).not.toBeInTheDocument();
     await user.type(screen.getByLabelText("划拨教练邮箱"), "ali");
-    await user.click(await screen.findByRole("option", { name: /alice@example\.com/ }));
+    await user.click(await screen.findByRole("option", { name: /alice@example\.com.*爱丽丝.*13800000000/ }));
     await user.type(screen.getByLabelText("划拨数量"), "2");
     await user.click(screen.getByRole("button", { name: "划拨给教练" }));
 

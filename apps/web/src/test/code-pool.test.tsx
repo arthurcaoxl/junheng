@@ -22,7 +22,7 @@ vi.mock("../services/codePool", async (importOriginal) => {
 
 const rpcResult = { data: { ok: true, generatedCount: 24 }, error: null };
 
-describe("码池服务与界面", () => {
+describe("产品激活码库服务与界面", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.stubEnv("VITE_SUPABASE_URL", "https://test.supabase.co");
@@ -70,10 +70,10 @@ describe("码池服务与界面", () => {
     expect(generatePlatformCodes).toHaveBeenCalledWith(24, "21_bags", "PAY-OFFLINE-88");
 
     (getSupabase().rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: [{ coach_id: "coach-uuid", email: "coach@example.com" }], error: null,
+      data: [{ coach_id: "coach-uuid", email: "coach@example.com", name: "教练甲", phone: "13800000000" }], error: null,
     });
     await user.type(screen.getByLabelText("划拨教练邮箱"), "coach");
-    await user.click(await screen.findByRole("option", { name: "coach@example.com" }));
+    await user.click(await screen.findByRole("option", { name: /coach@example\.com.*教练甲.*13800000000/ }));
     await user.type(screen.getByLabelText("划拨数量"), "12");
     await user.click(screen.getByRole("button", { name: "划拨给教练" }));
     expect(allocateCodesToCoach).toHaveBeenCalledWith("coach-uuid", 12);

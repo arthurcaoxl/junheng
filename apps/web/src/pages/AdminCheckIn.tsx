@@ -20,10 +20,13 @@ import CamperDrawer, { type CamperDrawerTab } from "../components/admin/CamperDr
 import CoachRadar from "../components/admin/CoachRadar";
 import AdminCodePool from "../components/admin/AdminCodePool";
 import AdminManualReview from "../components/admin/AdminManualReview";
+import AdminStaffManagement from "../components/admin/AdminStaffManagement";
 
 function percent(value: number | null): string {
   return value === null ? "—" : `${value}%`;
 }
+
+type AdminSection = "stats" | "production" | "staff";
 
 export default function AdminCheckInPage() {
   const [configured] = useState(() => {
@@ -46,7 +49,7 @@ export default function AdminCheckInPage() {
   const [filter, setFilter] = useState<CamperFilter>("all");
   const [selected, setSelected] = useState<AdminCamper | null>(null);
   const [drawerTab, setDrawerTab] = useState<CamperDrawerTab>("detail");
-  const [activeSection, setActiveSection] = useState<"stats" | "production">("stats");
+  const [activeSection, setActiveSection] = useState<AdminSection>("stats");
   const today = todayKey();
   const campMetrics = useMemo(() => buildCampDayMetrics(campers), [campers]);
   const kpis = useMemo(() => buildCampKpis(campers, today), [campers, today]);
@@ -111,7 +114,7 @@ export default function AdminCheckInPage() {
     setCampers(rows);
     setLoggedEmail(email);
     setPhase("ready");
-    setNotice(rows.length ? "统计数据已更新。" : "管理员验证成功，目前还没有已备份的体验官记录。");
+    setNotice(rows.length ? "统计数据已更新。" : "管理员验证成功，目前还没有体验官记录。");
   });
 
   const exportCsv = () => {
@@ -140,7 +143,7 @@ export default function AdminCheckInPage() {
         <section className="admin-shell admin-login-card" aria-labelledby="admin-login-title">
           <p className="admin-eyebrow">ADMIN · CHECK-IN ANALYTICS</p>
           <h1 id="admin-login-title">打卡统计管理</h1>
-          <p className="admin-intro">管理员邮箱验证后，可查看已备份体验官趋势。普通用户无法访问他人数据。</p>
+          <p className="admin-intro">管理员邮箱验证后，可查看体验官趋势。普通用户无法访问他人数据。</p>
 
           <label htmlFor="admin-email">管理员邮箱</label>
           <input
@@ -191,7 +194,7 @@ export default function AdminCheckInPage() {
           <div>
             <p className="admin-eyebrow">ADMIN · CHECK-IN ANALYTICS</p>
             <h1 id="admin-title">打卡统计管理</h1>
-            <p className="admin-intro">仅展示已备份到云端的记录；UID 不出现在页面和导出文件中。</p>
+            <p className="admin-intro">仅展示云端体验官记录；UID 不出现在页面和导出文件中。</p>
           </div>
           <div className="admin-heading-actions">
             <span className="admin-email-pill">{loggedEmail}</span>
@@ -223,16 +226,27 @@ export default function AdminCheckInPage() {
           >
             生产区
           </button>
+          <button
+            type="button"
+            id="admin-staff-tab"
+            role="tab"
+            aria-selected={activeSection === "staff"}
+            aria-controls="admin-staff-panel"
+            className={`admin-tab${activeSection === "staff" ? " is-active" : ""}`}
+            onClick={() => setActiveSection("staff")}
+          >
+            员工管理区
+          </button>
         </div>
 
-        {activeSection === "stats" ? (
+        {activeSection === "stats" && (
           <div id="admin-stats-panel" role="tabpanel" aria-labelledby="admin-stats-tab">
             <KpiCards kpis={kpis} />
             <CoachRadar />
 
             <section className="admin-block" aria-labelledby="admin-campers-title">
               <div className="admin-block-heading">
-                <h2 id="admin-campers-title">已备份体验官</h2>
+                <h2 id="admin-campers-title">体验官</h2>
                 <span>点击任意一行查看个人每日明细</span>
               </div>
               <CamperTable
@@ -289,10 +303,16 @@ export default function AdminCheckInPage() {
               </details>
             </section>
           </div>
-        ) : (
+        )}
+        {activeSection === "production" && (
           <div id="admin-production-panel" role="tabpanel" aria-labelledby="admin-production-tab">
             <AdminCodePool />
             <AdminManualReview />
+          </div>
+        )}
+        {activeSection === "staff" && (
+          <div id="admin-staff-panel" role="tabpanel" aria-labelledby="admin-staff-tab">
+            <AdminStaffManagement />
           </div>
         )}
 

@@ -166,8 +166,8 @@
 
 ## 管理端教练目录与审核归属（TASK-10.12 增量）
 
-1. `admin_get_coach_directory(p_query)` 仅允许服务端 `auth.uid()` 对应的有效 `camp_admins.role = 'admin'` 调用；查询至少 2 个字符，仅搜索有效教练邮箱，最多返回 10 条 `coach_id / email`。浏览器不得直读 `camp_admins`，RPC 不返回健康原始记录、手机号或微信号。
-2. 管理端划拨与人工审核只通过邮箱搜索选择教练，选中后由前端提交服务端返回的 `coach_id`，页面不展示或要求手填 UUID；服务端仍须独立校验管理员权限与教练有效状态，不信任前端选择结果。
+1. `admin_get_coach_directory(p_query)` 仅允许服务端 `auth.uid()` 对应的有效 `camp_admins.role = 'admin'` 调用；查询至少 2 个字符，仅搜索有效教练邮箱，最多返回 10 条 `coach_id / email / name / phone`。姓名取认证资料中的 `full_name`（兼容 `name`），手机号取受限 `user_profiles.phone` 并兼容认证手机号；缺省返回 `null`。浏览器不得直读 `auth.users`、`user_profiles` 或角色目录，RPC 不返回健康原始记录或微信号。
+2. 管理端划拨与人工审核只通过邮箱搜索选择教练，下拉结果同时展示邮箱、姓名、手机号；选中后由前端提交服务端返回的 `coach_id`，页面不展示或要求手填 UUID。联系方式扩展只在 Admin 严格鉴权后生效，普通用户、教练与 staff 均无此目录权限；服务端仍须独立校验管理员权限与教练有效状态，不信任前端选择结果。
 3. `admin_review_box_code_activation_v2` 在原有原子审核事务前接收 `p_target_coach_id`，要求其为有效教练且与待审核产品码当前 `box_codes.coach_id` 一致，否则以 `COACH_SELECTION_MISMATCH` 拒绝。审核凭证、乐观版本与原审核状态机保持不变；本包装不提供任意改派归属能力。
 4. **TASK-10.12-P0 统一教练口径**：目录搜索、`allocate_codes_to_coach` 与审核 v2 均以 `user_coach_relation` 中 `referrer_id = 目标教练 AND valid_to IS NULL` 的当前有效关系证明教练身份，不再依赖 `camp_admins.role = 'coach'` 播种，也不得仅凭 `auth.users` 存在即认定为教练。目录无结果属于正常空态，前端显示“无匹配教练”，不得作为 RPC 错误展示红字。
 5. **历史白名单回填**：迁移在事务内通过规范化邮箱连接 `auth.users`，仅为 `camp_admins.auth_user_id IS NULL` 的历史行回填认证主体；跳过已被其他角色行占用的认证主体，未匹配行继续保持 NULL 和无业务权限。客户端不得执行裸 UPDATE，角色本身不得因回填自动变更。
@@ -184,6 +184,16 @@
 6. 直推成功只插入目标营员的 pending `code_activations`、将码推进为 `pending_review`、写 `CodeActivationRequested` 与幂等命令；目标营员与 camper code 均取服务端关系，不能由客户端传入。后续仍只能经既有 Admin 人工审核原子流程激活并扣减一次库存；直推本身不得激活、不得改归属、不得扣库存，重复幂等请求不得创建第二条申请或重复扣减。
 7. **D21 趋势**：营期日严格由 `startDate + (dayIndex - 1)` 映射，D21 只读取第 21 个本地日期；窗口外记录不得成为本期基线或串入 D21。两张图共用同一 21 点数组与 X 轴边距、padding 和刻度策略，D1/D21 均保留且不裁切。
 8. **新教练 Demo**：仅使用前端独立常量中的明确虚构营员与库存示意，标记 `isDemo = true`，文案同时标明“演示数据 / 非真实统计”。仅在真实营员为空且加载成功后展示，不计入真实人数、灯号、云仓、导出或任何 RPC；无真实码面、无真实 ID、无写操作，有真实营员时不得混入。
+
+## Admin 员工 RBAC 与界面权限（TASK-10.12 增量）
+
+1. `camp_admins.role` 仅允许 `admin / coach / staff`，并增加 `version / updated_at / updated_by` 支持乐观并发与审计；历史 Admin 白名单回填、有效教练关系口径与 Vault 密钥读取保持不变。staff 只能由有效 Admin 通过 RPC 授予、停用或恢复，不能把已有 admin/coach 行改写为 staff，也不能凭邮箱或前端声明自助提权。
+2. `staff_coach_assignment` 保存员工与教练的分配历史。创建分配要求目标 staff 有效、目标教练具有当前有效关系，并校验 `expectedVersion` 与 `idempotencyKey`；撤销立即结束有效期并递增版本。浏览器角色对角色表、分配表、命令表与审计表无直写权限。
+3. Admin 员工管理区只调用 `admin_get_staff_directory / admin_set_staff_role / admin_assign_staff_coach / admin_revoke_staff_coach`。所有管理 RPC 在服务端以 `auth.uid()` 验证有效 Admin，越权、角色变化、分配变化均追加审计；审计不记录体验官明细、联系方式或财务金额。
+4. `get_coach_radar_v1` 对 staff 仅返回当前有效分配教练名下的五字段脱敏雷达，仍由服务端 `auth.uid()` 决定范围，不接受 coach、staff、体验官或分页范围参数。分配撤销、staff 停用或用户转移后，新请求立即失去对应数据。
+5. `get_my_access_profile` 仅返回当前有效角色及 `can_view_radar / can_manage_inventory` 两个界面能力。前端据此隐藏员工不可见模块，但隐藏不是授权；staff 调用 `get_my_code_inventory` 必须由服务端以 `FORBIDDEN` 拒绝并追加审计，其他 Admin RPC 继续独立鉴权。
+6. 既有 `admin_checkin_overview` 与 `checkin_sync` Admin 直读策略必须同时限定有效 `role = 'admin'` 的认证主体，防止 staff 借历史白名单策略读取体验官记录。
+7. 员工分配沿用 `staff-role-permissions-v1.md` 的非阻断软容量口径：超过 5 名教练或 150 名当前体验官仍允许成功，返回 `STAFF_CAPACITY_WARNING`、在 Admin 显示红字并追加容量警告与治理跟进审计，不得将其实现为硬限制。
 
 ## CSV 导出
 
