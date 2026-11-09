@@ -26,13 +26,19 @@ describe("TASK-10.13 双路径激活唯一终审迁移静态契约", () => {
     expect(sql).toMatch(/commit;/i);
   });
 
-  it("申请来源是不可变必填字段，历史行按请求事件回填", () => {
+  it("申请来源是不可变必填字段，历史回填受控绕过且立即恢复版本守护", () => {
     expect(sql).toMatch(/add\s+column\s+request_source\s+text/i);
     expect(sql).toMatch(/request_source\s+in\s*\('manual_code',\s*'coach_push'\)/i);
     expect(sql).toMatch(/alter\s+column\s+request_source\s+set\s+not\s+null/i);
     expect(sql).toMatch(/actor_auth_user_id\s*=\s*a\.auth_user_id\s+then\s+'manual_code'/i);
     expect(sql).toMatch(/actor_auth_user_id\s+is\s+not\s+null\s+then\s+'coach_push'/i);
     expect(sql).toMatch(/e\.event_type\s*=\s*'CodeActivationRequested'/i);
+    const disableAt = sql.search(/alter\s+table\s+public\.code_activations\s+disable\s+trigger\s+code_activation_mutation_guard/i);
+    const backfillAt = sql.search(/update\s+public\.code_activations\s+a/i);
+    const enableAt = sql.search(/alter\s+table\s+public\.code_activations\s+enable\s+trigger\s+code_activation_mutation_guard/i);
+    expect(disableAt).toBeGreaterThanOrEqual(0);
+    expect(backfillAt).toBeGreaterThan(disableAt);
+    expect(enableAt).toBeGreaterThan(backfillAt);
     expect(functionBody("guard_code_activation_source_immutable")).toMatch(/NEW\.request_source\s+is\s+distinct\s+from\s+OLD\.request_source/i);
     expect(sql).toMatch(/before\s+update\s+on\s+public\.code_activations[\s\S]*execute\s+function\s+public\.guard_code_activation_source_immutable\(\)/i);
   });
@@ -45,6 +51,10 @@ describe("TASK-10.13 双路径激活唯一终审迁移静态契约", () => {
       const body = functionBody(name);
       expect(body).toMatch(new RegExp(`request_source[\\s\\S]*'${source}'`, "i"));
       expect(body).toMatch(new RegExp(`CodeActivationRequested[\\s\\S]*jsonb_build_object\\('requestSource',\\s*'${source}'\\)`, "i"));
+      expect(body).toMatch(/vault\.decrypted_secrets/i);
+      expect(body).toMatch(/name\s*=\s*'box_code_pepper'/i);
+      expect(body).toMatch(/BOX_CODE_PEPPER_NOT_CONFIGURED/i);
+      expect(body).not.toMatch(/current_setting\('app\.box_code_pepper'/i);
       expect(body).toMatch(/review_state[\s\S]*'pending'/i);
       expect(body).toMatch(/state\s*=\s*'pending_review'/i);
       expect(body).not.toMatch(/state\s*=\s*'active'/i);
@@ -64,13 +74,16 @@ describe("TASK-10.13 双路径激活唯一终审迁移静态契约", () => {
     }
   });
 
-  it("staff 直推在 Vault 读取前被拒绝并留拒入审计，教练归属边界不变", () => {
+  it("staff 先审计拒绝，非有效 coach 再在 Vault 前拒绝，教练归属边界不变", () => {
     const body = functionBody("coach_push_code_v1");
     const staffCheckAt = body.search(/a\.role\s*=\s*'staff'/i);
+    const coachCheckAt = body.search(/a\.role\s*=\s*'coach'/i);
     const vaultReadAt = body.search(/vault\.decrypted_secrets/i);
     expect(staffCheckAt).toBeGreaterThanOrEqual(0);
-    expect(vaultReadAt).toBeGreaterThan(staffCheckAt);
-    expect(body.slice(0, vaultReadAt)).not.toMatch(/a\.is_active/i);
+    expect(coachCheckAt).toBeGreaterThan(staffCheckAt);
+    expect(vaultReadAt).toBeGreaterThan(coachCheckAt);
+    expect(body.slice(staffCheckAt, coachCheckAt)).not.toMatch(/a\.is_active/i);
+    expect(body.slice(coachCheckAt, vaultReadAt)).toMatch(/a\.is_active/i);
     expect(body).toMatch(/staff_finance_denied/i);
     expect(body).toMatch(/b\.coach_id\s*=\s*v_auth_user_id/i);
     expect(body).toMatch(/b\.inventory_status\s*=\s*'coach'/i);

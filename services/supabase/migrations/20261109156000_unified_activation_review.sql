@@ -8,6 +8,10 @@ drop function public.activate_box_code(text, integer, integer, text);
 alter table public.code_activations
   add column request_source text;
 
+-- 仅为存量回填受控绕过版本递增；任一异常都会回滚整个事务及触发器状态。
+alter table public.code_activations
+  disable trigger code_activation_mutation_guard;
+
 update public.code_activations a
 set request_source = coalesce(
   (
@@ -24,6 +28,9 @@ set request_source = coalesce(
   ),
   'manual_code'
 );
+
+alter table public.code_activations
+  enable trigger code_activation_mutation_guard;
 
 alter table public.code_activations
   alter column request_source set not null,
@@ -120,9 +127,11 @@ begin
     return public.box_code_error('DEVICE_FINGERPRINT_REQUIRED');
   end if;
 
-  v_pepper := nullif(current_setting('app.box_code_pepper', true), '');
-  if v_pepper is null then
-    return public.box_code_error('CODE_HASH_NOT_CONFIGURED');
+  select decrypted_secret into v_pepper
+  from vault.decrypted_secrets
+  where name = 'box_code_pepper';
+  if v_pepper is null or v_pepper = '' then
+    return public.box_code_error('BOX_CODE_PEPPER_NOT_CONFIGURED');
   end if;
 
   select (c.config_value #>> '{}')::integer into v_ip_rate_limit
@@ -317,6 +326,14 @@ begin
       'staff_finance_denied', v_auth_user_id, v_auth_user_id, 'staff',
       'denied', 'FORBIDDEN', jsonb_build_object('operation', 'coach_push_code_v1')
     );
+    return public.box_code_error('FORBIDDEN');
+  end if;
+  if not exists (
+    select 1 from public.camp_admins a
+    where a.auth_user_id = v_auth_user_id
+      and a.role = 'coach'
+      and a.is_active
+  ) then
     return public.box_code_error('FORBIDDEN');
   end if;
 

@@ -229,10 +229,10 @@
 
 ## 双路径激活唯一终审与来源审计（TASK-10.13 增量）
 
-1. `code_activations.request_source` 为必填且不可变的 `manual_code / coach_push`，分别只能由 `request_box_code_activation` 与 `coach_push_code_v1` 写入；两条路径的 `CodeActivationRequested` 事件 metadata 同步保存 `requestSource`。历史行按请求事件的 actor 与申请人是否一致回填，无该事件的 10.9 前自助申请归为 `manual_code`。
+1. `code_activations.request_source` 为必填且不可变的 `manual_code / coach_push`，分别只能由 `request_box_code_activation` 与 `coach_push_code_v1` 写入；两条路径的 `CodeActivationRequested` 事件 metadata 同步保存 `requestSource`。历史行按请求事件的 actor 与申请人是否一致回填，无该事件的 10.9 前自助申请归为 `manual_code`。回填仅在同一事务内临时禁用真实 `code_activation_mutation_guard`，完成后立即恢复，不递增存量 `version`；异常由事务整体回滚，随后启用的来源不可变守护不受影响。
 2. 两条 pending 申请仍只经 `admin_review_box_code_activation_v2` 公开终审；其内部复用既有 `admin_review_box_code_activation` 原子事务，继续强制有效 Admin、目标教练与码归属一致、码和申请双版本匹配。旧 `activate_box_code(text,text)` 与 `activate_box_code(text,integer,integer,text)` 必须删除，原审核函数对浏览器角色回收执行权限，禁止形成第二终审或自助激活路径。
 3. 两入口在读取 `box_code_commands` 前按同一幂等键获取事务级咨询锁，串行化并发首写；同键同载荷返回首次结果并标记 `replayed=true`，同键异载荷返回 `IDEMPOTENCY_CONFLICT`，不得创建第二条申请。既有码行锁、状态冲突与终审乐观版本语义保持不变。
-4. staff 调用 `coach_push_code_v1` 必须在 Vault 读取前以 `FORBIDDEN` 拒绝并追加 `staff_rbac_audit`；有效教练仍只能使用本人云库存 unused 码及本人当前营员关系。Vault `box_code_pepper` 读取和缺失错误码保持不变。
+4. staff 调用 `coach_push_code_v1` 必须先以可提交的 JSON `FORBIDDEN` 结果返回并追加 `staff_rbac_audit`；其他调用者随后必须具有有效 `camp_admins.role = 'coach' AND is_active`，停用 coach 即使保留关系和库存也在 Vault 与目标读取前返回 `FORBIDDEN`。有效教练只能使用本人云库存 unused 码及本人当前营员关系。两入口均从 Vault `box_code_pepper` 读取密钥，缺失错误码为 `BOX_CODE_PEPPER_NOT_CONFIGURED`，不得回退 GUC。
 5. 既有终审 `audit_logs` 在插入时由数据库触发器从申请行补充 `requestSource`，通过和拒绝均保留来源；不得在终审函数之外另写激活、归属或库存状态。
 ## 教练身份 SSOT 与 Pepper Vault（TASK-10.13 增量）
 
