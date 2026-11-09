@@ -24,6 +24,9 @@ const tooltipStyle = {
   color: "#f3f1e8",
 };
 
+const CHART_MARGIN = { top: 8, right: 24, bottom: 8, left: -18 };
+const X_AXIS_PADDING = { left: 12, right: 12 };
+
 function axisProps() {
   return {
     stroke: GRID,
@@ -46,9 +49,9 @@ export default function CampTrendCharts({ metrics }: { metrics: CampDayMetric[] 
         <figcaption>平均体重 / 腰围变化（%）· 相对各自首条基线</figcaption>
         <div className="admin-chart-canvas" role="img" aria-label="D1 至 D21 平均体重与腰围变化折线图">
           <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: -18 }}>
+            <LineChart data={data} margin={CHART_MARGIN}>
               <CartesianGrid stroke={GRID} vertical={false} />
-              <XAxis dataKey="day" {...axisProps()} interval={1} />
+              <XAxis dataKey="day" {...axisProps()} interval={0} padding={X_AXIS_PADDING} tickMargin={8} />
               <YAxis {...axisProps()} unit="%" />
               <Tooltip contentStyle={tooltipStyle} formatter={(value: number | string) => `${value}%`} />
               <Line type="monotone" dataKey="weight" name="体重变化" stroke={ACID} strokeWidth={2} dot={{ r: 2, fill: ACID }} connectNulls={false} />
@@ -63,9 +66,9 @@ export default function CampTrendCharts({ metrics }: { metrics: CampDayMetric[] 
         <figcaption>每日实际打卡人数 · 观察留存与流失</figcaption>
         <div className="admin-chart-canvas" role="img" aria-label="D1 至 D21 每日打卡人数柱状图">
           <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={data} margin={{ top: 8, right: 12, bottom: 0, left: -18 }}>
+            <BarChart data={data} margin={CHART_MARGIN}>
               <CartesianGrid stroke={GRID} vertical={false} />
-              <XAxis dataKey="day" {...axisProps()} interval={1} />
+              <XAxis dataKey="day" {...axisProps()} interval={0} padding={X_AXIS_PADDING} tickMargin={8} />
               <YAxis {...axisProps()} allowDecimals={false} />
               <Tooltip contentStyle={tooltipStyle} cursor={{ fill: "rgba(163, 230, 53, 0.08)" }} />
               <Bar dataKey="participants" name="打卡人数" fill={ACID} maxBarSize={22} />

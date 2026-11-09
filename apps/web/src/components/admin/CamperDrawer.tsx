@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { AdminCamper } from "../../services/adminCheckin";
+import type { AdminCamper, AdminFollowupStatus } from "../../services/adminCheckin";
+import { fetchAdminCamperFollowup, saveAdminCamperFollowup } from "../../services/adminCheckin";
 import { buildCamperDays, getOutOfWindowRecordDates, toWindowRecords } from "../../utils/adminMetrics";
 import { addDays, TOTAL_DAYS } from "../../utils/checkin";
 import { createRecordPoster } from "../../utils/recordPoster";
@@ -13,6 +14,66 @@ function formatPercent(value: number | null): string {
 
 function Check({ on }: { on: boolean }) {
   return <span className={on ? "admin-check on" : "admin-check"} aria-label={on ? "已完成" : "未完成"}>{on ? "✓" : "—"}</span>;
+}
+
+const ADMIN_FOLLOWUP_OPTIONS: { value: AdminFollowupStatus; label: string }[] = [
+  { value: "pending", label: "待跟进" },
+  { value: "contacted", label: "已触达" },
+  { value: "waiting_reply", label: "待回复" },
+  { value: "resolved", label: "已解决" },
+  { value: "escalated", label: "需升级" },
+];
+
+function AdminFollowupEditor({ camperId }: { camperId: string }) {
+  const [status, setStatus] = useState<AdminFollowupStatus>("pending");
+  const [note, setNote] = useState("");
+  const [version, setVersion] = useState(0);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+    fetchAdminCamperFollowup(camperId).then((value) => {
+      if (!alive) return;
+      setStatus(value.followupStatus);
+      setNote(value.note);
+      setVersion(value.version);
+    }).catch((cause: unknown) => {
+      if (alive) setError(cause instanceof Error ? cause.message : "跟进读取失败");
+    });
+    return () => { alive = false; };
+  }, [camperId]);
+
+  const save = async () => {
+    setBusy(true);
+    setError("");
+    setNotice("");
+    try {
+      const result = await saveAdminCamperFollowup(camperId, status, note, version);
+      setVersion(result.version);
+      setNotice("Admin 跟进已保存");
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "跟进保存失败");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="admin-followup-editor" aria-label="Admin 跟进记录">
+      <h3>跟进记录</h3>
+      <label htmlFor="admin-followup-status">Admin 跟进状态</label>
+      <select id="admin-followup-status" value={status} onChange={(event) => setStatus(event.target.value as AdminFollowupStatus)}>
+        {ADMIN_FOLLOWUP_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </select>
+      <label htmlFor="admin-followup-note">Admin 跟进备注</label>
+      <textarea id="admin-followup-note" maxLength={1000} value={note} onChange={(event) => setNote(event.target.value)} />
+      <button type="button" className="admin-secondary" disabled={busy} onClick={() => void save()}>{busy ? "保存中…" : "保存 Admin 跟进"}</button>
+      {notice && <p className="admin-notice" role="status">{notice}</p>}
+      {error && <p className="admin-error" role="alert">{error}</p>}
+    </section>
+  );
 }
 
 export type CamperDrawerTab = "detail" | "trend" | "poster";
@@ -113,6 +174,7 @@ export default function CamperDrawer({ camper, initialTab = "detail", onClose }:
                 当前窗口外另有 {outOfWindowDates.length} 天有效记录（{outOfWindowDates.join("、")}）。数据仍保留；下方明细、个人趋势与海报仅展示本期 21 天。
               </p>
             )}
+            <AdminFollowupEditor camperId={camper.authUserId} />
             <div className="admin-table-wrap admin-drawer-table-wrap" tabIndex={0} aria-label="个人 D1 至 D21 明细，可横向滚动">
               <table className="admin-table admin-drawer-table">
                 <thead>

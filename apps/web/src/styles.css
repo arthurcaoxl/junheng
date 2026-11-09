@@ -1177,6 +1177,35 @@ section { scroll-margin-top: 78px; }
 .coach-dashboard-table { min-width: 640px; }
 .coach-quarter-card strong { display: block; margin: 18px 0 10px; color: var(--acid); font-size: 26px; }
 .coach-quarter-card p { font-size: 13px; line-height: 1.9; opacity: .72; }
+.admin-page textarea { width: 100%; min-height: 74px; padding: 12px; border: 1px solid var(--line-light); background: rgb(243 241 232 / 6%); color: var(--paper); font: inherit; font-size: 14px; line-height: 1.6; resize: vertical; }
+.coach-dashboard-table { min-width: 980px; }
+.coach-followup-editor { min-width: 220px; white-space: normal; }
+.coach-followup-editor label { margin-top: 0; font-size: 10px; }
+.coach-followup-editor textarea { margin-top: 8px; }
+.coach-followup-editor .admin-secondary { margin-top: 10px; }
+.coach-followup-editor .admin-notice, .coach-followup-editor .admin-error { display: block; margin-top: 8px; }
+.coach-restock-form { margin-top: 18px; }
+.coach-code-list { display: grid; gap: 14px; padding: 0; list-style: none; }
+.coach-code-list > li { padding: 16px; border: 1px solid var(--line-light); }
+.coach-code-list > li > code { display: block; margin-bottom: 10px; overflow-wrap: anywhere; }
+.coach-code-push { margin-top: 16px; padding-top: 12px; border-top: 1px solid var(--line-light); }
+.coach-code-push .admin-secondary { margin-top: 12px; }
+.coach-demo { border-style: dashed; }
+.coach-demo > p:not(.admin-eyebrow) { margin-top: 12px; font-size: 12px; line-height: 1.8; opacity: .68; }
+.coach-demo-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-top: 18px; }
+.coach-demo-grid article { padding: 16px; border: 1px dashed var(--line-light); }
+.coach-demo-grid strong, .coach-demo-grid span { display: block; }
+.coach-demo-grid span { margin-top: 8px; color: var(--acid); font-size: 11px; }
+.coach-demo-grid p { margin-top: 10px; font-size: 11px; line-height: 1.7; opacity: .65; }
+.admin-followup-editor { margin: 22px 0; padding: 20px; border: 1px solid var(--line-light); background: rgb(243 241 232 / 3%); }
+.admin-followup-editor h3 { margin-bottom: 12px; }
+.admin-followup-editor .admin-secondary { margin-top: 14px; }
+.admin-restock-requests { margin-top: 30px; padding-top: 22px; border-top: 1px solid var(--line-light); }
+.admin-restock-requests ul { display: grid; gap: 12px; padding: 0; list-style: none; }
+.admin-restock-requests li { padding: 16px; border: 1px solid var(--line-light); }
+.admin-restock-requests li > span { font-size: 10px; opacity: .55; }
+.admin-restock-requests li > p { margin-top: 8px; font-size: 13px; }
+.admin-restock-actions { display: flex; gap: 10px; margin-top: 12px; }
 @media (max-width: 960px) {
   .coach-dashboard-grid { grid-template-columns: 1fr; }
 }

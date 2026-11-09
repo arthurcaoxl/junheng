@@ -139,6 +139,48 @@ export async function logoutAdmin(): Promise<void> {
   await getSupabase().auth.signOut();
 }
 
+export type AdminFollowupStatus = "pending" | "contacted" | "waiting_reply" | "resolved" | "escalated";
+export type AdminFollowup = { followupStatus: AdminFollowupStatus; note: string; version: number };
+
+function followupError(error: { message?: string } | null): Error {
+  if (/FOLLOWUP_VERSION_CONFLICT/i.test(error?.message ?? "")) return new Error("跟进记录已被更新，请刷新后重试。");
+  if (/FORBIDDEN|permission/i.test(error?.message ?? "")) return new Error("没有该体验官的跟进权限。");
+  return new Error("跟进操作失败，请稍后重试。");
+}
+
+export async function fetchAdminCamperFollowup(camperId: string): Promise<AdminFollowup> {
+  const { data, error } = await getSupabase().rpc("admin_get_camper_followup_v1", { p_camper_id: camperId });
+  if (error) throw followupError(error);
+  if (data === null) return { followupStatus: "pending", note: "", version: 0 };
+  const result = data as Record<string, unknown>;
+  const statuses: AdminFollowupStatus[] = ["pending", "contacted", "waiting_reply", "resolved", "escalated"];
+  if (
+    typeof result.followupStatus !== "string"
+    || !statuses.includes(result.followupStatus as AdminFollowupStatus)
+    || typeof result.note !== "string"
+    || typeof result.version !== "number"
+  ) throw new Error("跟进返回数据格式异常");
+  return { followupStatus: result.followupStatus as AdminFollowupStatus, note: result.note, version: result.version };
+}
+
+export async function saveAdminCamperFollowup(
+  camperId: string,
+  followupStatus: AdminFollowupStatus,
+  note: string,
+  expectedVersion: number,
+): Promise<{ version: number }> {
+  const { data, error } = await getSupabase().rpc("admin_set_camper_followup_v1", {
+    p_camper_id: camperId,
+    p_followup_status: followupStatus,
+    p_note: note.trim(),
+    p_expected_version: expectedVersion,
+  });
+  if (error) throw followupError(error);
+  const version = (data as { version?: unknown } | null)?.version;
+  if ((data as { ok?: unknown } | null)?.ok !== true || typeof version !== "number") throw new Error("跟进返回数据格式异常");
+  return { version };
+}
+
 function metricValue(value: string): number | null {
   const number = Number(value);
   return value !== "" && Number.isFinite(number) && number > 0 ? number : null;
@@ -150,7 +192,14 @@ function metricOf(record: AdminDayRecord, metric: "weight" | "waist"): string {
 }
 
 function firstMetric(camper: AdminCamper, metric: "weight" | "waist"): number | null {
-  return Object.keys(camper.records).sort().map((key) => metricValue(metricOf(camper.records[key], metric))).find((value) => value !== null) ?? null;
+  return Object.keys(camper.records)
+    .filter((date) => {
+      const campDay = diffDays(camper.startDate, date) + 1;
+      return campDay >= 1 && campDay <= TOTAL_DAYS;
+    })
+    .sort()
+    .map((key) => metricValue(metricOf(camper.records[key], metric)))
+    .find((value) => value !== null) ?? null;
 }
 
 function average(values: number[]): number | null {

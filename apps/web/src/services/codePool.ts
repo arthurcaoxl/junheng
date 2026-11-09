@@ -25,6 +25,9 @@ function rpcFailure(error: unknown): Error {
   if (/BOX_CODE_PEPPER_NOT_CONFIGURED|CODE_HASH_NOT_CONFIGURED/i.test(message)) {
     return new Error("系统维护中，请稍后重试。");
   }
+  if (/RESTOCK_NOT_EMPTY/i.test(message)) return new Error("当前仍有可用库存，无需申请补货。");
+  if (/RESTOCK_NOT_FULFILLED/i.test(message)) return new Error("尚未检测到补货库存，请先完成划拨。");
+  if (/CODE_NOT_AVAILABLE|ACTIVATION_STATE_CONFLICT/i.test(message)) return new Error("该码已不可用，请刷新码库后重试。");
   return new Error("码池操作失败，请稍后重试。");
 }
 
@@ -101,4 +104,57 @@ export async function fetchMyCodeInventory(): Promise<CoachCodeInventory> {
     needsRestock: result.needsRestock,
     codes,
   };
+}
+
+export async function requestCoachRestock(note: string): Promise<void> {
+  const trimmed = note.trim();
+  if (trimmed.length > 500) throw new Error("补货需求说明最多 500 字。");
+  const { data, error } = await getSupabase().rpc("request_coach_restock_v1", { p_note: trimmed });
+  if (error) throw rpcFailure(error);
+  if ((data as { ok?: unknown } | null)?.ok !== true) throw new Error("补货申请返回数据格式异常。");
+}
+
+export async function pushCoachCode(camperRef: string, codeId: string, idempotencyKey: string): Promise<void> {
+  if (!camperRef || !codeId || !idempotencyKey) throw new Error("直推参数不完整，请刷新后重试。");
+  const { data, error } = await getSupabase().rpc("coach_push_code_v1", {
+    p_camper_ref: camperRef,
+    p_code_id: codeId,
+    p_idempotency_key: idempotencyKey,
+  });
+  if (error) throw rpcFailure(error);
+  const result = data as { ok?: unknown; state?: unknown; errorCode?: unknown } | null;
+  if (result?.ok !== true) throw rpcFailure({ message: String(result?.errorCode ?? "CODE_NOT_AVAILABLE") });
+  if (result.state !== "pending_review") throw new Error("直推返回数据格式异常。");
+}
+
+export type AdminRestockRequest = {
+  requestId: string;
+  coachId: string;
+  note: string;
+  status: "pending" | "fulfilled" | "rejected";
+  createdAt: string;
+};
+
+export async function fetchAdminRestockRequests(): Promise<AdminRestockRequest[]> {
+  const { data, error } = await getSupabase().rpc("admin_get_coach_restock_requests_v1");
+  if (error) throw rpcFailure(error);
+  if (!Array.isArray(data)) throw new Error("补货需求返回数据格式异常。");
+  return data.map((raw) => {
+    const row = raw as Record<string, unknown>;
+    if (
+      typeof row.request_id !== "string" || typeof row.coach_id !== "string"
+      || typeof row.note !== "string" || typeof row.created_at !== "string"
+      || (row.status !== "pending" && row.status !== "fulfilled" && row.status !== "rejected")
+    ) throw new Error("补货需求返回数据格式异常。");
+    return { requestId: row.request_id, coachId: row.coach_id, note: row.note, status: row.status, createdAt: row.created_at };
+  });
+}
+
+export async function resolveAdminRestockRequest(requestId: string, decision: "fulfilled" | "rejected"): Promise<void> {
+  const { data, error } = await getSupabase().rpc("admin_resolve_coach_restock_request_v1", {
+    p_request_id: requestId,
+    p_decision: decision,
+  });
+  if (error) throw rpcFailure(error);
+  if ((data as { ok?: unknown } | null)?.ok !== true) throw new Error("补货处理返回数据格式异常。");
 }

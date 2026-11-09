@@ -1,5 +1,11 @@
-import { useState, type FormEvent } from "react";
-import { allocateCodesToCoach, generatePlatformCodes } from "../../services/codePool";
+import { useEffect, useState, type FormEvent } from "react";
+import {
+  allocateCodesToCoach,
+  fetchAdminRestockRequests,
+  generatePlatformCodes,
+  resolveAdminRestockRequest,
+  type AdminRestockRequest,
+} from "../../services/codePool";
 import CoachEmailSearchSelect from "./CoachEmailSearchSelect";
 
 export default function AdminCodePool() {
@@ -8,9 +14,18 @@ export default function AdminCodePool() {
   const [receipt, setReceipt] = useState("");
   const [coachId, setCoachId] = useState("");
   const [allocateCount, setAllocateCount] = useState("");
+  const [requests, setRequests] = useState<AdminRestockRequest[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+
+  useEffect(() => {
+    let alive = true;
+    fetchAdminRestockRequests()
+      .then((value) => { if (alive) setRequests(value); })
+      .catch((cause: unknown) => { if (alive) setError(cause instanceof Error ? cause.message : "补货需求读取失败"); });
+    return () => { alive = false; };
+  }, []);
 
   const run = async (action: () => Promise<string>) => {
     setBusy(true);
@@ -38,6 +53,14 @@ export default function AdminCodePool() {
     void run(async () => {
       const allocated = await allocateCodesToCoach(coachId, Number(allocateCount));
       return `已向教练划拨 ${allocated} 枚码。`;
+    });
+  };
+
+  const resolve = (requestId: string, decision: "fulfilled" | "rejected") => {
+    void run(async () => {
+      await resolveAdminRestockRequest(requestId, decision);
+      setRequests((current) => current.map((item) => item.requestId === requestId ? { ...item, status: decision } : item));
+      return decision === "fulfilled" ? "补货需求已标记完成。" : "补货需求已驳回。";
     });
   };
 
@@ -76,6 +99,25 @@ export default function AdminCodePool() {
           <button type="submit" className="admin-secondary" disabled={busy || !coachId}>划拨给教练</button>
         </form>
       </div>
+      <section className="admin-restock-requests" aria-labelledby="admin-restock-title">
+        <h3 id="admin-restock-title">教练补货需求</h3>
+        {requests.length === 0 ? <p className="admin-hint">暂无补货需求。</p> : (
+          <ul>
+            {requests.map((request) => (
+              <li key={request.requestId}>
+                <span>{request.createdAt.slice(0, 10)} · {request.status}</span>
+                <p>{request.note || "未填写需求说明"}</p>
+                {request.status === "pending" && (
+                  <div className="admin-restock-actions">
+                    <button type="button" className="admin-secondary" disabled={busy} onClick={() => resolve(request.requestId, "fulfilled")}>确认已补货</button>
+                    <button type="button" className="admin-secondary" disabled={busy} onClick={() => resolve(request.requestId, "rejected")}>驳回</button>
+                  </div>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
       {error && <p className="admin-error" role="alert">{error}</p>}
       {notice && <p className="admin-notice" role="status">{notice}</p>}
     </section>

@@ -17,6 +17,14 @@ function mockCoachSession() {
       ],
       error: null,
     });
+    if (name === "get_coach_campers_v1") return Promise.resolve({
+      data: [
+        { camper_ref: "relation-green", camper_code: "JH-GREEN", activity_status: "active", followup_status: "pending", followup_note: "", followup_version: 0 },
+        { camper_ref: "relation-red", camper_code: "JH-RED", activity_status: "active", followup_status: "pending", followup_note: "", followup_version: 0 },
+        { camper_ref: "relation-yellow", camper_code: "JH-YELLOW", activity_status: "active", followup_status: "pending", followup_note: "", followup_version: 0 },
+      ],
+      error: null,
+    });
     if (name === "get_my_code_inventory") return Promise.resolve({
       data: { availableCount: 8, restockPoint: 12, needsRestock: true, codes: [] },
       error: null,

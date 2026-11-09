@@ -172,6 +172,19 @@
 4. **TASK-10.12-P0 统一教练口径**：目录搜索、`allocate_codes_to_coach` 与审核 v2 均以 `user_coach_relation` 中 `referrer_id = 目标教练 AND valid_to IS NULL` 的当前有效关系证明教练身份，不再依赖 `camp_admins.role = 'coach'` 播种，也不得仅凭 `auth.users` 存在即认定为教练。目录无结果属于正常空态，前端显示“无匹配教练”，不得作为 RPC 错误展示红字。
 5. **历史白名单回填**：迁移在事务内通过规范化邮箱连接 `auth.users`，仅为 `camp_admins.auth_user_id IS NULL` 的历史行回填认证主体；跳过已被其他角色行占用的认证主体，未匹配行继续保持 NULL 和无业务权限。客户端不得执行裸 UPDATE，角色本身不得因回填自动变更。
 
+## 教练工作流、跟进与补货（TASK-10.12 模块二增量）
+
+本增量不改变五字段 `get_coach_radar_v1`、P0 Vault 读取方式、有效教练关系、人工审核状态机或库存扣减时点。新增浏览器表权限全部关闭，权威读写只经下列 RPC；调用者身份只取服务端 `auth.uid()`，不接受 coach ID 作为可见范围参数。
+
+1. **本人营员列表**：`get_coach_campers_v1()` 仅由 `user_coach_relation.referrer_id = auth.uid() AND valid_to IS NULL` 的当前关系驱动，返回不透明 `camper_ref`（当前 `relation_id`）、`camper_code`、`activity_status` 与本人跟进字段，不返回认证 UID、邮箱、原始健康记录或其他教练用户。`activity_status = 'new_registered'` 表示当前 21 天窗口内没有任何符合第 2 节 `hasContent` 语义的记录；存在至少一条则为 `'active'`。灯号仍由五字段雷达独立给出，禁止再用“绿灯”代替活跃口径。
+2. **跟进备注**：`coach_camper_followups` 以 `(coach_id, camper_id)` 唯一保存 `followup_status / note / version / updated_by / updated_at`；状态仅允许 `pending / contacted / waiting_reply / resolved / escalated`，备注去除首尾空白后最多 1000 字。表启用 RLS 且浏览器角色无直读直写权限。教练通过 `get/set_coach_camper_followup_v1` 读写当前 `camper_ref` 对应本人营员，Admin 通过 `admin_get/set_camper_followup_v1` 按管理职责读写；其他教练、历史归属与匿名调用一律 `FORBIDDEN`。更新采用 `expected_version`：新建为 0，已有记录必须精确匹配，冲突返回 `FOLLOWUP_VERSION_CONFLICT`，不得最后写入者无声覆盖。
+3. **无码补货申请**：`coach_restock_requests` 保存 `request_id / coach_id / note / status / created_at / resolved_by / resolved_at`，状态为 `pending / fulfilled / rejected`，同一教练最多一条 pending。`request_coach_restock_v1` 要求当前有效关系证明教练身份，并在本人 `available_count = 0` 且不存在本人 `unused` 码时创建；重复申请幂等返回原 pending，其他情况返回 `RESTOCK_NOT_EMPTY`。备注最多 500 字，不含码面或健康记录。
+4. **Admin 补货需求**：`admin_get_coach_restock_requests_v1` 仅有效 admin 可读，最小返回 `request_id / coach_id / note / status / created_at`。`admin_resolve_coach_restock_request_v1` 锁定 pending 申请后可驳回；标记 fulfilled 前必须核实该教练已有可用库存，否则 `RESTOCK_NOT_FULFILLED`。该接口只关闭需求单，不代替既有 `allocate_codes_to_coach` 划拨事务。
+5. **教练直推码**：`coach_push_code_v1(p_camper_ref, p_code_id, p_idempotency_key)` 先锁定并核实码为调用教练本人 `inventory_status = 'coach' AND state = 'unused'`，再锁定 `p_camper_ref` 对应的当前关系并核实 `referrer_id = auth.uid()`；其他教练的码、历史/非本人营员均返回 `CODE_NOT_AVAILABLE` 或 `FORBIDDEN`，不得泄露目标是否存在。函数使用 Vault `box_code_pepper` 计算幂等载荷与识别码格式，密钥缺失返回 `BOX_CODE_PEPPER_NOT_CONFIGURED`。
+6. 直推成功只插入目标营员的 pending `code_activations`、将码推进为 `pending_review`、写 `CodeActivationRequested` 与幂等命令；目标营员与 camper code 均取服务端关系，不能由客户端传入。后续仍只能经既有 Admin 人工审核原子流程激活并扣减一次库存；直推本身不得激活、不得改归属、不得扣库存，重复幂等请求不得创建第二条申请或重复扣减。
+7. **D21 趋势**：营期日严格由 `startDate + (dayIndex - 1)` 映射，D21 只读取第 21 个本地日期；窗口外记录不得成为本期基线或串入 D21。两张图共用同一 21 点数组与 X 轴边距、padding 和刻度策略，D1/D21 均保留且不裁切。
+8. **新教练 Demo**：仅使用前端独立常量中的明确虚构营员与库存示意，标记 `isDemo = true`，文案同时标明“演示数据 / 非真实统计”。仅在真实营员为空且加载成功后展示，不计入真实人数、灯号、云仓、导出或任何 RPC；无真实码面、无真实 ID、无写操作，有真实营员时不得混入。
+
 ## CSV 导出
 
 文件为 UTF-8 with BOM、逗号分隔、LF 换行，末尾保留换行。记录按 `record_date` 升序，只包含有内容日期。
