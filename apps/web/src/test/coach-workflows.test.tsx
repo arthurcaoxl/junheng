@@ -29,7 +29,7 @@ function mockRpc(overrides: Record<string, { data: unknown; error: unknown }> = 
     });
     if (name === "get_coach_radar_v1") return Promise.resolve({ data: radarRows, error: null });
     if (name === "get_coach_campers_v1") return Promise.resolve({ data: camperRows, error: null });
-    if (name === "get_my_code_inventory") return Promise.resolve({ data: { availableCount: 0, restockPoint: 12, needsRestock: true, codes: [] }, error: null });
+    if (name === "get_coach_inventory_v2") return Promise.resolve({ data: { availableCount: 0, restockPoint: 12, needsRestock: true, codes: [] }, error: null });
     if (name === "admin_get_coach_restock_requests_v1") return Promise.resolve({ data: [], error: null });
     return Promise.resolve({ data: null, error: null });
   });
@@ -141,7 +141,7 @@ describe("教练无码补货与直推码", () => {
   it("直推只提交本人营员 relation_ref、库存 code_id 和幂等键，不提交码面或 coach_id", async () => {
     const user = userEvent.setup();
     mockRpc({
-      get_my_code_inventory: {
+      get_coach_inventory_v2: {
         data: { availableCount: 1, restockPoint: 12, needsRestock: true, codes: [{ codeId: "code-1", code: "JH-EL-AB23", boxSpec: "21_bags", maxCheckins: 21, createdAt: "2026-11-08" }] },
         error: null,
       },

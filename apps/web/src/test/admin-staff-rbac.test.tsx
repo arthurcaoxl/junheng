@@ -169,7 +169,7 @@ describe("staff 界面最小权限", () => {
     expect(await screen.findByText("JH-STAFF")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "员工服务看板" })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "教练云仓库存" })).not.toBeInTheDocument();
-    expect(getSupabase().rpc).not.toHaveBeenCalledWith("get_my_code_inventory");
+    expect(getSupabase().rpc).not.toHaveBeenCalledWith("get_coach_inventory_v2");
     expect(getSupabase().rpc).toHaveBeenCalledWith("get_my_access_profile");
     expect(getSupabase().rpc).toHaveBeenCalledWith("get_coach_radar_v1");
   });
