@@ -37,12 +37,22 @@ function AdminFollowupEditor({ camperId }: { camperId: string }) {
     let alive = true;
     fetchAdminCamperFollowup(camperId).then((value) => {
       if (!alive) return;
+      if (!value) {
+        setUnbound(true);
+        return;
+      }
       setStatus(value.followupStatus);
       setNote(value.note);
       setVersion(value.version);
     }).catch((cause: unknown) => {
       if (!alive) return;
-      if (cause instanceof Error && cause.name === "AdminFollowupForbiddenError") {
+      // 彻底兼容抛出 Error 实例、普通 Object、或者直接返回 null 的情况
+      const isForbidden = 
+        !cause ||
+        (cause instanceof Error && (cause.name === "AdminFollowupForbiddenError" || cause.message === "FORBIDDEN")) ||
+        (typeof cause === "object" && cause !== null && ('code' in cause) && ((cause as any).code === "42501" || (cause as any).message === "FORBIDDEN"));
+      
+      if (isForbidden) {
         setUnbound(true);
         return;
       }
