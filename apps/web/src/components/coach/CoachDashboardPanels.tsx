@@ -9,6 +9,8 @@ import {
   type FollowupStatus,
 } from "../../services/coachRadar";
 import CoachCodeInventory from "./CoachCodeInventory";
+import CoachCampTrends from "./CoachCampTrends";
+import { fetchMyCoachPromotionState } from "../../services/coachCampTrends";
 
 type WorkbenchRow = CoachRadarRow & CoachCamper;
 
@@ -97,6 +99,7 @@ export default function CoachDashboardPanels({ onRole }: { onRole?: (role: Acces
   const [rows, setRows] = useState<CoachRadarRow[]>([]);
   const [campers, setCampers] = useState<CoachCamper[]>([]);
   const [profile, setProfile] = useState<AccessProfile | null>(null);
+  const [isProbational, setIsProbational] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -124,8 +127,18 @@ export default function CoachDashboardPanels({ onRole }: { onRole?: (role: Acces
         const metrics = radarByCode.get(camper.camperCode);
         return metrics ? [{ ...metrics, ...camper }] : [];
       }));
-    }).catch((cause: unknown) => {
-      if (alive) setError(cause instanceof Error ? cause.message : "雷达读取失败，请稍后重试。");
+    }).catch(async (cause: unknown) => {
+      const message = cause instanceof Error ? cause.message : "雷达读取失败，请稍后重试。";
+      if (message === "当前账号没有有效业务角色。") {
+        const promotionState = await fetchMyCoachPromotionState().catch(() => null);
+        if (!alive) return;
+        if (promotionState === "probational_coach") {
+          setIsProbational(true);
+          setError("");
+          return;
+        }
+      }
+      if (alive) setError(message);
     }).finally(() => {
       if (alive) setLoading(false);
     });
@@ -164,6 +177,9 @@ export default function CoachDashboardPanels({ onRole }: { onRole?: (role: Acces
           {!loading && !error && dormantRows.length === 0 && <p className="admin-empty">暂无红黄灯休眠营员。</p>}
           {dormantRows.length > 0 && <CoachMetricTable rows={dormantRows} showFollowup={profile?.role === "coach"} />}
         </section>
+        {(profile?.role === "coach" || profile?.role === "admin" || isProbational) && (
+          <CoachCampTrends accessRole={profile?.role} />
+        )}
         {profile?.role === "coach" && !loading && !error && campers.length === 0 && (
           <section className="admin-block coach-dashboard-panel coach-demo" aria-label="演示数据，非真实统计">
             <p className="admin-eyebrow">DEMO ONLY · 演示数据 / 非真实统计</p>

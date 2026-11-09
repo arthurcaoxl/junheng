@@ -60,9 +60,41 @@ describe("独立教练经营看板", () => {
     expect(await within(dormant).findByText("JH-RED")).toBeInTheDocument();
     expect(within(dormant).getByText("JH-YELLOW")).toBeInTheDocument();
     expect(await within(inventory).findByText("可用 8 枚")).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "D1–D21 营期趋势" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "季度推荐提醒" })).toHaveTextContent(/Q\d 服务复盘/);
     expect(screen.queryByRole("button", { name: "批量生成码" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "划拨给教练" })).not.toBeInTheDocument();
+  });
+
+  it("准教练可读取本人趋势且不误报无角色、不展示全栈或库存", async () => {
+    (getSupabase().rpc as ReturnType<typeof vi.fn>).mockImplementation((name: string) => {
+      if (name === "get_my_access_profile") return Promise.resolve({ data: [], error: null });
+      if (name === "get_my_coach_promotion") return Promise.resolve({ data: { ok: true, state: "probational_coach", version: 1 }, error: null });
+      if (name === "get_coach_camp_trends_v1") return Promise.resolve({
+        data: Array.from({ length: 21 }, (_, index) => ({
+          day_index: index + 1,
+          participants: 0,
+          weight_samples: 0,
+          waist_samples: 0,
+          avg_weight_change_percent: null,
+          avg_waist_change_percent: null,
+          meal_completion_rate: null,
+          water_rate: null,
+          movement_rate: null,
+          sleep_rate: null,
+        })),
+        error: null,
+      });
+      return Promise.resolve({ data: [], error: null });
+    });
+    render(<MemoryRouter initialEntries={["/coach"]}><App /></MemoryRouter>);
+
+    expect(await screen.findByRole("region", { name: "D1–D21 营期趋势" })).toBeInTheDocument();
+    expect(await screen.findByRole("table", { name: "D1 至 D21 聚合趋势数据" })).toBeInTheDocument();
+    expect(screen.queryByText("当前账号没有有效业务角色。")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "全栈" })).not.toBeInTheDocument();
+    expect(getSupabase().rpc).toHaveBeenCalledWith("get_coach_camp_trends_v1", { p_scope: "own" });
+    expect(getSupabase().rpc).not.toHaveBeenCalledWith("get_my_code_inventory");
   });
 
   it("静态深链 /coach/index.html 不回退到首页或 Admin", async () => {
