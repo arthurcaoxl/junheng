@@ -29,7 +29,8 @@ export function GraduationCert({ state, recordName, onRequest }: GraduationCertP
       <div className="graduation-cert-copy">
         <span>21-DAY METABOLIC RESET · WITNESSED</span>
         <h3 id="graduation-cert-title">21 天代谢重塑见证</h3>
-        <p>按全部历史有效记录累计，允许非连续与跨期。本见证由你的真实打卡数据生成，仅纪念自我管理过程，不代表学历、职业资格、医疗或科研身份。</p>
+        <p>致敬每一份对身体的诚实与坚持</p>
+        <p>21 天，不仅是时间的刻度，更是身体与习惯的重塑。你在这里记录下的每一次腰围与体重的变化，都是对自我健康的庄重承诺。恭喜你，完成本期见证。愿这 21 天的自律，成为你未来健康的基石。</p>
         <button type="button" disabled={!unlocked} onClick={() => onRequest(exportCertificate)}>生成我的见证</button>
         <small>
           {unlocked
