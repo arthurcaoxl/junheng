@@ -68,6 +68,9 @@ describe("admin check-in page", () => {
     expect(screen.getByText("D21")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "导出脱敏 CSV" })).toBeEnabled();
     expect(screen.getByRole("tab", { name: "用户统计区" })).toHaveAttribute("aria-selected", "true");
+    // 用户端 21 天见证 Banner 仅在用户中心按需挂载，不得进入 Admin 页面。
+    expect(screen.queryByRole("region", { name: "21 天代谢重塑见证" })).not.toBeInTheDocument();
+    expect(screen.queryByText("21-DAY METABOLIC RESET · WITNESSED")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "批量生成码" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: "生产区" }));
     expect(screen.getByRole("button", { name: "批量生成码" })).toBeInTheDocument();

@@ -35,9 +35,12 @@ export default function UserCenter() {
 
   return (
     <section className="user-center section-pad" data-theme="forest" aria-labelledby="user-center-title">
-      <p className="eyebrow">MY LIPID METABOLISM RECORD</p>
-      <h1 id="user-center-title">我的脂代谢追踪档案</h1>
-      <p className="user-center-intro">记录您的体重、腰围与生活方式，见证科学管理轨迹。</p>
+      <header className="user-center-heading">
+        <p className="eyebrow">MY LIPID METABOLISM RECORD</p>
+        <h1 id="user-center-title">我的脂代谢追踪档案</h1>
+        <p className="user-center-intro">记录您的体重、腰围与生活方式，见证科学管理轨迹。</p>
+        <p className="user-center-title-note"><strong>{memberTitle}</strong> 品牌会员称号，不代表科研或职业身份。</p>
+      </header>
       <div className="user-center-account">
         <span aria-hidden="true">👤</span>
         <div>
@@ -45,10 +48,6 @@ export default function UserCenter() {
           <p>体验官代码：<span>{state.userCode}</span></p>
           <p>{email ?? (ready ? "当前设备尚未绑定邮箱" : "正在读取账号状态…")}</p>
         </div>
-      </div>
-      <div className="user-member-title">
-        <strong>{memberTitle}</strong>
-        <span>品牌会员称号，不代表科研或职业身份。</span>
       </div>
       <CoachContactCard configured={configured} />
       <HealthStats records={records} recordedDays={stats.recordedDays} />

@@ -54,7 +54,11 @@ describe("用户中心本机档案与报告", () => {
     expect(screen.getByText("小菌")).toBeInTheDocument();
     expect(screen.getByText("JH-WQAKS")).toBeInTheDocument();
     expect(screen.getByText("脂代谢观察员")).toBeInTheDocument();
-    expect(screen.getByText(/品牌会员称号，不代表科研或职业身份/)).toBeInTheDocument();
+    const titleNote = screen.getByText(/品牌会员称号，不代表科研或职业身份/);
+    expect(titleNote).toHaveClass("user-center-title-note");
+    expect(titleNote).toHaveTextContent("脂代谢观察员");
+    expect(titleNote.closest(".user-center-heading")).not.toBeNull();
+    expect(document.querySelector(".user-member-title")).not.toBeInTheDocument();
     const stats = screen.getByRole("region", { name: "本期健康统计" });
     expect(within(stats).getByText("数据样本天数")).toBeInTheDocument();
     expect(within(stats).getByText("2")).toBeInTheDocument();

@@ -933,10 +933,7 @@ section { scroll-margin-top: 78px; }
 .camp-range { margin-top: 14px; color: var(--acid); font-size: 12px; letter-spacing: .04em; }
 .record-identity input[type="date"] { color-scheme: light; }
 .record-code-label { color: var(--acid); font-size: 12px; font-weight: 750; }
-.record-code { display: flex; align-items: center; justify-content: space-between; gap: 16px; min-height: 52px; padding: 10px 14px; border: 1px dashed var(--line-light); }
-.record-code strong { font-family: var(--display); font-size: 24px; letter-spacing: .12em; color: var(--paper); }
-.record-code button { border: 0; border-bottom: 1px solid currentColor; background: transparent; color: var(--paper); font-size: 11px; cursor: pointer; opacity: .75; }
-.record-code button:hover { opacity: 1; }
+.record-code-badge { justify-self: start; display: inline-flex; align-items: center; min-height: 28px; padding: 4px 10px; border: 1px solid var(--line-light); border-radius: 999px; background: rgb(163 230 53 / 5%); color: var(--paper); font-family: var(--display); font-size: 13px; letter-spacing: .08em; line-height: 1.4; }
 .day-tabs button > small { font-size: 10px; letter-spacing: .08em; opacity: .55; }
 .day-tabs button.day-tab-today:not([aria-selected="true"]) { box-shadow: inset 0 3px 0 var(--acid); }
 .day-tabs button > .day-tab-status { display: block; flex: 0 0 6px; width: 6px; height: 6px; padding: 0; border-radius: 50%; background: var(--acid); opacity: 1; }
@@ -950,7 +947,6 @@ section { scroll-margin-top: 78px; }
 .poster-export-copy > button.csv-export { margin-left: 14px; background: transparent; color: var(--forest); }
 .poster-export-copy > button.csv-export:hover { background: rgb(7 28 20 / 8%); transform: translateY(-2px); }
 @media (max-width: 900px) {
-  .record-code strong { font-size: 20px; }
   .poster-export-copy > button.csv-export { margin-left: 0; margin-top: 14px; display: block; }
   .camp-complete { padding: 18px; }
 }
@@ -1256,16 +1252,15 @@ section { scroll-margin-top: 78px; }
 .record-trends-locked { padding-bottom: 48px; }
 .trend-unlock-button { min-height: 50px; margin-top: 28px; padding: 0 24px; background: var(--acid); border: 0; color: var(--forest); font: inherit; font-size: 14px; font-weight: 800; cursor: pointer; }
 .user-center { min-height: 100vh; padding-top: calc(150px + env(safe-area-inset-top, 0px)); background: var(--forest); color: var(--paper); }
-.user-center > .eyebrow { color: var(--acid); }
+.user-center-heading > .eyebrow { color: var(--acid); }
 .user-center h1 { max-width: 1000px; margin-top: 16px; font-size: clamp(42px, 6vw, 76px); letter-spacing: -.05em; line-height: 1.12; }
 .user-center-intro { max-width: 620px; margin-top: 24px; font-size: 14px; line-height: 1.9; opacity: .72; }
+.user-center-title-note { margin-top: 14px; font-size: 10px; line-height: 1.7; opacity: .56; }
+.user-center-title-note strong { margin-right: 6px; color: var(--acid); font-size: 11px; font-weight: 650; }
 .user-center-account { display: flex; align-items: center; gap: 20px; max-width: 680px; margin-top: 42px; padding: 26px; border: 1px solid var(--line-light); background: var(--forest-soft); }
 .user-center-account > span { font-size: 34px; }
 .user-center-account strong { color: var(--acid); font-size: 18px; overflow-wrap: anywhere; }
 .user-center-account p { margin-top: 8px; font-size: 12px; line-height: 1.8; opacity: .72; }
-.user-member-title { display: flex; flex-wrap: wrap; align-items: baseline; gap: 8px 16px; margin-top: 22px; }
-.user-member-title strong { color: var(--acid); font-size: 20px; }
-.user-member-title span { font-size: 11px; opacity: .68; }
 .user-health-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin-top: 42px; }
 .user-health-stats article { padding: 28px; border: 1px solid var(--line-light); background: rgb(243 241 232 / 4%); }
 .user-health-stats article > span { display: block; font-size: 12px; opacity: .72; }
