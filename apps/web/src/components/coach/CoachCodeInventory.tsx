@@ -8,9 +8,9 @@ import {
 } from "../../services/codePool";
 import type { CoachCamper } from "../../services/coachRadar";
 
-type Props = { campers?: CoachCamper[] };
+type Props = { campers?: CoachCamper[]; preferredCamperRef?: string };
 
-export default function CoachCodeInventory({ campers = [] }: Props) {
+export default function CoachCodeInventory({ campers = [], preferredCamperRef }: Props) {
   const [inventory, setInventory] = useState<Inventory | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -37,6 +37,18 @@ export default function CoachCodeInventory({ campers = [] }: Props) {
   useEffect(() => {
     void refreshInventory();
   }, [refreshInventory]);
+
+  useEffect(() => {
+    if (!preferredCamperRef || !inventory) return;
+    const camper = campers.find((item) => item.camperRef === preferredCamperRef);
+    if (!camper) return;
+    setTargets((current) => {
+      const next = { ...current };
+      inventory.codes.forEach((item) => { next[item.codeId] = preferredCamperRef; });
+      return next;
+    });
+    setNotice(`已为 ${camper.camperCode} 预选直推目标，请选择 RC 充值码；提交后仍需 Admin 审核。`);
+  }, [campers, inventory, preferredCamperRef]);
 
   const copy = async (codeId: string, code: string) => {
     setError("");

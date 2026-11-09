@@ -1,6 +1,7 @@
 import { getSupabase } from "../lib/supabase";
 
 export type CoachRadarAlert = "red" | "yellow" | "green";
+export type CoachRadarCycleState = "in_cycle" | "cycle_complete_pending_renewal";
 
 export type CoachRadarRow = {
   camperCode: string;
@@ -8,6 +9,7 @@ export type CoachRadarRow = {
   waistDelta: number | null;
   bmi: number | null;
   alertLevel: CoachRadarAlert;
+  cycleState: CoachRadarCycleState;
 };
 
 export class CoachRadarPermissionError extends Error {
@@ -36,6 +38,7 @@ function toRadarRow(input: unknown): CoachRadarRow {
     typeof row.camper_code !== "string"
     || !row.camper_code
     || (row.alert_level !== "red" && row.alert_level !== "yellow" && row.alert_level !== "green")
+    || (row.cycle_state !== undefined && row.cycle_state !== "in_cycle" && row.cycle_state !== "cycle_complete_pending_renewal")
   ) {
     throw new Error("雷达数据格式异常");
   }
@@ -45,6 +48,7 @@ function toRadarRow(input: unknown): CoachRadarRow {
     waistDelta: nullableNumber(row.waist_delta),
     bmi: nullableNumber(row.bmi),
     alertLevel: row.alert_level,
+    cycleState: row.cycle_state === "cycle_complete_pending_renewal" ? "cycle_complete_pending_renewal" : "in_cycle",
   };
 }
 

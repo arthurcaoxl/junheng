@@ -74,7 +74,7 @@ function isWorkbenchRow(row: CoachRadarRow): row is WorkbenchRow {
   return "camperRef" in row;
 }
 
-function CoachMetricTable({ rows, showFollowup = false }: { rows: CoachRadarRow[]; showFollowup?: boolean }) {
+function CoachMetricTable({ rows, showFollowup = false, onRenewal }: { rows: CoachRadarRow[]; showFollowup?: boolean; onRenewal?: (row: WorkbenchRow) => void }) {
   return (
     <div className="admin-table-wrap">
       <table className="admin-table coach-dashboard-table">
@@ -86,7 +86,20 @@ function CoachMetricTable({ rows, showFollowup = false }: { rows: CoachRadarRow[
               <td><MetricValue value={row.weightDelta} unit="kg" /></td>
               <td><MetricValue value={row.waistDelta} unit="cm" /></td>
               <td><MetricValue value={row.bmi} /></td>
-              <td><span className={`status-tag status-tag--${row.alertLevel}`}>{row.alertLevel === "green" ? "绿灯" : row.alertLevel === "yellow" ? "黄灯" : "红灯"}</span></td>
+              <td>
+                <span className={`status-tag status-tag--${row.alertLevel}`}>{row.alertLevel === "green" ? "绿灯" : row.alertLevel === "yellow" ? "黄灯" : "红灯"}</span>
+                {row.cycleState === "cycle_complete_pending_renewal" && (
+                  <div className="coach-renewal-guidance">
+                    <strong>已满 21 天 · 待续费</strong>
+                    {isWorkbenchRow(row) && onRenewal && (
+                      <>
+                        <p>请线下引导营员本人在用户中心生成见证海报；教练不查看原始健康数据。</p>
+                        <button type="button" className="admin-secondary" onClick={() => onRenewal(row)}>云仓直推 RC 充值码 {row.camperCode}</button>
+                      </>
+                    )}
+                  </div>
+                )}
+              </td>
               {showFollowup && <td>{isWorkbenchRow(row) && <FollowupEditor row={row} />}</td>}
             </tr>
           ))}
@@ -103,6 +116,7 @@ export default function CoachDashboardPanels({ onRole }: { onRole?: (role: Acces
   const [isProbational, setIsProbational] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [renewalTarget, setRenewalTarget] = useState<WorkbenchRow | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -155,6 +169,10 @@ export default function CoachDashboardPanels({ onRole }: { onRole?: (role: Acces
     ? row.alertLevel !== "green"
     : isWorkbenchRow(row) && row.activityStatus === "active" && row.alertLevel !== "green");
   const quarter = Math.floor(new Date().getMonth() / 3) + 1;
+  const guideRenewal = (row: WorkbenchRow) => {
+    setRenewalTarget(row);
+    document.getElementById("coach-cloud-inventory")?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+  };
 
   return (
     <div className="coach-dashboard-grid">
@@ -176,7 +194,7 @@ export default function CoachDashboardPanels({ onRole }: { onRole?: (role: Acces
         <section className="admin-block coach-dashboard-panel" aria-labelledby="coach-dormant-title">
           <div className="admin-block-heading"><h2 id="coach-dormant-title">休眠雷达</h2><span>{dormantRows.length} 人 · {isStaff ? "当前分配范围内红黄灯优先跟进" : "已有打卡的红黄灯优先跟进"}</span></div>
           {!loading && !error && dormantRows.length === 0 && <p className="admin-empty">暂无红黄灯休眠营员。</p>}
-          {dormantRows.length > 0 && <CoachMetricTable rows={dormantRows} showFollowup={profile?.role === "coach"} />}
+          {dormantRows.length > 0 && <CoachMetricTable rows={dormantRows} showFollowup={profile?.role === "coach"} onRenewal={profile?.role === "coach" ? guideRenewal : undefined} />}
         </section>
         {(profile?.role === "coach" || profile?.role === "admin" || isProbational) && (
           <CoachCampTrends accessRole={profile?.role} />
@@ -196,9 +214,9 @@ export default function CoachDashboardPanels({ onRole }: { onRole?: (role: Acces
       <aside className="coach-dashboard-side">
         {profile?.role === "coach" && <CoachPendingReviews />}
         {profile?.canManageInventory && (
-          <section className="admin-block coach-dashboard-panel" aria-labelledby="coach-inventory-title">
+          <section id="coach-cloud-inventory" className="admin-block coach-dashboard-panel" aria-labelledby="coach-inventory-title">
             <h2 id="coach-inventory-title">教练云仓库存</h2>
-            <CoachCodeInventory campers={campers} />
+            <CoachCodeInventory campers={campers} preferredCamperRef={renewalTarget?.camperRef} />
           </section>
         )}
         <section className="admin-block coach-dashboard-panel coach-quarter-card" aria-labelledby="coach-quarter-title">
