@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
   fetchMyCodeInventory,
   pushCoachCode,
@@ -18,16 +18,24 @@ export default function CoachCodeInventory({ campers = [] }: Props) {
   const [restockNote, setRestockNote] = useState("");
   const [restockPending, setRestockPending] = useState(false);
   const [busy, setBusy] = useState("");
+  const [refreshing, setRefreshing] = useState(false);
+
+  const refreshInventory = useCallback(async () => {
+    setRefreshing(true);
+    setError("");
+    try {
+      setInventory(await fetchMyCodeInventory());
+    } catch (cause: unknown) {
+      const message = cause instanceof Error ? cause.message : "";
+      setError(/[\u4e00-\u9fff]/.test(message) ? message : "产品激活码库操作失败，请稍后重试。");
+    } finally {
+      setRefreshing(false);
+    }
+  }, []);
 
   useEffect(() => {
-    let alive = true;
-    fetchMyCodeInventory()
-      .then((result) => { if (alive) setInventory(result); })
-      .catch((cause: unknown) => {
-        if (alive) setError(cause instanceof Error ? cause.message : "码库读取失败，请稍后重试。");
-      });
-    return () => { alive = false; };
-  }, []);
+    void refreshInventory();
+  }, [refreshInventory]);
 
   const copy = async (codeId: string, code: string) => {
     setError("");
@@ -63,8 +71,14 @@ export default function CoachCodeInventory({ campers = [] }: Props) {
     try {
       if (typeof globalThis.crypto?.randomUUID !== "function") throw new Error("当前浏览器无法生成安全请求标识，请升级浏览器。");
       await pushCoachCode(camperRef, codeId, globalThis.crypto.randomUUID());
-      setInventory((current) => current ? { ...current, codes: current.codes.filter((item) => item.codeId !== codeId) } : current);
+      setTargets((current) => {
+        const next = { ...current };
+        delete next[codeId];
+        return next;
+      });
+      setCopiedId("");
       setNotice("已提交 Admin 审核，库存将在审核通过时扣减");
+      await refreshInventory();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "直推失败，请稍后重试。");
     } finally {
@@ -77,6 +91,9 @@ export default function CoachCodeInventory({ campers = [] }: Props) {
       <div className="admin-block-heading">
         <h2 id="my-code-inventory-title">产品激活码库</h2>
         {inventory && <span>可用 {inventory.availableCount} 枚</span>}
+        <button type="button" className="admin-secondary" disabled={refreshing} onClick={() => void refreshInventory()}>
+          {refreshing ? "刷新中…" : "刷新云仓"}
+        </button>
       </div>
       {!inventory && !error && <p role="status">码库加载中…</p>}
       {error && <p className="admin-error" role="alert">{error}</p>}

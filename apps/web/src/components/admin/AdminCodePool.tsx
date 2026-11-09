@@ -52,14 +52,14 @@ export default function AdminCodePool() {
     event.preventDefault();
     void run(async () => {
       const allocated = await allocateCodesToCoach(coachId, Number(allocateCount));
-      return `已向教练划拨 ${allocated} 枚码。`;
+      return `已向教练划拨 ${allocated} 枚码，教练端刷新后可见。`;
     });
   };
 
   const resolve = (requestId: string, decision: "fulfilled" | "rejected") => {
     void run(async () => {
       await resolveAdminRestockRequest(requestId, decision);
-      setRequests((current) => current.map((item) => item.requestId === requestId ? { ...item, status: decision } : item));
+      setRequests(await fetchAdminRestockRequests());
       return decision === "fulfilled" ? "补货需求已标记完成。" : "补货需求已驳回。";
     });
   };
