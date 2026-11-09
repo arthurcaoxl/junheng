@@ -314,13 +314,13 @@ unused / active ──授权撤销或作废──> revoked（终态，不可逆�
 | **TASK-10.9** | 人工审核流：`pending_review → active / revoked` 人工核验工单、发货与线下收款凭证核验、操作审计留痕、休眠托管（人工确认＋原子批量＋逐条审计） | ✅ 已合并（b5987f6） |
 | **TASK-10.10** | 申请入口三维限流与设备指纹（契约见 3.3，阈值动态读 `SystemConfig`） | ✅ 已合并（5f1a9d7） |
 | **TASK-10.12** | P0 修复（白名单回填、教练目录换源 `user_coach_relation`、Vault 密钥读取）＋教练工作台（跟进、无码补货、教练直推 `coach_push_code_v1`）＋staff RBAC（角色目录、分配、审计） | ✅ 已合并（0eff51c；迁移 `20261109094500_p0_rbac_vault.sql`、`20261109120000_admin_staff_rbac.sql`、`20261109120000_coach_workflows.sql`） |
-| **TASK-10.13** | 教练身份 SSOT、Vault、双路径激活与趋势已集成；CORE-UNLOCK 仅实现 2.8 晋升状态机、本人状态查询及准教练 RPC 权限边界 | ⏳ 契约已终裁，状态机按本模块独立迁移交付 |
+| **TASK-10.13** | 教练身份 SSOT、Vault、双路径激活与趋势已集成；CORE-UNLOCK 仅实现 2.8 晋升状态机、本人状态查询及准教练 RPC 权限边界 | ✅ 本分支已实现（SSOT/Vault：6b82a19、94b878a；CORE-UNLOCK：f3bffa4） |
 
 - 越权判定：任何子任务在其边界外新增了写入路径或改变了其他模块的状态语义，即视为越权，直接打回。
 - 跨模块协作只通过本字典与 10.1 契约族定义的接口和事件，不私开后门。
 - 说明：10.9 将"激活终审"从 10.4 的用户自助 RPC 收归审核流，是裁判批准的职责迁移（旧 RPC 权限已回收），不构成越权。
 
-### 2.6 教练身份单一事实来源契约（SSOT）⏳ TASK-10.13 契约，待修复派工
+### 2.6 教练身份单一事实来源契约（SSOT）✅ TASK-10.13 已实现（6b82a19、94b878a）
 
 > 背景：TASK-10.13 两项 P0 的共同根因是"教练身份"存在两套判定口径且其一永空。本节把修复契约固化为唯一口径。
 
@@ -346,12 +346,12 @@ interface CoachIdentitySSOT {
   authority: 'camp_admins.role_coach_active';
 
   /**
-   * ⏳ MISSING：教练角色行的唯一写入路径。
-   * 必须由受控服务端 RPC（建议 admin_set_coach_role，对齐 admin_set_staff_role 的
-   * 幂等键 + 版本号 + 审计三件套）创建/停用；严禁邮件手工插表。
-   * 教练晋升状态机（2.8）的"晋升正式教练"是该写入路径的自动调用方之一。
+   * ✅ 已实现：教练角色行仅经受控服务端路径写入。
+   * admin_set_coach_role 对齐 admin_set_staff_role 的幂等键 + 版本号 + 审计三件套，
+   * 负责创建/停用；严禁邮件手工插表。
+   * 教练晋升状态机（2.8）的"晋升正式教练"由自动晋升事务写入同一权威表。
    */
-  write_path: 'admin_set_coach_role_rpc (MISSING, 待 TASK-10.13 修复任务落地)';
+  write_path: 'admin_set_coach_role_rpc + coach_promotion_atomic_tx';
 
   /**
    * 空盘兼容：教练身份不得依赖名下学员数。
@@ -711,7 +711,7 @@ interface OpsMetrics {
 
 ---
 
-## 六、裁判知悉事项（非阻断观察，v1.5 已更新）
+## 六、裁判知悉事项（非阻断观察，v1.7 已按最终代码核对）
 
 1. ~~申请入口限流缺口~~ → **✅ 已封堵（TASK-10.10，main @ 5f1a9d7）**：`request_box_code_activation` 已接入三维限流（auth_user / ip / device），阈值动态读 `SystemConfig`，共享 IP 兼容语义按 3.3 落实；旧两参重载已删除。本条目关闭，历史描述保留备查：10.9 新设的申请入口曾未接入限流（10.4 旧 RPC 的限流随权限回收失效），码枚举攻击面曾集中在申请入口。
 2. **平台池标识方式**：平台池以 `inventory_status = 'platform'` 标识，`coach_id` 记录生成操作的管理员；归属终点则以配置 `platform_official_account_id` 为准。两套"平台"标识各司其职（库存归属 vs 关系归属），无冲突；若裁判认可，建议下一轮契约升版时回写 10.1 契约的 `PLATFORM_ID` 表述。
