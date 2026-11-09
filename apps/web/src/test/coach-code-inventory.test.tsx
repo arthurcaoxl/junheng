@@ -32,7 +32,7 @@ describe("教练产品激活码库", () => {
     expect(await screen.findByText("JH-EL-REAL")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "产品激活码库" })).toBeInTheDocument();
     expect(screen.getByText("可用 1 枚")).toBeInTheDocument();
-    expect(getSupabase().rpc).toHaveBeenCalledWith("get_coach_inventory_v2", { p_dummy: null });
+    expect(getSupabase().rpc).toHaveBeenCalledWith("get_coach_inventory_v3", { p_dummy: null });
   });
 
   it("库存请求未完成时显示加载状态", () => {

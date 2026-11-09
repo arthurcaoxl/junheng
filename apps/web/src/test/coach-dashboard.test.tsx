@@ -28,7 +28,7 @@ function mockCoachSession() {
       ],
       error: null,
     });
-    if (name === "get_coach_inventory_v2") return Promise.resolve({
+    if (name === "get_coach_inventory_v3") return Promise.resolve({
       data: { availableCount: 8, restockPoint: 12, needsRestock: true, codes: [] },
       error: null,
     });
@@ -94,7 +94,7 @@ describe("独立教练经营看板", () => {
     expect(screen.queryByText("当前账号没有有效业务角色。")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "全栈" })).not.toBeInTheDocument();
     expect(getSupabase().rpc).toHaveBeenCalledWith("get_coach_camp_trends_v1", { p_scope: "own" });
-    expect(getSupabase().rpc).not.toHaveBeenCalledWith("get_coach_inventory_v2");
+    expect(getSupabase().rpc).not.toHaveBeenCalledWith("get_coach_inventory_v3");
   });
 
   it("静态深链 /coach/index.html 不回退到首页或 Admin", async () => {
