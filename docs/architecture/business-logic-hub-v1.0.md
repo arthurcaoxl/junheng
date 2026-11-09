@@ -430,7 +430,7 @@ interface DualPathActivationContract {
 type CoachPromotionState =
   | 'camper'              // 普通营员（默认，无申请记录）
   | 'promotion_pending'   // 已提交教练申请，待 Admin 审核
-  | 'promotion_rejected'  // 审核拒绝（终态，可重新申请 [待确认]）
+  | 'promotion_rejected'  // 审核拒绝（终态，需重新积累打卡后方可重新申请）
   | 'probational_coach'   // 准教练：审核通过，拉新考核中
   | 'coach';              // 正式教练：考核达标，自动晋升
 
@@ -464,7 +464,7 @@ interface CoachPromotion {
 | probational_coach → coach | **自动**：当前有效营员数 − recruit_baseline ≥ `probational_coach_required_recruits` | 由 user_coach_relation 写入触发器或受控批处理求值；达标即在同事务写入 camp_admins(role='coach') 角色行（2.6 写入路径的自动调用方）并留审计；严禁前端触发 |
 
 - 防伪造：前端一切晋升展示来自只读 RPC；`camp_admins` 角色行只能由晋升事务或 admin 角色管理 RPC 写入，RLS 锁死客户端直写。
-- 与既有概念的关系：`CoachLifecycle`（active/buffer/dormant，10.9）是**正式教练**的存续状态机，与本晋升机正交；准教练不进入 `coach_lifecycles`，其雷达/库存能力边界 [待确认]（建议准教练只读雷达、无码库划拨权，待裁判终裁）。
+- 与既有概念的关系：CoachLifecycle（active/buffer/dormant，10.9）是正式教练的存续状态机，与本晋升机正交；准教练不进入 coach_lifecycles，其雷达/库存能力边界已终裁：准教练仅限查看本人名下雷达，严禁查看全栈数据，严禁调用库存、划拨及发码相关 RPC（权限需在 RPC 内通过 auth.uid 物理拦截）。
 - 合规红线：晋升与拉新考核措辞不得构成层级计酬暗示（V7.1 指南 L82、L212：单级直推、禁止拉人头）；8 人考核的统计口径只计真实激活营员。
 
 ---
@@ -719,7 +719,7 @@ interface OpsMetrics {
 6. **教练身份 SSOT 断裂（TASK-10.13 登记，P0）**：`get_my_access_profile` 与 `get_coach_radar_v1` 门控只读 `camp_admins`，但教练角色行无任何写入路径（`admin_set_staff_role` 只写 `'staff'`）；目录/划拨/审核/补货已切 `user_coach_relation` 口径。两套口径并存导致教练端权限读取失败与码库目录不可见。修复契约见 2.6，待修复派工。
 7. **教练名册 MISSING**：教练存在性当前由"名下有当前学员"推定，新教练/空盘教练在所有枚举点消失；2.6 契约要求改为 `camp_admins` 角色行判定，写入路径（建议 `admin_set_coach_role`）待落地。
 8. **pepper 读取口径已终裁收口（TASK-10.13-CONTRACT-FREEZE）**：全库彻底**废除 GUC 读取**（`current_setting('app.box_code_pepper')`），统一强制只从 Supabase Vault（`vault.decrypted_secrets`，name='box_code_pepper'）读取，缺失即 `BOX_CODE_PEPPER_NOT_CONFIGURED` fail-closed；任何新代码引用 GUC 口径直接打回。现状残留（待收口派工）：`admin_get_pending_box_code_reviews`（`20261108130000:235`）、`verify_checkin`、旧激活路径、`generate_platform_codes`、雷达（`20261106160000:41`）仍读 GUC；已切 Vault：`get_my_code_inventory`（两处）与 `coach_push_code_v1`。运维过渡期须两处同配，收口任务完成后 GUC 配置项退役。
-9. **晋升条件已终裁固化**：`coach_promotion_required_checkins=21`、`probational_coach_required_recruits=8` 经 TASK-10.13-CONTRACT-FREEZE 写死为正式条件，入 SystemConfig（未播种）；准教练能力边界（雷达/划拨权）仍待裁判另行终裁。见 2.8。
+9. **晋升条件已终裁固化**：coach_promotion_required_checkins=21、probational_coach_required_recruits=8 经 TASK-10.13-CONTRACT-FREEZE 写死为正式条件，入SystemConfig（未播种）；准教练能力边界（雷达/划拨权）已终裁：仅限查看本人名下雷达，严禁划拨库存。见 2.8。
 10. **绑定机制已终裁**：废弃邀请码方案，后台审核制为唯一 SSOT（见 3.2 第 5 条）。
 11. **人工审核申请来源澄清（TASK-10.13 裁定依据）**：`admin_get_pending_box_code_reviews`（`20261108130000_manual_review_trusteeship.sql:201`）的待审申请有且仅有两个合法来源——用户手动输码 `request_box_code_activation`（`20261108140000:104`）与教练直推 `coach_push_code_v1`（`20261109120000_coach_workflows.sql:421`）；两路径均只建 `pending` 审核单，终审唯一。契约固化见 2.7。
 
