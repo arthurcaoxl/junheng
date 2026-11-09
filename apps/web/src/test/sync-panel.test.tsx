@@ -66,6 +66,15 @@ describe("sync panel", () => {
       vi.stubEnv("VITE_SUPABASE_URL", "https://test.supabase.co");
       vi.stubEnv("VITE_SUPABASE_ANON_KEY", "test-anon-key");
       (getSupabase().auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({ data: { session: null } });
+      (getSupabase().rpc as ReturnType<typeof vi.fn>).mockImplementation((name: string) => {
+        if (name === "get_my_activation_status") {
+          return Promise.resolve({
+            data: { state: "none", requested_at: null, rejection_hint: null },
+            error: null,
+          });
+        }
+        return Promise.resolve({ data: [], error: null });
+      });
     });
 
     it("exposes the header pill and inline guide, both opening the shared modal", async () => {

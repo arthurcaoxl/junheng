@@ -21,7 +21,7 @@ export async function fetchMyActivationStatus(): Promise<MyActivationStatus> {
       || (result.requested_at !== null && typeof result.requested_at !== "string")
       || (result.rejection_hint !== null && typeof result.rejection_hint !== "string")
     ) throw new Error("INVALID_ACTIVATION_STATUS");
-    const status = {
+    const status: MyActivationStatus = {
       state: result.state,
       requestedAt: result.requested_at as string | null,
       rejectionHint: result.rejection_hint as string | null,
