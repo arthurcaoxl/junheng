@@ -227,6 +227,14 @@
 6. 既有 `admin_checkin_overview` 与 `checkin_sync` Admin 直读策略必须同时限定有效 `role = 'admin'` 的认证主体，防止 staff 借历史白名单策略读取体验官记录。
 7. 员工分配沿用 `staff-role-permissions-v1.md` 的非阻断软容量口径：超过 5 名教练或 150 名当前体验官仍允许成功，返回 `STAFF_CAPACITY_WARNING`、在 Admin 显示红字并追加容量警告与治理跟进审计，不得将其实现为硬限制。
 
+## 双路径激活唯一终审与来源审计（TASK-10.13 增量）
+
+1. `code_activations.request_source` 为必填且不可变的 `manual_code / coach_push`，分别只能由 `request_box_code_activation` 与 `coach_push_code_v1` 写入；两条路径的 `CodeActivationRequested` 事件 metadata 同步保存 `requestSource`。历史行按请求事件的 actor 与申请人是否一致回填，无该事件的 10.9 前自助申请归为 `manual_code`。
+2. 两条 pending 申请仍只经 `admin_review_box_code_activation_v2` 公开终审；其内部复用既有 `admin_review_box_code_activation` 原子事务，继续强制有效 Admin、目标教练与码归属一致、码和申请双版本匹配。旧 `activate_box_code(text,text)` 与 `activate_box_code(text,integer,integer,text)` 必须删除，原审核函数对浏览器角色回收执行权限，禁止形成第二终审或自助激活路径。
+3. 两入口在读取 `box_code_commands` 前按同一幂等键获取事务级咨询锁，串行化并发首写；同键同载荷返回首次结果并标记 `replayed=true`，同键异载荷返回 `IDEMPOTENCY_CONFLICT`，不得创建第二条申请。既有码行锁、状态冲突与终审乐观版本语义保持不变。
+4. staff 调用 `coach_push_code_v1` 必须在 Vault 读取前以 `FORBIDDEN` 拒绝并追加 `staff_rbac_audit`；有效教练仍只能使用本人云库存 unused 码及本人当前营员关系。Vault `box_code_pepper` 读取和缺失错误码保持不变。
+5. 既有终审 `audit_logs` 在插入时由数据库触发器从申请行补充 `requestSource`，通过和拒绝均保留来源；不得在终审函数之外另写激活、归属或库存状态。
+
 ## CSV 导出
 
 文件为 UTF-8 with BOM、逗号分隔、LF 换行，末尾保留换行。记录按 `record_date` 升序，只包含有内容日期。
