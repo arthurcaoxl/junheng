@@ -185,6 +185,38 @@
 7. **D21 趋势**：营期日严格由 `startDate + (dayIndex - 1)` 映射，D21 只读取第 21 个本地日期；窗口外记录不得成为本期基线或串入 D21。两张图共用同一 21 点数组与 X 轴边距、padding 和刻度策略，D1/D21 均保留且不裁切。
 8. **新教练 Demo**：仅使用前端独立常量中的明确虚构营员与库存示意，标记 `isDemo = true`，文案同时标明“演示数据 / 非真实统计”。仅在真实营员为空且加载成功后展示，不计入真实人数、灯号、云仓、导出或任何 RPC；无真实码面、无真实 ID、无写操作，有真实营员时不得混入。
 
+## D1–D21 营期趋势聚合只读 RPC（TASK-10.13-CORE-FIX 增量）
+
+`get_coach_camp_trends_v1(p_scope text)` 是仅供有效 Admin 与有效 coach 使用的只读聚合接口。`p_scope` 必须显式为 `'own'` 或 `'all'`；其他值（含 `NULL`）以 `INVALID_SCOPE` 拒绝。函数返回固定 21 行，`day_index` 严格为 1–21 且升序唯一，Supabase/PostgREST JSON 响应即 21 点数组；不得返回用户 ID、邮箱、营员代码、真实日期、原始 `records` 或任何单用户逐日记录。
+
+| 调用者（均由服务端 `auth.uid()` 判定） | `scope='own'` | `scope='all'` |
+| --- | --- | --- |
+| 有效 Admin | 允许；仅当前 `user_coach_relation.referrer_id = auth.uid() AND valid_to IS NULL` 的营员 | 允许；全栈所有 `checkin_sync` 快照，不要求营员仍有有效归属 |
+| 有效 coach | 允许；口径同上，仅限本人名下 | `FORBIDDEN` |
+| 有效 staff（含存在教练分配者） | `FORBIDDEN` | `FORBIDDEN` |
+| 普通用户、失效角色或无角色行 | `FORBIDDEN` | `FORBIDDEN` |
+| 匿名调用 | `UNAUTHORIZED` | `UNAUTHORIZED` |
+
+返回行契约如下；计数为 JSON integer，聚合指标为 JSON number 或 `null`：
+
+| 字段 | 类型 | 定义与空样本规则 |
+| --- | --- | --- |
+| `day_index` | integer | D1–D21；记录日期必须等于该营员 `start_date + (day_index - 1)`。 |
+| `participants` | integer | 当日符合第 2 节 `hasContent` 语义的去重营员数；无样本为 `0`。同时是四项行为率的分母。 |
+| `weight_samples` | integer | 当日同时具有有效代表体重及本人窗口内有效体重基线的样本数；无样本为 `0`。 |
+| `waist_samples` | integer | 当日同时具有有效腰围及本人窗口内有效腰围基线的样本数；无样本为 `0`。 |
+| `avg_weight_change_percent` | numeric，可空 | 先对每名营员计算 `(当日代表体重 - 基线) / 基线 × 100` 并保留 1 位小数，再对当日样本求均值并保留 1 位小数；`weight_samples = 0` 时为 `null`。 |
+| `avg_waist_change_percent` | numeric，可空 | 腰围使用同一变化率与舍入规则；`waist_samples = 0` 时为 `null`。 |
+| `meal_completion_rate` | numeric，可空 | 当日有内容记录的三餐完成项数 ÷（`participants × 3`）× 100，保留 1 位小数；`participants = 0` 时为 `null`。 |
+| `water_rate` | numeric，可空 | 当日有内容记录中 `water = true` 的人数 ÷ `participants` × 100，保留 1 位小数；空样本为 `null`。 |
+| `movement_rate` | numeric，可空 | 与 `water_rate` 同口径统计 `movement = true`。 |
+| `sleep_rate` | numeric，可空 | 与 `water_rate` 同口径统计 `sleep = true`。 |
+
+1. 每名营员的 21 天窗口只含 `start_date` 至 `start_date + 20`；窗口外记录不得进入当日值或基线。体重严格使用综合代表体重，体重和腰围分别以各自窗口内最早有效值为基线，不使用自定义初始体重替代该营期变化率基线。
+2. 两种 scope 使用完全相同的返回字段与聚合语义；`own` 必须通过当前有效 coach 关系过滤，并用 `EXISTS` 或等效去重结构防止关系连接放大样本。Admin 的 `own` 不扩张为全栈，coach 不得通过任何参数读取他人或其他教练明细。
+3. 所有比率单位均为百分比（0–100），不是 0–1 小数。`participants` 与两个变化率样本计数始终为非负整数；任何聚合值不得用 `0` 冒充空样本。
+4. 函数必须为 `STABLE`、只执行读取与聚合，不含 INSERT、UPDATE、DELETE、MERGE、TRUNCATE、锁行或其他写副作用；使用 `SECURITY DEFINER` 时必须固定 `search_path = public, pg_temp`，仅授予 `authenticated` 执行权，并在函数内独立执行上述权限矩阵。
+
 ## Admin 员工 RBAC 与界面权限（TASK-10.12 增量）
 
 1. `camp_admins.role` 仅允许 `admin / coach / staff`，并增加 `version / updated_at / updated_by` 支持乐观并发与审计；历史 Admin 白名单回填、有效教练关系口径与 Vault 密钥读取保持不变。staff 只能由有效 Admin 通过 RPC 授予、停用或恢复，不能把已有 admin/coach 行改写为 staff，也不能凭邮箱或前端声明自助提权。
