@@ -157,6 +157,7 @@
 5. `activate_box_code` 在既有码、激活申请和归属锁之后锁定教练库存行；教练码激活时必须同步扣减一个可用库存并追加流水，库存不存在或不足时以 `INVENTORY_INSUFFICIENT` 整体回滚。历史平台码没有库存行时不得伪造教练扣减。
 6. 多表写锁顺序遵循 [BIZ-V1.2]：`box_codes` → `code_activations` → `user_coach_relation` → `coach_inventory`；所有 RPC 由数据库函数提供单事务原子性。
 7. **TASK-10.12-P0 配置适配**：`get_my_code_inventory` 必须从 `vault.decrypted_secrets` 按名称 `box_code_pepper` 读取解密密钥，不再读取 `current_setting('app.box_code_pepper')`。密钥缺失或为空时抛出独立错误码 `BOX_CODE_PEPPER_NOT_CONFIGURED`，前端统一显示“系统维护中，请稍后重试。”；仓库、前端和错误响应不得包含密钥。
+8. **TASK-10.13-UX-FLOW-FIX 浏览器签名兼容**：`get_coach_inventory_v3(p_dummy boolean default null)` 是 `get_my_code_inventory()` 的安全包装，显式传 `null` 与省略参数均返回完全相同的 JSON 契约；`p_dummy` 仅供 PostgREST 缓存规避，不参与鉴权或业务计算。包装不得复制库存查询或旧版权限逻辑，必须委托最新函数以保留正式 coach SSOT、准教练/staff/普通用户拒绝、Vault 缺失及配置语义。撤销 `public / anon` 执行权，仅授予 `authenticated`。
 
 ## 服务教练联系方式（TASK-10.12 增量）
 

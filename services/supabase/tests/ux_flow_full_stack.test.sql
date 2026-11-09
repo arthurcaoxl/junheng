@@ -2,6 +2,7 @@
 \ir ../migrations/20261109158000_get_my_activation_status.sql
 \ir ../migrations/20261109159000_get_coach_pending_reviews.sql
 \ir ../migrations/20261109160000_coach_radar_cycle_state.sql
+\ir ../migrations/20261110090000_get_coach_inventory_v3.sql
 
 set role authenticated;
 select set_config('app.test_auth_uid', '00000000-0000-0000-0000-000000000010', false);
@@ -11,6 +12,7 @@ select test.assert_true(
   'full migration stack must expose user status without prior fixtures'
 );
 select test.assert_raises('FORBIDDEN', 'select * from public.get_coach_pending_reviews()');
+select test.assert_raises('FORBIDDEN', 'select public.get_coach_inventory_v3(null)');
 select test.assert_true(
   (select count(*) = 0 from public.get_coach_radar_v1()),
   'full migration stack scoped radar must preserve ordinary-user empty result'
@@ -28,4 +30,4 @@ select test.assert_true(
     ) and p.provolatile = 's'),
   'all new read entry points must be STABLE after ordered migrations'
 );
-select 'PASS: all 18 historical plus 3 UX migrations applied in filename order' as result;
+select 'PASS: all 18 historical plus 4 UX migrations applied in filename order' as result;
