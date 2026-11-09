@@ -142,9 +142,16 @@ export async function logoutAdmin(): Promise<void> {
 export type AdminFollowupStatus = "pending" | "contacted" | "waiting_reply" | "resolved" | "escalated";
 export type AdminFollowup = { followupStatus: AdminFollowupStatus; note: string; version: number };
 
+export class AdminFollowupForbiddenError extends Error {
+  constructor() {
+    super("没有该体验官的跟进权限。");
+    this.name = "AdminFollowupForbiddenError";
+  }
+}
+
 function followupError(error: { message?: string } | null): Error {
   if (/FOLLOWUP_VERSION_CONFLICT/i.test(error?.message ?? "")) return new Error("跟进记录已被更新，请刷新后重试。");
-  if (/FORBIDDEN|permission/i.test(error?.message ?? "")) return new Error("没有该体验官的跟进权限。");
+  if (/FORBIDDEN|permission/i.test(error?.message ?? "")) return new AdminFollowupForbiddenError();
   return new Error("跟进操作失败，请稍后重试。");
 }
 
