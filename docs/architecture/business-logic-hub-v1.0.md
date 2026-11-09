@@ -1,8 +1,8 @@
 # 业务逻辑中枢字典 [BIZ-V1.7]（Logic Hub）
 
-- 版本：**[BIZ-V1.6]**（2026-11-09 升版：TASK-10.13 契约提取——教练身份 SSOT 修复契约、双路径激活契约、教练晋升状态机、人工审核来源澄清；同日经 TASK-10.13-CONTRACT-FREEZE 终裁冻结：晋升条件固化、废弃邀请码、pepper 收口 Vault）
-- 四轨标识：**[BIZ-V1.6]**（本字典即 BIZ 轨业务规则载体）
-- 基线：[CORE-v1.13.3]，main @ 0eff51c（TASK-10.12 三迁移已合入）
+- 版本：**[BIZ-V1.7]**（2026-11-09 升版：TASK-10.13 核心链路落地核对（2.6 SSOT、2.8 晋升机已实现）＋ 新增 2.9 三端业务流 SOP 与状态联动契约，登记断头路 D1/D2 与收敛机制）
+- 四轨标识：**[BIZ-V1.7]**（本字典即 BIZ 轨业务规则载体）
+- 基线：[CORE-v1.13.3]，main @ 4c005f3（TASK-10.13 核心实现已合入）
 - 定位：打卡 App（10 号体系）后续所有子任务的**唯一业务事实源**。本字典只做契约提炼，不包含任何 RPC SQL、迁移或前端代码。
 - 文件约定：字典固定维护在本路径 `business-logic-hub-v1.0.md`，版本号以内嵌 [BIZ-Vx.x] 标识为准；`business-logic-hub-v1.2.md` 为历史快照。
 - 事实来源：
@@ -23,7 +23,7 @@
 3. 未来业务调整（如出 30 袋装、雷达时间窗变更、补货点调整、平台账号更换）**只需修改配置值，严禁改动核心逻辑代码**。
 4. 逻辑代码只描述"规则的形状"（如"未打卡时长超过黄灯阈值则亮黄灯"），不描述"阈值是几"（如 48 小时）。
 5. 本字典与 `docs/business/` 文档冲突时，以裁判终裁的最新版业务文档为准，并按第四节"变更四步法"同步修订本字典。
-6. 代号规范遵循 AGENTS.md 〇节四轨制：业务规则引用本字典写 `[BIZ-V1.5]`，核对基线写 `[CORE-<hash>]`，派工写 `[TASK-x.x]`，前端发布写 `[APP-Vx.x.x]`；严禁裸写无前缀版本号。
+6. 代号规范遵循 AGENTS.md 〇节四轨制：业务规则引用本字典写 `[BIZ-V1.7]`，核对基线写 `[CORE-<hash>]`，派工写 `[TASK-x.x]`，前端发布写 `[APP-Vx.x.x]`；严禁裸写无前缀版本号。
 
 ---
 
@@ -469,6 +469,125 @@ interface CoachPromotion {
 - **审计**：申请、批准、拒绝与自动晋升分别追加 `coach_promotion_requested / approved / rejected / promoted` 审计；拒绝必须含原因码，晋升必须含基数、当前真实直推数与所用配置快照。
 - 合规红线：晋升与拉新考核措辞不得构成层级计酬暗示；只计单级真实激活直推，禁止扩展为多级关系或计酬规则。
 
+### 2.9 三端核心业务流 SOP 与状态联动契约（TASK-10.13-UX-FLOW-CONTRACT，v1.7 新增）
+
+> 实机测试发现的跨端"断头路"逐条登记物理证据，并给出收敛契约。状态权威永远在服务端；前端一切本地标记只是 UX 缓存，严禁充当事实源。
+
+#### 2.9.1 生产与划拨链路（Admin → Coach）
+
+**现状物理证据：**
+
+| 环节 | 物理路径 | 现状 |
+| --- | --- | --- |
+| Admin 生成反馈 | `AdminCodePool.tsx:43-49` | 仅文本 notice"已生成 N 枚平台码"；无流水定位、无下一步引导 |
+| Admin 划拨反馈 | `AdminCodePool.tsx:51-57` | 仅文本 notice"已向教练划拨 N 枚码" |
+| 补货需求列表刷新 | `AdminCodePool.tsx:22-28、59-65` | 仅挂载时拉取一次；`resolve` 只本地改 status，不重取服务端 |
+| Coach 云仓刷新 | `CoachCodeInventory.tsx:22-30` | **MISSING**：仅挂载时拉取一次；无订阅、无轮询、无手动刷新按钮；直推后仅本地剔除该码（`:66`） |
+
+**断头路 D1**：Admin 划拨成功后，Coach 端云仓无任何机制得知库存变化——教练不刷新页面就永远看不到新码，表现为"划拨了但找不到"。
+
+**收敛契约：**
+
+```typescript
+/** 划拨/生成后跨端刷新的统一机制（基线 v1：动作后重取 + 手动刷新，不上实时订阅）。 */
+interface InventoryRefreshContract {
+  /**
+   * Coach 云仓刷新触发点（全部走 get_coach_inventory_v3 重取，服务端为唯一事实源）：
+   * 1. 组件挂载；2. 直推成功；3. 补货申请提交/被处理后再进入页面；4. 用户显式点"刷新"按钮。
+   */
+  coach_refresh_triggers: ['mount', 'after_push', 'after_restock_resolve', 'manual_button'];
+
+  /**
+   * Admin 侧反馈标准：生成/划拨成功 notice 必须含数量与下一步动作锚点
+   * （生成成功→引导至划拨表单；划拨成功→提示"教练端刷新后可见"）。
+   * 补货需求列表在 resolve 后必须重取服务端列表，禁止仅本地改状态。
+   */
+  admin_feedback: 'notice_with_quantity_and_next_action';
+
+  /**
+   * ⏳ Backlog：Supabase Realtime 订阅为可选演进；低频管理操作不为此引入长连接鉴权复杂度。
+   * 立项前需裁判批准并单独评审 RLS 与频道权限。
+   */
+  realtime_subscription: 'backlog_optional';
+}
+```
+
+#### 2.9.2 激活与绑定链路（User → Coach / Admin）
+
+**现状物理证据：**
+
+| 环节 | 物理路径 | 现状 |
+| --- | --- | --- |
+| 用户输码后本端状态 | `boxCodeActivation.ts:82` → `activationStorage.ts:2` localStorage 标记 → `SevenDayCheckIn.tsx:258` "审核中，暂不能打卡" | 仅本机有效 |
+| Admin 审核区 | `AdminManualReview.tsx:29-33` → `admin_get_pending_box_code_reviews` | ✅ 正常 |
+| Coach 名下在审展示 | — | **MISSING**：教练无任何"在审申请"视图；直推的码从云仓消失后只剩一条瞬时 notice（`CoachCodeInventory.tsx:67`）；用户手动输码申请教练库存码时教练完全无感知 |
+| 直推后 User 端状态 | — | **MISSING**：审核状态只存发起端 localStorage；直推由教练端发起，用户设备无服务端回读通道（全库无 `get_my_activation_status` 类 RPC）；用户打卡被 `CHECKIN_NOT_ACTIVE` 拒绝时前端无"审核中"解释 |
+
+**断头路 D2（最严重）**：`markBoxCodeActivated`（`activationStorage.ts:13`）**零调用方**——审核通过后，用户设备没有任何机制从"审核中"切换到"已激活"，localStorage 状态机与服务端事实永久脱节；换设备登录更是一片空白。
+
+**收敛契约：**
+
+```typescript
+/**
+ * 用户端激活状态必须服务端化。新只读 RPC（待派工实现）：
+ * 只取 auth.uid() 本人最新一条 code_activations，不泄露码面与审核人。
+ */
+interface MyActivationStatus {
+  state: 'none' | 'pending_review' | 'active' | 'rejected';
+  /** 申请时间（pending 时用于"已等待 N 小时"提示）。 */
+  requested_at: string | null;
+  /** rejected 时的通用原因码文案键，不含内部原因码原值。 */
+  rejection_hint: string | null;
+}
+
+/** Coach 在审视图契约：教练可见本人库存码的在审状态。 */
+interface CoachPendingReviewItem {
+  code_id: string;
+  code: string;            // 教练本人库存码，码面对持有教练不遮蔽
+  camper_code: string;     // 目标营员代号（服务端关系行取值）
+  requested_at: string;
+  entry_path: 'manual_code' | 'coach_push';
+}
+```
+
+1. `get_my_activation_status` 在登录态挂载与打卡页挂载时读取；`activationStorage` 的 localStorage 标记降级为纯 UX 缓存，与服务端冲突时以服务端为准并纠正本地。
+2. 教练在审视图并入 `get_coach_inventory_v3` 返回（新增 `pendingCodes` 字段）或独立只读 RPC；两路径（手动输码/直推）的申请都须对归属教练可见。
+3. Admin 审核动作不承担实时推送义务；User/Coach 端在下次挂载或打卡时由 RPC 收敛。审核拒绝后用户端须可重新发起申请（状态回到 `none` 语义）。
+4. 状态文案统一：User 端"审核中/已激活/未通过，请联系教练"；Coach 端"在审 N 枚"；严禁出现歧义文案（如把"在审"渲染成"已激活"）。
+
+#### 2.9.3 体验官服务链路（Coach → User）：满 21 天引导
+
+**现状物理证据：**
+
+| 环节 | 物理路径 | 现状 |
+| --- | --- | --- |
+| 满期语义 | `get_coach_radar_v1`（`20261109120000_admin_staff_rbac.sql:789-800`）：`start_date + 20` 已过且无 active 充值码 → 红灯 | ✅ 服务端已含满期语义 |
+| 前端透出 | `CoachDashboardPanels.tsx:88` 状态列 | **MISSING**：只渲染笼统"红灯"，不区分"漏打卡"与"满 21 天未续费"，教练无法识别该引导谁续费 |
+| 见证海报 | `UserCenter.tsx:63` / `GraduationCert.tsx`（用户本人数据 Canvas 生成） | 仅用户端；教练端**不得**查看（雷达脱敏，合规正确，保持不变） |
+| 续费动作 | `CoachCodeInventory.tsx:104-114` 直推入口支持 RC 码 | ✅ 能力存在，但雷达红灯行与直推入口无 UI 串联（**MISSING**） |
+
+**收敛契约：**
+
+```typescript
+/** 雷达行透出满期维度（服务端判定，禁前端推算）。 */
+interface CoachRadarCycleState {
+  /** in_cycle: 21 天窗口内；cycle_complete_pending_renewal: 满期且无 active 充值码。 */
+  cycle_state: 'in_cycle' | 'cycle_complete_pending_renewal';
+}
+
+/**
+ * 满期营员引导动作契约（Coach 端）：
+ * 1. 满期营员在雷达以"已满 21 天 · 待续费"标签呈现（灯号语义不变，新增维度）；
+ * 2. 跟进面板引导动作一：提示教练线下引导营员本人在用户中心生成见证海报
+ *    （教练不得代见原始健康数据，脱敏边界不变）；
+ * 3. 引导动作二：跳转云仓直推入口并预选该营员（锚点联动，RC 码）。
+ */
+type GraduationGuidanceAction = 'prompt_witness_poster_offline' | 'push_recharge_code';
+```
+
+- 合规红线：续约引导话术不得承诺固定减重结果、不得使用确定收益表述（V7.1 指南 L227；收益表达纪律不变）。
+- 满期判定阈值（21 天窗口）与 `max_checkins_per_box` 同源，禁止前端写死 21。
+
 ---
 
 ## 三、阻断与并发契约
@@ -594,6 +713,7 @@ interface ActivationRequestRateLimit {
 | 2026-11-09 | v1.6 | TASK-10.13 契约提取：新增 2.6 教练身份 SSOT 修复契约（登记两项 P0 根因）、2.7 双路径激活契约（手动输码+教练直推，含幂等与审计链）、2.8 教练晋升状态机草案（21 天/8 人参数待终裁）；SystemConfig 登记两个晋升草案键；知悉事项新增第 6-10 条（含 pepper 双口径分裂、审核来源澄清）；任务边界表补登 10.12/10.13 | 裁判派工 TASK-10.13-ROOT-CAUSE；迁移 `20261109094500` / `20261109120000×2` 与前端 `accessProfile.ts` / `AdminCodePool.tsx` 核对（main @ 0eff51c） | d78124b |
 | 2026-11-09 | v1.6（终裁冻结） | TASK-10.13-CONTRACT-FREEZE：晋升条件 21 天/8 人清除 [待确认] 固化入 SystemConfig；废弃邀请码，后台审核制固化为绑定唯一 SSOT（3.2 第 5 条）；pepper 口径写死全库废 GUC、统一 Vault（知悉事项第 8 条） | 主脑裁决 TASK-10.13-CONTRACT-FREEZE（main @ 0eff51c） | 见提交记录 |
 | 2026-11-09 | v1.7 | 2.8 晋升状态机转正式契约：21 个有效打卡物理日、基线后净增 8 名真实直推、拒绝历史保留且可重申；补齐受控 RPC、原子自动晋升、审计、并发与准教练最小权限边界；SystemConfig 两项参数改标已终裁 | 裁判批令 TASK-10.13-CORE-UNLOCK | 见本模块契约提交 |
+| 2026-11-09 | v1.7（UX 契约） | TASK-10.13-UX-FLOW-CONTRACT：新增 2.9 三端业务流 SOP 与状态联动契约；登记断头路 D1（划拨后 Coach 云仓无刷新机制）与 D2（`markBoxCodeActivated` 零调用、审核状态本机化）；裁定刷新基线为"动作后重取＋手动刷新"，Realtime 订阅入 Backlog；新增 `MyActivationStatus` / `CoachPendingReviewItem` / `CoachRadarCycleState` 契约接口；满 21 天引导动作固化（见证海报仅用户端＋直推充值码锚点） | 裁判派工 TASK-10.13-UX-FLOW-CONTRACT；前端 `AdminCodePool.tsx` / `CoachCodeInventory.tsx` / `CoachDashboardPanels.tsx` / `activationStorage.ts` 核对（main @ 4c005f3） | 见提交记录 |
 ---
 
 ## 五、前瞻演进契约（裁判批令 v1.2 新增，v1.5 更新落地状态）
@@ -772,6 +892,7 @@ interface BoxCode {
 - [x] 2.7 双路径激活契约已固化：两入口、汇合点、唯一终审、幂等与审计链完整。
 - [x] 2.8 教练晋升状态机已冻结：晋升条件（21 天打卡 / 直推满 8 人）经裁判终裁固化入 SystemConfig，跃迁全部服务端化，实现待派工。
 - [x] 人工审核申请来源已澄清并指向 2.7（知悉事项第 10 条）。
+- [x] 2.9 三端业务流契约完整：三链路均带物理路径证据、断头路登记（D1/D2）与收敛机制；跨端状态权威归服务端，本机标记降级为 UX 缓存。
 - [x] 第七节 Backlog 已登记 `expires_at` 产品有效期（P1），仅记录不实现。
 - [x] 全文对齐四轨制代号规范，无裸写版本号（历史 Hash 除外）。
 - [x] 本文档不含任何 RPC SQL、迁移或前端实现代码。
