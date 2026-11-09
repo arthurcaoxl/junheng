@@ -75,14 +75,14 @@ export default function CoachCodeInventory({ campers = [] }: Props) {
   return (
     <section className="admin-block" aria-labelledby="my-code-inventory-title">
       <div className="admin-block-heading">
-        <h2 id="my-code-inventory-title">我的码库</h2>
+        <h2 id="my-code-inventory-title">产品激活码库</h2>
         {inventory && <span>可用 {inventory.availableCount} 枚</span>}
       </div>
       {!inventory && !error && <p role="status">码库加载中…</p>}
       {error && <p className="admin-error" role="alert">{error}</p>}
       {notice && <p className="admin-notice" role="status">{notice}</p>}
       {inventory?.needsRestock && <p className="admin-notice" role="status">库存低于补货点，请及时补货</p>}
-      {inventory && inventory.codes.length === 0 && <p>暂无未激活码。</p>}
+      {inventory && inventory.codes.length === 0 && <p>暂无激活码</p>}
       {inventory && inventory.availableCount === 0 && inventory.codes.length === 0 && !restockPending && (
         <div className="coach-restock-form">
           <label htmlFor="coach-restock-note">补货需求说明</label>

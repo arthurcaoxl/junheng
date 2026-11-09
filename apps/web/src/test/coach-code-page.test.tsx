@@ -29,7 +29,7 @@ describe("教练码库页面", () => {
     });
     render(<MemoryRouter initialEntries={["/coach/codes"]}><App /></MemoryRouter>);
 
-    expect(await screen.findByRole("heading", { name: "我的码库" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "产品激活码库" })).toBeInTheDocument();
     expect(await screen.findByText("JH-EL-CO23")).toBeInTheDocument();
     expect(getSupabase().rpc).toHaveBeenCalledWith("get_my_code_inventory");
   });

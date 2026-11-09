@@ -130,7 +130,7 @@ describe("教练无码补货与直推码", () => {
     const user = userEvent.setup();
     mockRpc({ request_coach_restock_v1: { data: { ok: true, status: "pending" }, error: null } });
     render(<CoachCodeInventory />);
-    await screen.findByText("暂无未激活码。");
+    await screen.findByText("暂无激活码");
 
     await user.type(screen.getByLabelText("补货需求说明"), "本周无码，申请补货");
     await user.click(screen.getByRole("button", { name: "申请补货" }));
