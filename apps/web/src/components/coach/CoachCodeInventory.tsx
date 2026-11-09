@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
+  COACH_PENDING_REVIEWS_EVENT,
   fetchMyCodeInventory,
   pushCoachCode,
   requestCoachRestock,
@@ -78,6 +79,7 @@ export default function CoachCodeInventory({ campers = [] }: Props) {
       });
       setCopiedId("");
       setNotice("已提交 Admin 审核，库存将在审核通过时扣减");
+      window.dispatchEvent(new Event(COACH_PENDING_REVIEWS_EVENT));
       await refreshInventory();
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "直推失败，请稍后重试。");

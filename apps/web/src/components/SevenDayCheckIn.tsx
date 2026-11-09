@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { BOX_CODE_REVIEW_EVENT, hasBoxCodeActivation, hasPendingBoxCodeReview } from "../services/activationStorage";
+import { fetchMyActivationStatus } from "../services/boxCodeActivation";
 import {
   CHECKIN_QUOTA_EVENT,
   getCheckinQuota,
@@ -83,17 +84,39 @@ export function SevenDayCheckIn() {
   const [isKnowledgeExpanded, setIsKnowledgeExpanded] = useState(false);
   const [checkinQuota, setCheckinQuota] = useState<CheckinQuota | null>(null);
   const [pendingReview, setPendingReview] = useState(hasPendingBoxCodeReview);
+  const [activated, setActivated] = useState(hasBoxCodeActivation);
+  const [activationLoaded, setActivationLoaded] = useState(false);
+  const [rejected, setRejected] = useState(false);
+  const [activationError, setActivationError] = useState("");
 
   useEffect(() => {
-    const refreshReviewState = () => setPendingReview(hasPendingBoxCodeReview());
+    let mounted = true;
+    const refreshReviewState = () => {
+      setPendingReview(hasPendingBoxCodeReview());
+      setActivated(hasBoxCodeActivation());
+    };
     window.addEventListener(BOX_CODE_REVIEW_EVENT, refreshReviewState);
-    return () => window.removeEventListener(BOX_CODE_REVIEW_EVENT, refreshReviewState);
+    fetchMyActivationStatus().then((status) => {
+      if (!mounted) return;
+      setRejected(status.state === "rejected");
+      setActivationError("");
+    }).catch((cause: unknown) => {
+      if (!mounted) return;
+      setRejected(false);
+      setActivationError(cause instanceof Error ? cause.message : "激活状态读取失败，请稍后重试。");
+    }).finally(() => {
+      if (mounted) setActivationLoaded(true);
+    });
+    return () => {
+      mounted = false;
+      window.removeEventListener(BOX_CODE_REVIEW_EVENT, refreshReviewState);
+    };
   }, []);
 
   useEffect(() => {
     let mounted = true;
     const refreshQuota = async () => {
-      if (!hasBoxCodeActivation()) {
+      if (!activationLoaded || !activated) {
         if (mounted) setCheckinQuota(null);
         return;
       }
@@ -117,7 +140,7 @@ export function SevenDayCheckIn() {
       mounted = false;
       window.removeEventListener(CHECKIN_QUOTA_EVENT, onQuotaUpdate);
     };
-  }, []);
+  }, [activated, activationLoaded]);
 
   const persistState = (next: CheckInState) => {
     setState(next);
@@ -256,6 +279,8 @@ export function SevenDayCheckIn() {
         <p>第 1 天建立基线，第 21 天回看趋势。记录体重、腰围与每餐执行情况。</p>
         <p className="camp-range">本期周期：{state.startDate} 至 {stats.endDate} · 修改后自动保存，无需注册</p>
         {pendingReview && <p className="check-in-quota" role="status">审核中，暂不能打卡</p>}
+        {rejected && <p className="check-in-quota" role="status">未通过，请联系教练</p>}
+        {activationError && <p className="admin-error" role="alert">{activationError}</p>}
         {!pendingReview && checkinQuota && (
           <p className="check-in-quota" role="status">
             剩余 {checkinQuota.remainingCheckins}/{checkinQuota.maxCheckins} 次

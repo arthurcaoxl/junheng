@@ -10,13 +10,22 @@ export function hasBoxCodeActivation(): boolean {
   }
 }
 
-export function markBoxCodeActivated(): void {
+export type CachedActivationState = "none" | "pending_review" | "active" | "rejected";
+
+export function syncBoxCodeActivationCache(state: CachedActivationState): void {
   try {
-    window.localStorage.setItem(ACTIVATED_FLAG_KEY, "true");
-    window.localStorage.removeItem(PENDING_REVIEW_FLAG_KEY);
+    if (state === "active") window.localStorage.setItem(ACTIVATED_FLAG_KEY, "true");
+    else window.localStorage.removeItem(ACTIVATED_FLAG_KEY);
+    if (state === "pending_review") window.localStorage.setItem(PENDING_REVIEW_FLAG_KEY, "true");
+    else window.localStorage.removeItem(PENDING_REVIEW_FLAG_KEY);
   } catch {
-    // 本机标记只控制交互与同步分流，服务端激活事实不依赖它。
+    // 本机标记只是 UX 缓存，服务端激活事实不依赖它。
   }
+  window.dispatchEvent(new Event(BOX_CODE_REVIEW_EVENT));
+}
+
+export function markBoxCodeActivated(): void {
+  syncBoxCodeActivationCache("active");
 }
 
 export function hasPendingBoxCodeReview(): boolean {
@@ -28,10 +37,5 @@ export function hasPendingBoxCodeReview(): boolean {
 }
 
 export function markBoxCodePendingReview(): void {
-  try {
-    window.localStorage.setItem(PENDING_REVIEW_FLAG_KEY, "true");
-  } catch {
-    // 服务端 code_activations 才是审核事实，本机标记仅用于阻断交互。
-  }
-  window.dispatchEvent(new Event(BOX_CODE_REVIEW_EVENT));
+  syncBoxCodeActivationCache("pending_review");
 }

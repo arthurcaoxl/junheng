@@ -25,6 +25,10 @@ describe("打卡页盒码剩余额度", () => {
         usedCheckins: 6,
         remainingCheckins: 15,
         boxSpec: "21_bags",
+      } : name === "get_my_activation_status" ? {
+        state: "active",
+        requested_at: "2026-11-09T01:00:00Z",
+        rejection_hint: null,
       } : null,
       error: null,
     }));

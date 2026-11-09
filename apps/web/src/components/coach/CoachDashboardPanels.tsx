@@ -9,6 +9,7 @@ import {
   type FollowupStatus,
 } from "../../services/coachRadar";
 import CoachCodeInventory from "./CoachCodeInventory";
+import CoachPendingReviews from "./CoachPendingReviews";
 import CoachCampTrends from "./CoachCampTrends";
 import { fetchMyCoachPromotionState } from "../../services/coachCampTrends";
 
@@ -193,6 +194,7 @@ export default function CoachDashboardPanels({ onRole }: { onRole?: (role: Acces
         )}
       </div>
       <aside className="coach-dashboard-side">
+        {profile?.role === "coach" && <CoachPendingReviews />}
         {profile?.canManageInventory && (
           <section className="admin-block coach-dashboard-panel" aria-labelledby="coach-inventory-title">
             <h2 id="coach-inventory-title">教练云仓库存</h2>

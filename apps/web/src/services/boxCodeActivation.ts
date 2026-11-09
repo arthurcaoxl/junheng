@@ -1,8 +1,38 @@
 import { ensureSession, getSupabase } from "../lib/supabase";
 import { syncToCloud, type SyncResult } from "./checkinSync";
-import { markBoxCodePendingReview } from "./activationStorage";
+import { markBoxCodePendingReview, syncBoxCodeActivationCache, type CachedActivationState } from "./activationStorage";
 
 export { hasBoxCodeActivation, hasPendingBoxCodeReview } from "./activationStorage";
+
+export type MyActivationStatus = {
+  state: CachedActivationState;
+  requestedAt: string | null;
+  rejectionHint: string | null;
+};
+
+export async function fetchMyActivationStatus(): Promise<MyActivationStatus> {
+  try {
+    const { data, error } = await getSupabase().rpc("get_my_activation_status");
+    if (error) throw error;
+    const result = data as Record<string, unknown> | null;
+    if (
+      !result
+      || (result.state !== "none" && result.state !== "pending_review" && result.state !== "active" && result.state !== "rejected")
+      || (result.requested_at !== null && typeof result.requested_at !== "string")
+      || (result.rejection_hint !== null && typeof result.rejection_hint !== "string")
+    ) throw new Error("INVALID_ACTIVATION_STATUS");
+    const status = {
+      state: result.state,
+      requestedAt: result.requested_at as string | null,
+      rejectionHint: result.rejection_hint as string | null,
+    };
+    syncBoxCodeActivationCache(status.state);
+    return status;
+  } catch {
+    syncBoxCodeActivationCache("none");
+    throw new Error("激活状态读取失败，请稍后重试。");
+  }
+}
 
 const DEVICE_FINGERPRINT_STORAGE_KEY = "junheng-device-fingerprint-v1";
 const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;

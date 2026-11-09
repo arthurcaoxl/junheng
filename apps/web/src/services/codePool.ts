@@ -158,3 +158,34 @@ export async function resolveAdminRestockRequest(requestId: string, decision: "f
   if (error) throw rpcFailure(error);
   if ((data as { ok?: unknown } | null)?.ok !== true) throw new Error("补货处理返回数据格式异常。");
 }
+
+export const COACH_PENDING_REVIEWS_EVENT = "junheng-coach-pending-reviews-updated";
+
+export type CoachPendingReview = {
+  codeId: string;
+  code: string;
+  camperCode: string;
+  requestedAt: string;
+  entryPath: "manual_code" | "coach_push";
+};
+
+export async function fetchCoachPendingReviews(): Promise<CoachPendingReview[]> {
+  const { data, error } = await getSupabase().rpc("get_coach_pending_reviews");
+  if (error) throw new Error("在审激活码读取失败，请稍后重试。");
+  if (!Array.isArray(data)) throw new Error("在审激活码返回数据格式异常。");
+  return data.map((raw) => {
+    const row = raw as Record<string, unknown>;
+    if (
+      typeof row.code_id !== "string" || typeof row.code !== "string"
+      || typeof row.camper_code !== "string" || typeof row.requested_at !== "string"
+      || (row.entry_path !== "manual_code" && row.entry_path !== "coach_push")
+    ) throw new Error("在审激活码返回数据格式异常。");
+    return {
+      codeId: row.code_id,
+      code: row.code,
+      camperCode: row.camper_code,
+      requestedAt: row.requested_at,
+      entryPath: row.entry_path,
+    };
+  });
+}
