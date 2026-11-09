@@ -169,18 +169,18 @@
 1. `admin_get_coach_directory(p_query)` 仅允许服务端 `auth.uid()` 对应的有效 `camp_admins.role = 'admin'` 调用；查询至少 2 个字符，仅搜索有效教练邮箱，最多返回 10 条 `coach_id / email / name / phone`。姓名取认证资料中的 `full_name`（兼容 `name`），手机号取受限 `user_profiles.phone` 并兼容认证手机号；缺省返回 `null`。浏览器不得直读 `auth.users`、`user_profiles` 或角色目录，RPC 不返回健康原始记录或微信号。
 2. 管理端划拨与人工审核只通过邮箱搜索选择教练，下拉结果同时展示邮箱、姓名、手机号；选中后由前端提交服务端返回的 `coach_id`，页面不展示或要求手填 UUID。联系方式扩展只在 Admin 严格鉴权后生效，普通用户、教练与 staff 均无此目录权限；服务端仍须独立校验管理员权限与教练有效状态，不信任前端选择结果。
 3. `admin_review_box_code_activation_v2` 在原有原子审核事务前接收 `p_target_coach_id`，要求其为有效教练且与待审核产品码当前 `box_codes.coach_id` 一致，否则以 `COACH_SELECTION_MISMATCH` 拒绝。审核凭证、乐观版本与原审核状态机保持不变；本包装不提供任意改派归属能力。
-4. **TASK-10.12-P0 统一教练口径**：目录搜索、`allocate_codes_to_coach` 与审核 v2 均以 `user_coach_relation` 中 `referrer_id = 目标教练 AND valid_to IS NULL` 的当前有效关系证明教练身份，不再依赖 `camp_admins.role = 'coach'` 播种，也不得仅凭 `auth.users` 存在即认定为教练。目录无结果属于正常空态，前端显示“无匹配教练”，不得作为 RPC 错误展示红字。
+4. **TASK-10.13 统一教练口径**：目录搜索、`allocate_codes_to_coach` 与审核 v2 均以 `camp_admins` 中 `role = 'coach' AND is_active AND auth_user_id IS NOT NULL` 的角色行证明教练身份。`user_coach_relation` 只回答当前归属，不再回答谁是教练；不得仅凭 `auth.users` 或当前学员关系认定教练。目录无结果属于正常空态，前端显示“无匹配教练”，不得作为 RPC 错误展示红字。
 5. **历史白名单回填**：迁移在事务内通过规范化邮箱连接 `auth.users`，仅为 `camp_admins.auth_user_id IS NULL` 的历史行回填认证主体；跳过已被其他角色行占用的认证主体，未匹配行继续保持 NULL 和无业务权限。客户端不得执行裸 UPDATE，角色本身不得因回填自动变更。
 
 ## 教练工作流、跟进与补货（TASK-10.12 模块二增量）
 
-本增量不改变五字段 `get_coach_radar_v1`、P0 Vault 读取方式、有效教练关系、人工审核状态机或库存扣减时点。新增浏览器表权限全部关闭，权威读写只经下列 RPC；调用者身份只取服务端 `auth.uid()`，不接受 coach ID 作为可见范围参数。
+本增量不改变五字段 `get_coach_radar_v1`、P0 Vault 读取方式、人工审核状态机或库存扣减时点。新增浏览器表权限全部关闭，权威读写只经下列 RPC；调用者身份只取服务端 `auth.uid()`，不接受 coach ID 作为可见范围参数。教练身份统一按 TASK-10.13 的 `camp_admins` 角色行判定，营员范围仍由当前有效关系决定。
 
 1. **本人营员列表**：`get_coach_campers_v1()` 仅由 `user_coach_relation.referrer_id = auth.uid() AND valid_to IS NULL` 的当前关系驱动，返回不透明 `camper_ref`（当前 `relation_id`）、`camper_code`、`activity_status` 与本人跟进字段，不返回认证 UID、邮箱、原始健康记录或其他教练用户。`activity_status = 'new_registered'` 表示当前 21 天窗口内没有任何符合第 2 节 `hasContent` 语义的记录；存在至少一条则为 `'active'`。灯号仍由五字段雷达独立给出，禁止再用“绿灯”代替活跃口径。
 2. **跟进备注**：`coach_camper_followups` 以 `(coach_id, camper_id)` 唯一保存 `followup_status / note / version / updated_by / updated_at`；状态仅允许 `pending / contacted / waiting_reply / resolved / escalated`，备注去除首尾空白后最多 1000 字。表启用 RLS 且浏览器角色无直读直写权限。教练通过 `get/set_coach_camper_followup_v1` 读写当前 `camper_ref` 对应本人营员，Admin 通过 `admin_get/set_camper_followup_v1` 按管理职责读写；其他教练、历史归属与匿名调用一律 `FORBIDDEN`。更新采用 `expected_version`：新建为 0，已有记录必须精确匹配，冲突返回 `FOLLOWUP_VERSION_CONFLICT`，不得最后写入者无声覆盖。
-3. **无码补货申请**：`coach_restock_requests` 保存 `request_id / coach_id / note / status / created_at / resolved_by / resolved_at`，状态为 `pending / fulfilled / rejected`，同一教练最多一条 pending。`request_coach_restock_v1` 要求当前有效关系证明教练身份，并在本人 `available_count = 0` 且不存在本人 `unused` 码时创建；重复申请幂等返回原 pending，其他情况返回 `RESTOCK_NOT_EMPTY`。备注最多 500 字，不含码面或健康记录。
+3. **无码补货申请**：`coach_restock_requests` 保存 `request_id / coach_id / note / status / created_at / resolved_by / resolved_at`，状态为 `pending / fulfilled / rejected`，同一教练最多一条 pending。`request_coach_restock_v1` 要求有效 `camp_admins.role = 'coach'` 身份，并在本人 `available_count = 0` 且不存在本人 `unused` 码时创建；重复申请幂等返回原 pending，其他情况返回 `RESTOCK_NOT_EMPTY`。备注最多 500 字，不含码面或健康记录。
 4. **Admin 补货需求**：`admin_get_coach_restock_requests_v1` 仅有效 admin 可读，最小返回 `request_id / coach_id / note / status / created_at`。`admin_resolve_coach_restock_request_v1` 锁定 pending 申请后可驳回；标记 fulfilled 前必须核实该教练已有可用库存，否则 `RESTOCK_NOT_FULFILLED`。该接口只关闭需求单，不代替既有 `allocate_codes_to_coach` 划拨事务。
-5. **教练直推码**：`coach_push_code_v1(p_camper_ref, p_code_id, p_idempotency_key)` 先锁定并核实码为调用教练本人 `inventory_status = 'coach' AND state = 'unused'`，再锁定 `p_camper_ref` 对应的当前关系并核实 `referrer_id = auth.uid()`；其他教练的码、历史/非本人营员均返回 `CODE_NOT_AVAILABLE` 或 `FORBIDDEN`，不得泄露目标是否存在。函数使用 Vault `box_code_pepper` 计算幂等载荷与识别码格式，密钥缺失返回 `BOX_CODE_PEPPER_NOT_CONFIGURED`。
+5. **教练直推码**：`coach_push_code_v1(p_camper_ref, p_code_id, p_idempotency_key)` 先核实调用者具有有效 coach 角色，再锁定并核实码为调用教练本人 `inventory_status = 'coach' AND state = 'unused'`，再锁定 `p_camper_ref` 对应的当前关系并核实 `referrer_id = auth.uid()`；其他教练的码、历史/非本人营员均返回 `CODE_NOT_AVAILABLE` 或 `FORBIDDEN`，不得泄露目标是否存在。函数使用 Vault `box_code_pepper` 计算幂等载荷与识别码格式，密钥缺失返回 `BOX_CODE_PEPPER_NOT_CONFIGURED`。
 6. 直推成功只插入目标营员的 pending `code_activations`、将码推进为 `pending_review`、写 `CodeActivationRequested` 与幂等命令；目标营员与 camper code 均取服务端关系，不能由客户端传入。后续仍只能经既有 Admin 人工审核原子流程激活并扣减一次库存；直推本身不得激活、不得改归属、不得扣库存，重复幂等请求不得创建第二条申请或重复扣减。
 7. **D21 趋势**：营期日严格由 `startDate + (dayIndex - 1)` 映射，D21 只读取第 21 个本地日期；窗口外记录不得成为本期基线或串入 D21。两张图共用同一 21 点数组与 X 轴边距、padding 和刻度策略，D1/D21 均保留且不裁切。
 8. **新教练 Demo**：仅使用前端独立常量中的明确虚构营员与库存示意，标记 `isDemo = true`，文案同时标明“演示数据 / 非真实统计”。仅在真实营员为空且加载成功后展示，不计入真实人数、灯号、云仓、导出或任何 RPC；无真实码面、无真实 ID、无写操作，有真实营员时不得混入。
@@ -219,8 +219,8 @@
 
 ## Admin 员工 RBAC 与界面权限（TASK-10.12 增量）
 
-1. `camp_admins.role` 仅允许 `admin / coach / staff`，并增加 `version / updated_at / updated_by` 支持乐观并发与审计；历史 Admin 白名单回填、有效教练关系口径与 Vault 密钥读取保持不变。staff 只能由有效 Admin 通过 RPC 授予、停用或恢复，不能把已有 admin/coach 行改写为 staff，也不能凭邮箱或前端声明自助提权。
-2. `staff_coach_assignment` 保存员工与教练的分配历史。创建分配要求目标 staff 有效、目标教练具有当前有效关系，并校验 `expectedVersion` 与 `idempotencyKey`；撤销立即结束有效期并递增版本。浏览器角色对角色表、分配表、命令表与审计表无直写权限。
+1. `camp_admins.role` 仅允许 `admin / coach / staff`，并增加 `version / updated_at / updated_by` 支持乐观并发与审计；历史 Admin 白名单回填与 Vault 密钥读取保持不变。staff 只能由有效 Admin 通过 RPC 授予、停用或恢复，不能把已有 admin/coach 行改写为 staff，也不能凭邮箱或前端声明自助提权。coach 只能经 `admin_set_coach_role` 或后续获批的晋升事务写入，不能把已有 admin/staff 行改写为 coach。
+2. `staff_coach_assignment` 保存员工与教练的分配历史。创建分配要求目标 staff 有效、目标教练具有有效 `camp_admins.role = 'coach'` 角色行，并校验 `expectedVersion` 与 `idempotencyKey`；撤销立即结束有效期并递增版本。浏览器角色对角色表、分配表、命令表与审计表无直写权限。
 3. Admin 员工管理区只调用 `admin_get_staff_directory / admin_set_staff_role / admin_assign_staff_coach / admin_revoke_staff_coach`。所有管理 RPC 在服务端以 `auth.uid()` 验证有效 Admin，越权、角色变化、分配变化均追加审计；审计不记录体验官明细、联系方式或财务金额。
 4. `get_coach_radar_v1` 对 staff 仅返回当前有效分配教练名下的五字段脱敏雷达，仍由服务端 `auth.uid()` 决定范围，不接受 coach、staff、体验官或分页范围参数。分配撤销、staff 停用或用户转移后，新请求立即失去对应数据。
 5. `get_my_access_profile` 仅返回当前有效角色及 `can_view_radar / can_manage_inventory` 两个界面能力。前端据此隐藏员工不可见模块，但隐藏不是授权；staff 调用 `get_my_code_inventory` 必须由服务端以 `FORBIDDEN` 拒绝并追加审计，其他 Admin RPC 继续独立鉴权。
@@ -234,6 +234,14 @@
 3. 两入口在读取 `box_code_commands` 前按同一幂等键获取事务级咨询锁，串行化并发首写；同键同载荷返回首次结果并标记 `replayed=true`，同键异载荷返回 `IDEMPOTENCY_CONFLICT`，不得创建第二条申请。既有码行锁、状态冲突与终审乐观版本语义保持不变。
 4. staff 调用 `coach_push_code_v1` 必须在 Vault 读取前以 `FORBIDDEN` 拒绝并追加 `staff_rbac_audit`；有效教练仍只能使用本人云库存 unused 码及本人当前营员关系。Vault `box_code_pepper` 读取和缺失错误码保持不变。
 5. 既有终审 `audit_logs` 在插入时由数据库触发器从申请行补充 `requestSource`，通过和拒绝均保留来源；不得在终审函数之外另写激活、归属或库存状态。
+## 教练身份 SSOT 与 Pepper Vault（TASK-10.13 增量）
+
+1. **唯一身份来源**：`camp_admins` 中 `role = 'coach' AND is_active AND auth_user_id IS NOT NULL` 是“谁是教练”的唯一事实源；`user_coach_relation` 只回答“谁名下有哪些当前营员”。目录、划拨、staff 分配、审核、补货、雷达、权限档案、云库存、营员列表、跟进与直推不得再以当前学员数或 `auth.users` 存在代替教练身份。
+2. **受控写入**：`admin_set_coach_role(p_email, p_is_active, p_expected_version, p_idempotency_key)` 仅有效 Admin 可调用。新建要求版本 0，已有行必须精确匹配版本；同一幂等键、命令类型、载荷与调用者可重放原结果，异载荷或异调用者返回 `IDEMPOTENCY_CONFLICT`。创建、变更、停用均递增版本并写成功审计；已有 admin/staff 行或其他认证主体占用行返回 `ROLE_ASSIGNMENT_CONFLICT`，不得降成 coach。
+3. **存量安全回填**：迁移为当前有效关系中的教练创建或同步有效 coach 角色行，已有停用 coach 行恢复有效，保证存量教练不断权；已有 admin/staff 角色行保持不变，认证主体或规范化邮箱被其他角色占用时跳过，不自动降权或抢占身份。`SystemConfig.platform_official_account_id` 指向的平台官方账号即使持有当前归属关系，也不得被回填为 coach。
+4. **空盘教练**：没有当前营员的新教练仍可被 Admin 目录搜索、staff 分配、码池划拨、审核选择与补货申请，并可读取本人 `get_my_access_profile`、空雷达和空云库存。`admin_get_coach_directory` 联系方式仍仅向有效 Admin 返回；普通用户、coach、staff 均不能枚举该目录。
+5. **最小权限**：coach 只能读取或操作本人当前营员、本人库存与本人跟进；staff 继续只读当前有效分配范围内的五字段雷达，不能读取教练目录或云库存。角色停用后，新请求立即失去 coach 能力，但历史归属、激活与审计事实不改写。
+6. **Vault 全链路收口**：所有最新生效且需要 `box_code_pepper` 的 RPC 必须从 `vault.decrypted_secrets` 按 `name = 'box_code_pepper'` 读取，不再读取 `current_setting('app.box_code_pepper')`。覆盖生成、手动申请、旧激活函数、待审列表、审核补发、云库存与教练直推；密钥缺失或为空时统一抛出或返回 `BOX_CODE_PEPPER_NOT_CONFIGURED`，不得回退 GUC 或泄露密钥。保留各函数原签名、事务边界、授权状态与业务语义。
 
 ## CSV 导出
 
