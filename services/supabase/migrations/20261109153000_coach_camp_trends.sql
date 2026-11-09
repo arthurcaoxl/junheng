@@ -43,16 +43,12 @@ begin
     raise exception 'FORBIDDEN' using errcode = '42501';
   end if;
 
-  if v_scope = 'all' and v_role <> 'admin' then
-    raise exception 'FORBIDDEN' using errcode = '42501';
-  end if;
-
   return query
   with visible_campers as (
     select c.auth_user_id, c.start_date, c.records
     from public.checkin_sync c
     where
-      (v_scope = 'all' and v_role = 'admin')
+      (v_scope = 'all')
       or (
         v_scope = 'own'
         and exists (
@@ -252,6 +248,6 @@ from public, anon, authenticated;
 grant execute on function public.get_coach_camp_trends_v1(text) to authenticated;
 
 comment on function public.get_coach_camp_trends_v1(text) is
-  'STABLE D1-D21 aggregate only: Admin own/all, coach own; no identity, raw records or per-user rows.';
+  'STABLE D1-D21 aggregate only: Admin/coach own/all; no identity, raw records or per-user rows.';
 
 commit;

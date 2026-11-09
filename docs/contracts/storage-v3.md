@@ -192,7 +192,7 @@
 | 调用者（均由服务端 `auth.uid()` 判定） | `scope='own'` | `scope='all'` |
 | --- | --- | --- |
 | 有效 Admin | 允许；仅当前 `user_coach_relation.referrer_id = auth.uid() AND valid_to IS NULL` 的营员 | 允许；全栈所有 `checkin_sync` 快照，不要求营员仍有有效归属 |
-| 有效 coach | 允许；口径同上，仅限本人名下 | `FORBIDDEN` |
+| 有效 coach | 允许；口径同上，仅限本人名下 | 允许；与 Admin 相同的全栈物理聚合，不返回任何用户明细或 PII |
 | 有效 staff（含存在教练分配者） | `FORBIDDEN` | `FORBIDDEN` |
 | 普通用户、失效角色或无角色行 | `FORBIDDEN` | `FORBIDDEN` |
 | 匿名调用 | `UNAUTHORIZED` | `UNAUTHORIZED` |
@@ -213,7 +213,7 @@
 | `sleep_rate` | numeric，可空 | 与 `water_rate` 同口径统计 `sleep = true`。 |
 
 1. 每名营员的 21 天窗口只含 `start_date` 至 `start_date + 20`；窗口外记录不得进入当日值或基线。体重严格使用综合代表体重，体重和腰围分别以各自窗口内最早有效值为基线，不使用自定义初始体重替代该营期变化率基线。
-2. 两种 scope 使用完全相同的返回字段与聚合语义；`own` 必须通过当前有效 coach 关系过滤，并用 `EXISTS` 或等效去重结构防止关系连接放大样本。Admin 的 `own` 不扩张为全栈，coach 不得通过任何参数读取他人或其他教练明细。
+2. 两种 scope 使用完全相同的返回字段与聚合语义；`own` 必须通过当前有效 coach 关系过滤，并用 `EXISTS` 或等效去重结构防止关系连接放大样本。Admin 与 coach 的 `own` 均不扩张为全栈；二者的 `all` 均只返回同一套全栈聚合结果，coach 不得通过任何参数读取他人或其他教练的用户明细。
 3. 所有比率单位均为百分比（0–100），不是 0–1 小数。`participants` 与两个变化率样本计数始终为非负整数；任何聚合值不得用 `0` 冒充空样本。
 4. 函数必须为 `STABLE`、只执行读取与聚合，不含 INSERT、UPDATE、DELETE、MERGE、TRUNCATE、锁行或其他写副作用；使用 `SECURITY DEFINER` 时必须固定 `search_path = public, pg_temp`，仅授予 `authenticated` 执行权，并在函数内独立执行上述权限矩阵。
 

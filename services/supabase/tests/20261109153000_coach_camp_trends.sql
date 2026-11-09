@@ -215,6 +215,7 @@ declare
   v_ordinary uuid := '20000000-0000-0000-0000-000000000005';
   v_inactive uuid := '20000000-0000-0000-0000-000000000006';
   v_points jsonb;
+  v_coach_all_points jsonb;
 begin
   perform set_config('test.auth_uid', v_coach::text, false);
   select jsonb_agg(row_to_json(t) order by t.day_index)
@@ -260,11 +261,36 @@ begin
     raise exception 'empty days must be zero counts and null metrics: %', v_points;
   end if;
 
-  begin
-    perform public.get_coach_camp_trends_v1('all');
-    raise exception 'coach all must be rejected';
-  exception when sqlstate '42501' then null;
-  end;
+  select jsonb_agg(row_to_json(t) order by t.day_index)
+  into v_coach_all_points
+  from public.get_coach_camp_trends_v1('all') t;
+  if jsonb_array_length(v_coach_all_points) <> 21 then
+    raise exception 'coach all must return exactly 21 points: %', v_coach_all_points;
+  end if;
+  if not exists (
+    select 1 from jsonb_to_recordset(v_coach_all_points) as x(
+      day_index integer, participants integer, weight_samples integer,
+      waist_samples integer, avg_weight_change_percent numeric
+    )
+    where day_index = 1 and participants = 3 and weight_samples = 3
+      and waist_samples = 3 and avg_weight_change_percent = 0
+  ) then
+    raise exception 'coach all must use the stack-wide aggregate: %', v_coach_all_points;
+  end if;
+  if exists (
+    select 1
+    from jsonb_array_elements(v_coach_all_points) as point(value)
+    where exists (
+      select 1 from jsonb_object_keys(point.value) as field(name)
+      where field.name not in (
+        'day_index', 'participants', 'weight_samples', 'waist_samples',
+        'avg_weight_change_percent', 'avg_waist_change_percent',
+        'meal_completion_rate', 'water_rate', 'movement_rate', 'sleep_rate'
+      )
+    )
+  ) then
+    raise exception 'coach all must not expose new or identifying fields: %', v_coach_all_points;
+  end if;
 
   perform set_config('test.auth_uid', v_other_coach::text, false);
   if (select participants from public.get_coach_camp_trends_v1('own') where day_index = 1) <> 1 then
@@ -275,6 +301,9 @@ begin
   select jsonb_agg(row_to_json(t) order by t.day_index)
   into v_points
   from public.get_coach_camp_trends_v1('all') t;
+  if v_coach_all_points is distinct from v_points then
+    raise exception 'coach all and Admin all must return identical aggregate points';
+  end if;
   if not exists (
     select 1 from jsonb_to_recordset(v_points) as x(
       day_index integer, participants integer, weight_samples integer,

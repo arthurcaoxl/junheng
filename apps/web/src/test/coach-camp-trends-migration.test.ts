@@ -32,21 +32,21 @@ describe("coach camp trends RPC migration contract (static only)", () => {
     expect(trends).toMatch(/order\s+by\s+days\.day_index/i);
   });
 
-  it("enforces authenticated Admin/coach scopes and keeps staff and ordinary users out", () => {
+  it("allows authenticated Admin/coach all and keeps staff and ordinary users out", () => {
     expect(trends).toMatch(/v_auth_user_id\s+uuid\s*:=\s*auth\.uid\(\)/i);
     expect(trends).toMatch(/v_auth_user_id\s+is\s+null[\s\S]*UNAUTHORIZED/i);
     expect(trends).toMatch(/a\.auth_user_id\s*=\s*v_auth_user_id/i);
     expect(trends).toMatch(/a\.is_active/i);
     expect(trends).toMatch(/v_role\s+not\s+in\s*\(\s*'admin'\s*,\s*'coach'\s*\)/i);
-    expect(trends).toMatch(/v_scope\s*=\s*'all'\s+and\s+v_role\s*<>\s*'admin'[\s\S]*FORBIDDEN/i);
+    expect(trends).not.toMatch(/v_scope\s*=\s*'all'\s+and\s+v_role\s*<>/i);
     expect(trends).toMatch(/p_scope\s+is\s+null\s+or\s+p_scope\s+not\s+in\s*\(\s*'own'\s*,\s*'all'\s*\)/i);
     expect(trends).toMatch(/INVALID_SCOPE/i);
     expect(trends).not.toMatch(/staff_coach_assignment/i);
   });
 
-  it("filters own by the caller's current coach relation and keeps Admin all stack-wide", () => {
+  it("filters own by the caller's current coach relation and gives both allowed roles stack-wide all", () => {
     expect(trends).toMatch(/from\s+public\.checkin_sync\s+c/i);
-    expect(trends).toMatch(/v_scope\s*=\s*'all'\s+and\s+v_role\s*=\s*'admin'/i);
+    expect(trends).toMatch(/where\s*\(\s*v_scope\s*=\s*'all'\s*\)\s*or\s*\(/i);
     expect(trends).toMatch(/exists\s*\(\s*select\s+1\s+from\s+public\.user_coach_relation\s+r/i);
     expect(trends).toMatch(/r\.auth_user_id\s*=\s*c\.auth_user_id/i);
     expect(trends).toMatch(/r\.referrer_id\s*=\s*v_auth_user_id/i);
