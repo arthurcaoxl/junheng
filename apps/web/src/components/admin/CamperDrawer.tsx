@@ -29,6 +29,7 @@ function AdminFollowupEditor({ camperId }: { camperId: string }) {
   const [note, setNote] = useState("");
   const [version, setVersion] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [unbound, setUnbound] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
 
@@ -40,7 +41,12 @@ function AdminFollowupEditor({ camperId }: { camperId: string }) {
       setNote(value.note);
       setVersion(value.version);
     }).catch((cause: unknown) => {
-      if (alive) setError(cause instanceof Error ? cause.message : "跟进读取失败");
+      if (!alive) return;
+      if (cause instanceof Error && cause.name === "AdminFollowupForbiddenError") {
+        setUnbound(true);
+        return;
+      }
+      setError(cause instanceof Error ? cause.message : "跟进读取失败");
     });
     return () => { alive = false; };
   }, [camperId]);
@@ -54,7 +60,11 @@ function AdminFollowupEditor({ camperId }: { camperId: string }) {
       setVersion(result.version);
       setNotice("Admin 跟进已保存");
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "跟进保存失败");
+      if (cause instanceof Error && cause.name === "AdminFollowupForbiddenError") {
+        setUnbound(true);
+      } else {
+        setError(cause instanceof Error ? cause.message : "跟进保存失败");
+      }
     } finally {
       setBusy(false);
     }
@@ -63,15 +73,21 @@ function AdminFollowupEditor({ camperId }: { camperId: string }) {
   return (
     <section className="admin-followup-editor" aria-label="Admin 跟进记录">
       <h3>跟进记录</h3>
-      <label htmlFor="admin-followup-status">Admin 跟进状态</label>
-      <select id="admin-followup-status" value={status} onChange={(event) => setStatus(event.target.value as AdminFollowupStatus)}>
-        {ADMIN_FOLLOWUP_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </select>
-      <label htmlFor="admin-followup-note">Admin 跟进备注</label>
-      <textarea id="admin-followup-note" maxLength={1000} value={note} onChange={(event) => setNote(event.target.value)} />
-      <button type="button" className="admin-secondary" disabled={busy} onClick={() => void save()}>{busy ? "保存中…" : "保存 Admin 跟进"}</button>
-      {notice && <p className="admin-notice" role="status">{notice}</p>}
-      {error && <p className="admin-error" role="alert">{error}</p>}
+      {unbound ? (
+        <p className="admin-empty" role="status">暂未绑定教练，分配后可跟进</p>
+      ) : (
+        <>
+          <label htmlFor="admin-followup-status">Admin 跟进状态</label>
+          <select id="admin-followup-status" value={status} onChange={(event) => setStatus(event.target.value as AdminFollowupStatus)}>
+            {ADMIN_FOLLOWUP_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
+          <label htmlFor="admin-followup-note">Admin 跟进备注</label>
+          <textarea id="admin-followup-note" maxLength={1000} value={note} onChange={(event) => setNote(event.target.value)} />
+          <button type="button" className="admin-secondary" disabled={busy} onClick={() => void save()}>{busy ? "保存中…" : "保存 Admin 跟进"}</button>
+          {notice && <p className="admin-notice" role="status">{notice}</p>}
+          {error && <p className="admin-error" role="alert">{error}</p>}
+        </>
+      )}
     </section>
   );
 }
