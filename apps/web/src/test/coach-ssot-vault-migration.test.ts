@@ -65,7 +65,13 @@ describe("TASK-10.13 教练身份 SSOT 与 Vault 迁移契约", () => {
     ]) {
       expect(functionBody(name)).toMatch(/camp_admins[\s\S]*role\s*=\s*'coach'[\s\S]*is_active/i);
     }
-    expect(functionBody("get_my_code_inventory")).toMatch(/staff_finance_denied/i);
+    const inventory = functionBody("get_my_code_inventory");
+    expect(inventory).not.toMatch(/staff_finance_denied/i);
+    expect(inventory).not.toMatch(/insert\s+into\s+public\.staff_rbac_audit/i);
+    const forbiddenAt = inventory.search(/raise\s+exception\s+'FORBIDDEN'/i);
+    const vaultAt = inventory.search(/vault\.decrypted_secrets/i);
+    expect(forbiddenAt).toBeGreaterThanOrEqual(0);
+    expect(vaultAt).toBeGreaterThan(forbiddenAt);
     expect(functionBody("admin_get_coach_directory")).toMatch(/a\.role\s*=\s*'admin'/i);
   });
 

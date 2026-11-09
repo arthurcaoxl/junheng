@@ -221,9 +221,9 @@
 
 1. `camp_admins.role` 仅允许 `admin / coach / staff`，并增加 `version / updated_at / updated_by` 支持乐观并发与审计；历史 Admin 白名单回填与 Vault 密钥读取保持不变。staff 只能由有效 Admin 通过 RPC 授予、停用或恢复，不能把已有 admin/coach 行改写为 staff，也不能凭邮箱或前端声明自助提权。coach 只能经 `admin_set_coach_role` 或后续获批的晋升事务写入，不能把已有 admin/staff 行改写为 coach。
 2. `staff_coach_assignment` 保存员工与教练的分配历史。创建分配要求目标 staff 有效、目标教练具有有效 `camp_admins.role = 'coach'` 角色行，并校验 `expectedVersion` 与 `idempotencyKey`；撤销立即结束有效期并递增版本。浏览器角色对角色表、分配表、命令表与审计表无直写权限。
-3. Admin 员工管理区只调用 `admin_get_staff_directory / admin_set_staff_role / admin_assign_staff_coach / admin_revoke_staff_coach`。所有管理 RPC 在服务端以 `auth.uid()` 验证有效 Admin，越权、角色变化、分配变化均追加审计；审计不记录体验官明细、联系方式或财务金额。
+3. Admin 员工管理区只调用 `admin_get_staff_directory / admin_set_staff_role / admin_assign_staff_coach / admin_revoke_staff_coach`。所有管理 RPC 在服务端以 `auth.uid()` 验证有效 Admin，成功的角色变更与分配变更均追加审计；拒绝异常不承诺审计落库，不得在异常回滚前写入虚假的拒入审计。审计不记录体验官明细、联系方式或财务金额。
 4. `get_coach_radar_v1` 对 staff 仅返回当前有效分配教练名下的五字段脱敏雷达，仍由服务端 `auth.uid()` 决定范围，不接受 coach、staff、体验官或分页范围参数。分配撤销、staff 停用或用户转移后，新请求立即失去对应数据。
-5. `get_my_access_profile` 仅返回当前有效角色及 `can_view_radar / can_manage_inventory` 两个界面能力。前端据此隐藏员工不可见模块，但隐藏不是授权；staff 调用 `get_my_code_inventory` 必须由服务端以 `FORBIDDEN` 拒绝并追加审计，其他 Admin RPC 继续独立鉴权。
+5. `get_my_access_profile` 仅返回当前有效角色及 `can_view_radar / can_manage_inventory` 两个界面能力。前端据此隐藏员工不可见模块，但隐藏不是授权；staff 调用 `get_my_code_inventory` 必须由服务端在读取 Vault 前以 `FORBIDDEN` 拒绝，该拒绝异常不承诺审计落库，其他 Admin RPC 继续独立鉴权。
 6. 既有 `admin_checkin_overview` 与 `checkin_sync` Admin 直读策略必须同时限定有效 `role = 'admin'` 的认证主体，防止 staff 借历史白名单策略读取体验官记录。
 7. 员工分配沿用 `staff-role-permissions-v1.md` 的非阻断软容量口径：超过 5 名教练或 150 名当前体验官仍允许成功，返回 `STAFF_CAPACITY_WARNING`、在 Admin 显示红字并追加容量警告与治理跟进审计，不得将其实现为硬限制。
 
@@ -240,7 +240,7 @@
 2. **受控写入**：`admin_set_coach_role(p_email, p_is_active, p_expected_version, p_idempotency_key)` 仅有效 Admin 可调用。新建要求版本 0，已有行必须精确匹配版本；同一幂等键、命令类型、载荷与调用者可重放原结果，异载荷或异调用者返回 `IDEMPOTENCY_CONFLICT`。创建、变更、停用均递增版本并写成功审计；已有 admin/staff 行或其他认证主体占用行返回 `ROLE_ASSIGNMENT_CONFLICT`，不得降成 coach。
 3. **存量安全回填**：迁移为当前有效关系中的教练创建或同步有效 coach 角色行，已有停用 coach 行恢复有效，保证存量教练不断权；已有 admin/staff 角色行保持不变，认证主体或规范化邮箱被其他角色占用时跳过，不自动降权或抢占身份。`SystemConfig.platform_official_account_id` 指向的平台官方账号即使持有当前归属关系，也不得被回填为 coach。
 4. **空盘教练**：没有当前营员的新教练仍可被 Admin 目录搜索、staff 分配、码池划拨、审核选择与补货申请，并可读取本人 `get_my_access_profile`、空雷达和空云库存。`admin_get_coach_directory` 联系方式仍仅向有效 Admin 返回；普通用户、coach、staff 均不能枚举该目录。
-5. **最小权限**：coach 只能读取或操作本人当前营员、本人库存与本人跟进；staff 继续只读当前有效分配范围内的五字段雷达，不能读取教练目录或云库存。角色停用后，新请求立即失去 coach 能力，但历史归属、激活与审计事实不改写。
+5. **最小权限**：coach 只能读取或操作本人当前营员、本人库存与本人跟进；staff 继续只读当前有效分配范围内的五字段雷达，不能读取教练目录或云库存。staff 的云库存 `FORBIDDEN` 拒绝不得写入随后必然回滚的 `staff_finance_denied` 审计；只有成功 RBAC 变更才审计。角色停用后，新请求立即失去 coach 能力，但历史归属、激活与审计事实不改写。
 6. **Vault 全链路收口**：所有最新生效且需要 `box_code_pepper` 的 RPC 必须从 `vault.decrypted_secrets` 按 `name = 'box_code_pepper'` 读取，不再读取 `current_setting('app.box_code_pepper')`。覆盖生成、手动申请、旧激活函数、待审列表、审核补发、云库存与教练直推；密钥缺失或为空时统一抛出或返回 `BOX_CODE_PEPPER_NOT_CONFIGURED`，不得回退 GUC 或泄露密钥。保留各函数原签名、事务边界、授权状态与业务语义。
 
 ## CSV 导出

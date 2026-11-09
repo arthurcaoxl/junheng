@@ -935,7 +935,7 @@ begin
 end;
 $function$;
 
--- staff 拒绝与审计保留；其他非 coach 也不能读取云库存。
+-- staff 必须先于 Vault 读取被拒绝；其他非 coach 也不能读取云库存。
 create or replace function public.get_my_code_inventory()
 returns jsonb
 language plpgsql
@@ -956,12 +956,6 @@ begin
     select 1 from public.camp_admins a
     where a.auth_user_id = v_auth_user_id and a.role = 'staff'
   ) then
-    insert into public.staff_rbac_audit (
-      action, actor_id, target_id, target_role, result, reason_code
-    ) values (
-      'staff_finance_denied', v_auth_user_id, v_auth_user_id, 'staff',
-      'denied', 'FORBIDDEN'
-    );
     raise exception 'FORBIDDEN' using errcode = '42501';
   end if;
 

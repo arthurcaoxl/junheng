@@ -362,6 +362,12 @@ select test.assert_true(
 
 select set_config('app.test_auth_uid', '00000000-0000-0000-0000-000000000006', false);
 select test.assert_raises('FORBIDDEN', 'select public.get_my_code_inventory()');
+select test.assert_true(
+  (select count(*) = 0 from public.staff_rbac_audit
+   where actor_id = '00000000-0000-0000-0000-000000000006'
+     and action = 'staff_finance_denied'),
+  'staff inventory denial should not persist a rolled-back audit row'
+);
 select test.assert_raises('FORBIDDEN', 'select * from public.admin_get_coach_directory(''new-coach'')');
 select test.assert_true(
   (select count(*) = 1 from public.get_coach_radar_v1()),
@@ -382,4 +388,4 @@ select test.assert_raises('FORBIDDEN', 'select public.get_my_code_inventory()');
 select test.assert_raises('FORBIDDEN', 'select public.request_coach_restock_v1(''after deactivate'')');
 select test.assert_raises('FORBIDDEN', 'select * from public.get_coach_campers_v1()');
 
-select 'PASS: coach SSOT and Vault behavior (46 assertions)' as result;
+select 'PASS: coach SSOT and Vault behavior (47 assertions)' as result;
