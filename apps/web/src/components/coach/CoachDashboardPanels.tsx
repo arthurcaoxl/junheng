@@ -89,36 +89,31 @@ function CoachMetricTable({ rows }: { rows: WorkbenchRow[] }) {
   );
 }
 
-<<<<<<< HEAD
-export default function CoachDashboardPanels() {
-  const [rows, setRows] = useState<WorkbenchRow[]>([]);
-  const [campers, setCampers] = useState<CoachCamper[]>([]);
-=======
 export default function CoachDashboardPanels({ onRole }: { onRole?: (role: AccessProfile["role"]) => void }) {
   const [rows, setRows] = useState<CoachRadarRow[]>([]);
+  const [campers, setCampers] = useState<CoachCamper[]>([]);
   const [profile, setProfile] = useState<AccessProfile | null>(null);
->>>>>>> c3e2384 (feat(task-10.12): add admin terminology and rbac)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let alive = true;
-<<<<<<< HEAD
-    Promise.all([fetchCoachRadar(), fetchCoachCampers()]).then(([radar, nextCampers]) => {
-      if (!alive) return;
-      const radarByCode = new Map(radar.map((row) => [row.camperCode, row]));
-      setCampers(nextCampers);
-      setRows(nextCampers.flatMap((camper) => {
-        const metrics = radarByCode.get(camper.camperCode);
-        return metrics ? [{ ...metrics, ...camper }] : [];
-      }));
-=======
-    Promise.all([fetchMyAccessProfile(), fetchCoachRadar()]).then(([access, radar]) => {
+    Promise.all([fetchMyAccessProfile(), fetchCoachRadar(), fetchCoachCampers()]).then(([access, radar, nextCampers]) => {
       if (!alive) return;
       setProfile(access);
       onRole?.(access.role);
-      setRows(access.canViewRadar ? radar : []);
->>>>>>> c3e2384 (feat(task-10.12): add admin terminology and rbac)
+      
+      if (access.canViewRadar) {
+        const radarByCode = new Map(radar.map((row) => [row.camperCode, row]));
+        setCampers(nextCampers);
+        setRows(nextCampers.flatMap((camper) => {
+          const metrics = radarByCode.get(camper.camperCode);
+          return metrics ? [{ ...metrics, ...camper }] : [];
+        }));
+      } else {
+        setRows([]);
+        setCampers([]);
+      }
     }).catch((cause: unknown) => {
       if (alive) setError(cause instanceof Error ? cause.message : "雷达读取失败，请稍后重试。");
     }).finally(() => {
@@ -165,19 +160,12 @@ export default function CoachDashboardPanels({ onRole }: { onRole?: (role: Acces
         )}
       </div>
       <aside className="coach-dashboard-side">
-<<<<<<< HEAD
+      {profile?.canManageInventory && (
         <section className="admin-block coach-dashboard-panel" aria-labelledby="coach-inventory-title">
           <h2 id="coach-inventory-title">教练云仓库存</h2>
           <CoachCodeInventory campers={campers} />
         </section>
-=======
-        {profile?.canManageInventory && (
-          <section className="admin-block coach-dashboard-panel" aria-labelledby="coach-inventory-title">
-            <h2 id="coach-inventory-title">教练云仓库存</h2>
-            <CoachCodeInventory />
-          </section>
-        )}
->>>>>>> c3e2384 (feat(task-10.12): add admin terminology and rbac)
+      )}
         <section className="admin-block coach-dashboard-panel coach-quarter-card" aria-labelledby="coach-quarter-title">
           <h2 id="coach-quarter-title">季度推荐提醒</h2>
           <strong>Q{quarter} 服务复盘</strong>
