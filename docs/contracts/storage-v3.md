@@ -265,6 +265,15 @@
 7. **库存与写能力 fail-closed**：准教练调用 `get_my_code_inventory / generate_platform_codes / allocate_codes_to_coach / coach_push_code_v1 / request_coach_restock_v1` 必须在服务端角色与晋升状态校验处、读取 Vault 或业务目标之前以 `FORBIDDEN` 拒绝。Admin 划拨与平台发码仍需有效 Admin；正式 coach 的本人库存、直推与补货行为保持原契约。不得仅凭前端隐藏或 `get_my_access_profile` 的显示值授权。
 8. **审计与权限**：既有 `audit_logs.action` 扩展 `coach_promotion_requested / coach_promotion_approved / coach_promotion_rejected / coach_promotion_promoted`，继续 append-only；晋升审计保存基数、当前真实直推数和配置快照，不含码面或原始健康记录。新 RPC 均 `SECURITY DEFINER` 且固定 `search_path = public, pg_temp`，内部辅助函数与触发器不对浏览器角色授权；公开 RPC 撤销 `public / anon` 执行权，仅按需授予 `authenticated`。
 
+## 三端激活回读、教练在审与营期状态（TASK-10.13-UX-FLOW-FIX 增量）
+
+本增量只新增只读 RPC 并扩展雷达返回维度，不改变双路径申请、Admin 唯一终审、库存扣减、本机 v3 或既有激活状态机。
+
+1. **本人激活状态**：`get_my_activation_status()` 无参数、返回单个 JSON 对象，仅以服务端 `auth.uid()` 读取本人 `created_at` 最新（同刻以 `activation_id` 决胜）的 `code_activations`。固定返回 `state / requested_at / rejection_hint` 三字段：无申请时为 `{"state":"none","requested_at":null,"rejection_hint":null}`；有申请时 `state` 按审核事实映射为 `pending_review / active / rejected`，`requested_at` 为该申请 `created_at`，仅 rejected 时 `rejection_hint = 'contact_coach'`，其余状态为 `null`。匿名以 `UNAUTHORIZED` 拒绝；不得返回码面、code/activation ID、审核人、内部拒绝原因码或他人数据。拒绝历史保持不可变，既有入口允许使用新的可用码重新申请；新 pending 成为最新行后状态自然收敛为 `pending_review`，不额外改写旧行。
+2. **教练本人在审列表**：`get_coach_pending_reviews()` 无参数、只读返回 `code_id / code / camper_code / requested_at / entry_path`。调用者必须先由 `camp_admins` 中本人有效 `role = 'coach'` 行鉴权，再读取 Vault `box_code_pepper` 解密码面；匿名返回 `UNAUTHORIZED`，其他角色（含 staff、Admin、准教练和失效 coach）返回 `FORBIDDEN`，密钥缺失沿用 `BOX_CODE_PEPPER_NOT_CONFIGURED`。仅选择 `box_codes.coach_id = auth.uid()`、`inventory_status = 'coach'` 且码与申请均为 pending 的行；`entry_path` 直接取不可变 `request_source`，同时覆盖 `manual_code / coach_push`。`camper_code` 取服务端申请行（手动申请源于本人云端快照、直推源于当前关系），不连接或返回认证 UID、邮箱、原始健康数据、审核信息或其他教练数据。
+3. **雷达营期状态**：`get_coach_radar_v1()` 与 `get_coach_radar_v1(p_scope)` 在原五字段后新增 `cycle_state`，原字段顺序、灯号优先级、Admin/coach/staff/准教练权限与脱敏边界不变。函数从 `system_configs.max_checkins_per_box` 读取正整数营期天数，缺失或非法时以 `SYSTEM_CONFIG_MISSING` fail-closed，不新增字面值阈值；窗口结束日为 `start_date + 营期天数 - 1`。服务端 `Asia/Shanghai` 当前日期已超过窗口结束日，且不存在本人已激活且码状态为 active 的 recharge 事实时，返回 `cycle_complete_pending_renewal`，其余为 `in_cycle`。该维度与原断卡灯号独立：满期待续费优先保持红灯，窗口内漏打卡仍只由 `alert_level` 表达，前端不得自行推算。
+4. **最小权限**：三个新公开入口及两个雷达重载均为 `STABLE SECURITY DEFINER`，固定 `search_path = public, pg_temp`，撤销 `public / anon` 执行权，仅授予 `authenticated`；函数内仍独立鉴权。不得向浏览器角色新增 `code_activations / box_codes / vault` 直读权限。迁移只新增或替换最新函数，不改写历史迁移。
+
 ## CSV 导出
 
 文件为 UTF-8 with BOM、逗号分隔、LF 换行，末尾保留换行。记录按 `record_date` 升序，只包含有内容日期。
