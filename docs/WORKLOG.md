@@ -3,11 +3,11 @@
 handoff_snapshot:
   current_core_version: "CORE-v1.13.3"
   current_biz_version: "BIZ-V1.5"
-  active_task: "None"
-  task_status: "Awaiting Assignment"
-  last_merged_commit: "5f1a9d7"
-  test_baseline: "56 文件 / 385 项全绿"
-  handoff_notes: "TASK-10.10 已合并（带 P2 技术债，运行时四项冒烟待补）；产品有效期 expires_at 已入 [BIZ-V1.5] 第七节 Backlog（P1），待裁判终裁后转正式任务派工；部署 10.9 托管功能前必须向 system_configs 播种 platform_official_account_id。"
+  active_task: "TASK-10.12-UI-DEBT"
+  task_status: "Local implementation complete; awaiting referee merge and database validation"
+  last_merged_commit: "cad348c"
+  test_baseline: "67 文件 / 437 项全绿"
+  handoff_notes: "10.12 剩余 14 项 UI/UX 体验债已在 feat/task-10.12-ui-debt 完成本地集成，三模块独立提交及两项审查修复均已收口；未 push、未执行 SQL。两个迁移在真实 Supabase 空库与升级库的迁移、staff 越权、审计、幂等与并发验证仍是上线前置条件。"
 
 # 项目接力工作日志 (WORKLOG)
 
@@ -105,3 +105,47 @@ handoff_snapshot:
 15. [UI/文案] 全局术语统一：所有“码池”文案改为“产品激活码库”；“已备份体验官”改为“体验官”。
 16. [Feature] 教练搜索信息扩展：搜索下拉框需显示（邮箱、姓名、手机号）。
 17. [Feature] 员工管理区：Admin 新增独立 Tab“员工管理区”，用于管理员工权限（RBAC），控制其可看/可操作的界面。
+
+## TASK-10.12-UI-DEBT：剩余 14 项体验债开发完成（待裁判合并）
+
+本地集成分支：`feat/task-10.12-ui-debt`；起始基线 `cad348c`（与已验收 P0 提交 `c92f833` 树对象一致）。以下第 4–17 项均已完成代码实现与自动化验收；本记录不代表已合并 main、已执行迁移或已上线。
+
+### 用户端模块
+
+- 独立提交：`5ee4178 feat(task-10.12): refine user experience`。
+- [已修复-4] 打卡页改为轻量徽章与“体验官专属代码”，精简说明。
+- [已修复-5] 免责声明缩小并合并至用户中心标题区。
+- [已验证-6] 账号安全下移已包含在起始基线中，本次未重复修改。
+- [已验证-7] Admin 未挂载 21 天 Banner，并新增边界测试防止回归。
+
+### 教练端模块
+
+- 独立提交：`65f8317 feat(task-10.12): complete coach workflows`。
+- [已修复-8] 本人体验官列表按 `auth.uid()` 与当前有效教练关系过滤。
+- [已修复-9] 教练端与 Admin 跟进备注带权限与版本控制；未绑定教练时 Admin 显示不可编辑空态。
+- [已修复-10] 零库存补货申请进入 Admin 处理列表。
+- [已修复-11] 直推仅限本人库存和名下用户，仅创建人工审核，不直接激活或扣库存。
+- [已修复-12] 用户列表区分新注册、活跃与休眠口径。
+- [已修复-13] D21 数据窗口、图表点集和 X 轴刻度完成对齐。
+- [已修复-14] 无真实营员时展示明确标识的虚构 Demo，不进入真实统计或写 RPC。
+
+### Admin 模块
+
+- 独立提交：`c3e2384 feat(task-10.12): add admin terminology and rbac`。
+- [已修复-15] 用户可见术语统一为“产品激活码库”和“体验官”。
+- [已修复-16] 教练搜索在有效 Admin 鉴权后展示邮箱、姓名和手机号。
+- [已修复-17] 新增员工管理 Tab、后端 RBAC、有效分配约束、成功变更审计及 staff 云仓禁入。
+
+### 集成审查与修复
+
+- `3ca417c`：五个教练 RPC 在敏感读取前显式拒绝 staff；教练迁移版本调整为 `20261109121000_coach_workflows.sql`，与 Admin 迁移版本唯一且有序。
+- `2bbdc42`：删除同事务内会被异常回滚的虚假拒绝审计；契约明确仅成功 RBAC 变更持久化审计。
+- 独立只读复审结论：Critical／Important 均已关闭，可以进入裁判合并流程。
+- 非阻断后续：补货列表可补充申请人邮箱；未绑定教练可使用独立原因码，避免与其他权限错误共用提示。
+
+### 验证与上线边界
+
+- 全量测试：67 个文件／437 项全绿，0 失败。
+- 生产构建：TypeScript、Vite 与全部静态深链生成成功。
+- 未 push、未执行 SQL、未连接数据库。
+- 上线前仍须在真实 Supabase 空库与升级库应用 `20261109120000_admin_staff_rbac.sql`、`20261109121000_coach_workflows.sql`，并验证 staff 直接调用 RPC 的拒绝、成功 RBAC 审计、备注并发、补货竞态及直推幂等。
