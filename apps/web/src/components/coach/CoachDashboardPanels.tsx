@@ -67,20 +67,24 @@ function FollowupEditor({ row }: { row: WorkbenchRow }) {
   );
 }
 
-function CoachMetricTable({ rows }: { rows: WorkbenchRow[] }) {
+function isWorkbenchRow(row: CoachRadarRow): row is WorkbenchRow {
+  return "camperRef" in row;
+}
+
+function CoachMetricTable({ rows, showFollowup = false }: { rows: CoachRadarRow[]; showFollowup?: boolean }) {
   return (
     <div className="admin-table-wrap">
       <table className="admin-table coach-dashboard-table">
-        <thead><tr><th>体验官</th><th>体重变化</th><th>腰围变化</th><th>BMI</th><th>状态</th><th>跟进</th></tr></thead>
+        <thead><tr><th>体验官</th><th>体重变化</th><th>腰围变化</th><th>BMI</th><th>状态</th>{showFollowup && <th>跟进</th>}</tr></thead>
         <tbody>
           {rows.map((row) => (
-            <tr key={row.camperRef}>
+            <tr key={isWorkbenchRow(row) ? row.camperRef : row.camperCode}>
               <td>{row.camperCode}</td>
               <td><MetricValue value={row.weightDelta} unit="kg" /></td>
               <td><MetricValue value={row.waistDelta} unit="cm" /></td>
               <td><MetricValue value={row.bmi} /></td>
               <td><span className={`status-tag status-tag--${row.alertLevel}`}>{row.alertLevel === "green" ? "绿灯" : row.alertLevel === "yellow" ? "黄灯" : "红灯"}</span></td>
-              <td><FollowupEditor row={row} /></td>
+              {showFollowup && <td>{isWorkbenchRow(row) && <FollowupEditor row={row} />}</td>}
             </tr>
           ))}
         </tbody>
@@ -89,36 +93,37 @@ function CoachMetricTable({ rows }: { rows: WorkbenchRow[] }) {
   );
 }
 
-<<<<<<< HEAD
-export default function CoachDashboardPanels() {
-  const [rows, setRows] = useState<WorkbenchRow[]>([]);
-  const [campers, setCampers] = useState<CoachCamper[]>([]);
-=======
 export default function CoachDashboardPanels({ onRole }: { onRole?: (role: AccessProfile["role"]) => void }) {
   const [rows, setRows] = useState<CoachRadarRow[]>([]);
+  const [campers, setCampers] = useState<CoachCamper[]>([]);
   const [profile, setProfile] = useState<AccessProfile | null>(null);
->>>>>>> c3e2384 (feat(task-10.12): add admin terminology and rbac)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   useEffect(() => {
     let alive = true;
-<<<<<<< HEAD
-    Promise.all([fetchCoachRadar(), fetchCoachCampers()]).then(([radar, nextCampers]) => {
+    fetchMyAccessProfile().then(async (access) => {
+      const [radar, nextCampers] = await Promise.all([
+        fetchCoachRadar(),
+        access.role === "coach" ? fetchCoachCampers() : Promise.resolve([]),
+      ]);
       if (!alive) return;
-      const radarByCode = new Map(radar.map((row) => [row.camperCode, row]));
+      setProfile(access);
+      onRole?.(access.role);
       setCampers(nextCampers);
+      if (!access.canViewRadar) {
+        setRows([]);
+        return;
+      }
+      if (access.role !== "coach") {
+        setRows(radar);
+        return;
+      }
+      const radarByCode = new Map(radar.map((row) => [row.camperCode, row]));
       setRows(nextCampers.flatMap((camper) => {
         const metrics = radarByCode.get(camper.camperCode);
         return metrics ? [{ ...metrics, ...camper }] : [];
       }));
-=======
-    Promise.all([fetchMyAccessProfile(), fetchCoachRadar()]).then(([access, radar]) => {
-      if (!alive) return;
-      setProfile(access);
-      onRole?.(access.role);
-      setRows(access.canViewRadar ? radar : []);
->>>>>>> c3e2384 (feat(task-10.12): add admin terminology and rbac)
     }).catch((cause: unknown) => {
       if (alive) setError(cause instanceof Error ? cause.message : "雷达读取失败，请稍后重试。");
     }).finally(() => {
@@ -127,32 +132,39 @@ export default function CoachDashboardPanels({ onRole }: { onRole?: (role: Acces
     return () => { alive = false; };
   }, [onRole]);
 
-  const newRows = rows.filter((row) => row.activityStatus === "new_registered");
-  const activeRows = rows.filter((row) => row.activityStatus === "active" && row.alertLevel === "green");
-  const dormantRows = rows.filter((row) => row.activityStatus === "active" && row.alertLevel !== "green");
+  const isStaff = profile?.role === "staff";
+  const newRows = rows.filter((row): row is WorkbenchRow => !isStaff && isWorkbenchRow(row) && row.activityStatus === "new_registered");
+  const activeRows = rows.filter((row) => isStaff
+    ? row.alertLevel === "green"
+    : isWorkbenchRow(row) && row.activityStatus === "active" && row.alertLevel === "green");
+  const dormantRows = rows.filter((row) => isStaff
+    ? row.alertLevel !== "green"
+    : isWorkbenchRow(row) && row.activityStatus === "active" && row.alertLevel !== "green");
   const quarter = Math.floor(new Date().getMonth() / 3) + 1;
 
   return (
     <div className="coach-dashboard-grid">
       <div className="coach-dashboard-main">
         {error && <p className="admin-error" role="alert">{error}</p>}
-        <section className="admin-block coach-dashboard-panel" aria-labelledby="coach-new-title">
-          <div className="admin-block-heading"><h2 id="coach-new-title">新注册用户</h2><span>{newRows.length} 人 · 当前 21 天窗口内尚无有效打卡</span></div>
-          {loading && <p role="status">新注册用户加载中…</p>}
-          {!loading && !error && newRows.length === 0 && <p className="admin-empty">暂无新注册用户。</p>}
-          {newRows.length > 0 && <CoachMetricTable rows={newRows} />}
-        </section>
+        {!isStaff && (
+          <section className="admin-block coach-dashboard-panel" aria-labelledby="coach-new-title">
+            <div className="admin-block-heading"><h2 id="coach-new-title">新注册用户</h2><span>{newRows.length} 人 · 当前 21 天窗口内尚无有效打卡</span></div>
+            {loading && <p role="status">新注册用户加载中…</p>}
+            {!loading && !error && newRows.length === 0 && <p className="admin-empty">暂无新注册用户。</p>}
+            {newRows.length > 0 && <CoachMetricTable rows={newRows} showFollowup={profile?.role === "coach"} />}
+          </section>
+        )}
         <section className="admin-block coach-dashboard-panel" aria-labelledby="coach-active-title">
-          <div className="admin-block-heading"><h2 id="coach-active-title">名下活跃用户</h2><span>{activeRows.length} 人 · 窗口内有有效打卡且当前绿灯</span></div>
+          <div className="admin-block-heading"><h2 id="coach-active-title">名下活跃用户</h2><span>{activeRows.length} 人 · {isStaff ? "当前分配范围内绿灯" : "窗口内有有效打卡且当前绿灯"}</span></div>
           {!loading && !error && activeRows.length === 0 && <p className="admin-empty">暂无绿灯活跃用户。</p>}
-          {activeRows.length > 0 && <CoachMetricTable rows={activeRows} />}
+          {activeRows.length > 0 && <CoachMetricTable rows={activeRows} showFollowup={profile?.role === "coach"} />}
         </section>
         <section className="admin-block coach-dashboard-panel" aria-labelledby="coach-dormant-title">
-          <div className="admin-block-heading"><h2 id="coach-dormant-title">休眠雷达</h2><span>{dormantRows.length} 人 · 已有打卡的红黄灯优先跟进</span></div>
+          <div className="admin-block-heading"><h2 id="coach-dormant-title">休眠雷达</h2><span>{dormantRows.length} 人 · {isStaff ? "当前分配范围内红黄灯优先跟进" : "已有打卡的红黄灯优先跟进"}</span></div>
           {!loading && !error && dormantRows.length === 0 && <p className="admin-empty">暂无红黄灯休眠营员。</p>}
-          {dormantRows.length > 0 && <CoachMetricTable rows={dormantRows} />}
+          {dormantRows.length > 0 && <CoachMetricTable rows={dormantRows} showFollowup={profile?.role === "coach"} />}
         </section>
-        {!loading && !error && campers.length === 0 && (
+        {profile?.role === "coach" && !loading && !error && campers.length === 0 && (
           <section className="admin-block coach-dashboard-panel coach-demo" aria-label="演示数据，非真实统计">
             <p className="admin-eyebrow">DEMO ONLY · 演示数据 / 非真实统计</p>
             <h2>新教练功能引导</h2>
@@ -165,19 +177,12 @@ export default function CoachDashboardPanels({ onRole }: { onRole?: (role: Acces
         )}
       </div>
       <aside className="coach-dashboard-side">
-<<<<<<< HEAD
-        <section className="admin-block coach-dashboard-panel" aria-labelledby="coach-inventory-title">
-          <h2 id="coach-inventory-title">教练云仓库存</h2>
-          <CoachCodeInventory campers={campers} />
-        </section>
-=======
         {profile?.canManageInventory && (
           <section className="admin-block coach-dashboard-panel" aria-labelledby="coach-inventory-title">
             <h2 id="coach-inventory-title">教练云仓库存</h2>
-            <CoachCodeInventory />
+            <CoachCodeInventory campers={campers} />
           </section>
         )}
->>>>>>> c3e2384 (feat(task-10.12): add admin terminology and rbac)
         <section className="admin-block coach-dashboard-panel coach-quarter-card" aria-labelledby="coach-quarter-title">
           <h2 id="coach-quarter-title">季度推荐提醒</h2>
           <strong>Q{quarter} 服务复盘</strong>
