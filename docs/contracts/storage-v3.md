@@ -144,7 +144,7 @@
 - 腰围差使用窗口内最早和最晚有效值；BMI 使用当前 `height_cm` 与当前有效代表体重。数据不足时对应派生字段为 `null`。
 - 有效打卡日期沿用第 2 节 `hasContent` 语义；灯号使用服务端 `Asia/Shanghai` 自然日，未打卡、断卡 3 天及以上为红灯，断卡 2 天为黄灯，其余为绿灯。结营未复购红灯优先级保持不变。
 - 10.5 用户行严格返回 `camper_code / weight_delta / waist_delta / bmi / alert_level` 五字段，不返回 `stage`、身高、原始体重、原始腰围或 `records`。
-- 调用者只取服务端 `auth.uid()`。有效 coach 仅看当前 `referrer_id` 为本人且 `valid_to IS NULL` 的关系；有效 admin 按管理职责查看；其他角色默认无结果。RPC 不接受客户端范围参数。
+- 调用者只取服务端 `auth.uid()`。有效 coach 仅看当前 `referrer_id` 为本人且 `valid_to IS NULL` 的关系；有效 admin 按管理职责查看；其他角色默认无结果。历史无参 RPC 不接受客户端 ID 或任意范围参数；TASK-10.13-CORE-UNLOCK 新增的显式 scope 重载只接受 `own / all`，其准教练与 Admin 权限矩阵以本节后的晋升增量为准。
 
 ## 教练云库存与码池流水（10.8 增量）
 
@@ -251,6 +251,19 @@
 4. **空盘教练**：没有当前营员的新教练仍可被 Admin 目录搜索、staff 分配、码池划拨、审核选择与补货申请，并可读取本人 `get_my_access_profile`、空雷达和空云库存。`admin_get_coach_directory` 联系方式仍仅向有效 Admin 返回；普通用户、coach、staff 均不能枚举该目录。
 5. **最小权限**：coach 只能读取或操作本人当前营员、本人库存与本人跟进；staff 继续只读当前有效分配范围内的五字段雷达，不能读取教练目录或云库存。staff 的云库存 `FORBIDDEN` 拒绝不得写入随后必然回滚的 `staff_finance_denied` 审计；只有成功 RBAC 变更才审计。角色停用后，新请求立即失去 coach 能力，但历史归属、激活与审计事实不改写。
 6. **Vault 全链路收口**：所有最新生效且需要 `box_code_pepper` 的 RPC 必须从 `vault.decrypted_secrets` 按 `name = 'box_code_pepper'` 读取，不再读取 `current_setting('app.box_code_pepper')`。覆盖生成、手动申请、旧激活函数、待审列表、审核补发、云库存与教练直推；密钥缺失或为空时统一抛出或返回 `BOX_CODE_PEPPER_NOT_CONFIGURED`，不得回退 GUC 或泄露密钥。保留各函数原签名、事务边界、授权状态与业务语义。
+
+## 教练晋升状态机与准教练权限（TASK-10.13-CORE-UNLOCK 增量）
+
+本增量只扩展服务端晋升档案与受控 RPC，不改变本机 v3、打卡扣次、双路径激活、教练身份 SSOT 或 Vault 口径。21 / 8 为裁判终裁播种值，仍由 RPC 和触发器从 `system_configs` 动态读取；配置缺失、非整数或不大于零时以 `SYSTEM_CONFIG_MISSING` fail-closed，客户端不得传入阈值或打卡天数。
+
+1. **档案与配置**：`coach_promotions` 每次申请一行，字段为 `promotion_id / auth_user_id / state / checkin_days_snapshot / recruit_baseline / decided_by / decided_at / rejection_reason_code / version / created_at / updated_at`。物理状态仅允许 `promotion_pending / promotion_rejected / probational_coach / coach`；无档案时本人查询返回虚拟状态 `camper`。部分唯一索引保证同一用户最多一条 `promotion_pending`，且最多一条 `probational_coach / coach` 当前档案；拒绝行永久保留，允许另开新申请。
+2. **有效打卡**：`request_coach_promotion()` 不接受业务参数，以 `auth.uid()` 为申请人，按 `checkin_daily_claims.physical_day` 去重，并连接本人已批准、已激活的 `code_activations`、active 盒码及正数扣次证据计算有效天数。达到 `coach_promotion_required_checkins` 才插入 pending 并写 `coach_promotion_requested` 审计；不足时以 `PROMOTION_CHECKINS_INSUFFICIENT` 拒绝。已有 pending 幂等返回原单，按用户咨询锁与唯一索引防并发重复；已有准教练或正式教练档案不得另开申请。
+3. **本人只读**：`get_my_coach_promotion()` 只按服务端 `auth.uid()` 返回最新本人状态、申请 ID、打卡快照、直推基数、拒绝原因码、版本与时间，不返回审核人或其他用户档案。匿名调用以 `UNAUTHORIZED` 拒绝；表启用 RLS，`anon / authenticated` 对档案与审计表无直接读写权限。
+4. **Admin 审核**：`admin_review_coach_promotion(p_promotion_id uuid, p_decision text, p_expected_version integer, p_reason_code text default null)` 仅允许有效 `camp_admins.role='admin'`。函数锁定 pending 行并校验版本；`approve` 时重新计算有效打卡并快照当前真实直推基数，原子写入 `probational_coach` 与 `coach_promotion_approved` 审计；`reject` 必须提供非空原因码，原子写入 `promotion_rejected` 与 `coach_promotion_rejected` 审计。非 Admin、重复审核、版本冲突及缺失原因分别失败，不得由申请人自助审批。
+5. **真实直推与自动晋升**：当前关系必须满足 `referrer_id = 准教练本人 AND valid_to IS NULL`，且营员、来源码、已批准并实际激活的申请及 active 盒码一致。历史关闭、pending / rejected / 未激活、间接关系、自我关系及 `platform_official_account_id` 指向的平台账号均不计数。关系写入后的受控触发器按申请人咨询锁和档案行锁串行化，仅处理 `probational_coach`；当 `当前真实直推数 - recruit_baseline >= probational_coach_required_recruits` 时，在同一事务把档案推进 `coach`、创建或恢复有效 `camp_admins(role='coach')` 并追加 `coach_promotion_promoted` 审计。任一步失败整体回滚；不得写入 `coach_lifecycles`，不得误晋升普通营员、staff、Admin 或其他非准教练。
+6. **准教练雷达与趋势**：`get_coach_radar_v1(p_scope text)` 与既有无参兼容入口允许准教练读取本人当前名下五字段雷达；显式 `own` 与无参结果一致。`get_coach_camp_trends_v1('own')` 允许准教练读取同一当前关系的 21 点聚合。两种接口的 `all` 对准教练均以 `FORBIDDEN` 拒绝，其他 scope 以 `INVALID_SCOPE` 拒绝；Admin 的 all、正式 coach 的既有趋势 all 及 staff 的分配范围不回归。
+7. **库存与写能力 fail-closed**：准教练调用 `get_my_code_inventory / generate_platform_codes / allocate_codes_to_coach / coach_push_code_v1 / request_coach_restock_v1` 必须在服务端角色与晋升状态校验处、读取 Vault 或业务目标之前以 `FORBIDDEN` 拒绝。Admin 划拨与平台发码仍需有效 Admin；正式 coach 的本人库存、直推与补货行为保持原契约。不得仅凭前端隐藏或 `get_my_access_profile` 的显示值授权。
+8. **审计与权限**：既有 `audit_logs.action` 扩展 `coach_promotion_requested / coach_promotion_approved / coach_promotion_rejected / coach_promotion_promoted`，继续 append-only；晋升审计保存基数、当前真实直推数和配置快照，不含码面或原始健康记录。新 RPC 均 `SECURITY DEFINER` 且固定 `search_path = public, pg_temp`，内部辅助函数与触发器不对浏览器角色授权；公开 RPC 撤销 `public / anon` 执行权，仅按需授予 `authenticated`。
 
 ## CSV 导出
 
