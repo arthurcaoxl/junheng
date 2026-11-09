@@ -79,6 +79,15 @@ describe("码池服务与界面", () => {
     expect(allocateCodesToCoach).toHaveBeenCalledWith("coach-uuid", 12);
   });
 
+  it("Vault pepper 未配置时云仓显示系统维护中而不是通用码池错误", async () => {
+    (getSupabase().rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: null,
+      error: { message: "BOX_CODE_PEPPER_NOT_CONFIGURED" },
+    });
+
+    await expect(fetchMyCodeInventory()).rejects.toThrow("系统维护中，请稍后重试。");
+  });
+
   it("教练端列出未激活码并复制码面", async () => {
     const user = userEvent.setup();
     const writeText = vi.fn().mockResolvedValue(undefined);

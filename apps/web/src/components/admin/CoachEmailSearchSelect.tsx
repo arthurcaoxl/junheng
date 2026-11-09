@@ -12,20 +12,30 @@ type Props = {
 export default function CoachEmailSearchSelect({ id, label, selectedId, disabled = false, onSelect }: Props) {
   const [query, setQuery] = useState("");
   const [options, setOptions] = useState<AdminCoachDirectoryEntry[]>([]);
+  const [searchCompleted, setSearchCompleted] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
     const keyword = query.trim();
     if (selectedId || keyword.length < 2) {
       setOptions([]);
+      setSearchCompleted(false);
       return;
     }
     let alive = true;
     const timer = window.setTimeout(() => {
       fetchAdminCoachDirectory(keyword).then((rows) => {
-        if (alive) setOptions(rows);
+        if (alive) {
+          setOptions(rows);
+          setSearchCompleted(true);
+          setError("");
+        }
       }).catch((cause: unknown) => {
-        if (alive) setError(cause instanceof Error ? cause.message : "教练邮箱搜索失败。");
+        if (alive) {
+          setOptions([]);
+          setSearchCompleted(false);
+          setError(cause instanceof Error ? cause.message : "教练邮箱搜索失败。");
+        }
       });
     }, 120);
     return () => {
@@ -50,12 +60,17 @@ export default function CoachEmailSearchSelect({ id, label, selectedId, disabled
         disabled={disabled}
         onChange={(event) => {
           setQuery(event.target.value);
+          setOptions([]);
+          setSearchCompleted(false);
           setError("");
           onSelect(null);
         }}
       />
       {selectedId && query && <small className="admin-hint">已选择 {query}</small>}
       {error && <p className="admin-error" role="alert">{error}</p>}
+      {searchCompleted && !selectedId && !error && options.length === 0 && (
+        <p className="admin-hint" role="status">无匹配教练</p>
+      )}
       {options.length > 0 && (
         <ul id={`${id}-options`} role="listbox" className="coach-email-options" aria-label={`${label}搜索结果`}>
           {options.map((coach) => (
@@ -68,6 +83,7 @@ export default function CoachEmailSearchSelect({ id, label, selectedId, disabled
                   onSelect(coach);
                   setQuery(coach.email);
                   setOptions([]);
+                  setSearchCompleted(false);
                 }}
               >
                 {coach.email}

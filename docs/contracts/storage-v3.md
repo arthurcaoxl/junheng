@@ -156,6 +156,7 @@
 4. 码面仅以服务端密钥加密后的 `code_ciphertext` 保存；表权限继续对客户端关闭。教练只能通过 `get_my_code_inventory` 读取本人 `unused` 且已划拨码的解密码面，其他角色与其他教练的码不得返回。
 5. `activate_box_code` 在既有码、激活申请和归属锁之后锁定教练库存行；教练码激活时必须同步扣减一个可用库存并追加流水，库存不存在或不足时以 `INVENTORY_INSUFFICIENT` 整体回滚。历史平台码没有库存行时不得伪造教练扣减。
 6. 多表写锁顺序遵循 [BIZ-V1.2]：`box_codes` → `code_activations` → `user_coach_relation` → `coach_inventory`；所有 RPC 由数据库函数提供单事务原子性。
+7. **TASK-10.12-P0 配置适配**：`get_my_code_inventory` 必须从 `vault.decrypted_secrets` 按名称 `box_code_pepper` 读取解密密钥，不再读取 `current_setting('app.box_code_pepper')`。密钥缺失或为空时抛出独立错误码 `BOX_CODE_PEPPER_NOT_CONFIGURED`，前端统一显示“系统维护中，请稍后重试。”；仓库、前端和错误响应不得包含密钥。
 
 ## 服务教练联系方式（TASK-10.12 增量）
 
@@ -168,6 +169,8 @@
 1. `admin_get_coach_directory(p_query)` 仅允许服务端 `auth.uid()` 对应的有效 `camp_admins.role = 'admin'` 调用；查询至少 2 个字符，仅搜索有效教练邮箱，最多返回 10 条 `coach_id / email`。浏览器不得直读 `camp_admins`，RPC 不返回健康原始记录、手机号或微信号。
 2. 管理端划拨与人工审核只通过邮箱搜索选择教练，选中后由前端提交服务端返回的 `coach_id`，页面不展示或要求手填 UUID；服务端仍须独立校验管理员权限与教练有效状态，不信任前端选择结果。
 3. `admin_review_box_code_activation_v2` 在原有原子审核事务前接收 `p_target_coach_id`，要求其为有效教练且与待审核产品码当前 `box_codes.coach_id` 一致，否则以 `COACH_SELECTION_MISMATCH` 拒绝。审核凭证、乐观版本与原审核状态机保持不变；本包装不提供任意改派归属能力。
+4. **TASK-10.12-P0 统一教练口径**：目录搜索、`allocate_codes_to_coach` 与审核 v2 均以 `user_coach_relation` 中 `referrer_id = 目标教练 AND valid_to IS NULL` 的当前有效关系证明教练身份，不再依赖 `camp_admins.role = 'coach'` 播种，也不得仅凭 `auth.users` 存在即认定为教练。目录无结果属于正常空态，前端显示“无匹配教练”，不得作为 RPC 错误展示红字。
+5. **历史白名单回填**：迁移在事务内通过规范化邮箱连接 `auth.users`，仅为 `camp_admins.auth_user_id IS NULL` 的历史行回填认证主体；跳过已被其他角色行占用的认证主体，未匹配行继续保持 NULL 和无业务权限。客户端不得执行裸 UPDATE，角色本身不得因回填自动变更。
 
 ## CSV 导出
 
