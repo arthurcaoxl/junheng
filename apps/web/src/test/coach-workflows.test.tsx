@@ -24,6 +24,9 @@ const camperRows = [
 function mockRpc(overrides: Record<string, { data: unknown; error: unknown }> = {}) {
   (getSupabase().rpc as ReturnType<typeof vi.fn>).mockImplementation((name: string) => {
     if (name in overrides) return Promise.resolve(overrides[name]);
+    if (name === "get_my_access_profile") return Promise.resolve({
+      data: [{ role: "coach", can_view_radar: true, can_manage_inventory: true }], error: null,
+    });
     if (name === "get_coach_radar_v1") return Promise.resolve({ data: radarRows, error: null });
     if (name === "get_coach_campers_v1") return Promise.resolve({ data: camperRows, error: null });
     if (name === "get_my_code_inventory") return Promise.resolve({ data: { availableCount: 0, restockPoint: 12, needsRestock: true, codes: [] }, error: null });
@@ -199,5 +202,19 @@ describe("Admin 体验官跟进", () => {
       p_expected_version: 0,
     });
     expect(dialog).not.toHaveTextContent("private-camper-uid");
+  });
+
+  it("未绑定教练时显示不可编辑空态，不渲染表单或红字权限错误", async () => {
+    mockRpc({
+      admin_get_camper_followup_v1: { data: null, error: { code: "42501", message: "FORBIDDEN" } },
+    });
+    render(<CamperDrawer camper={camper} onClose={() => {}} />);
+
+    expect(await screen.findByText("暂未绑定教练，分配后可跟进")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Admin 跟进状态")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Admin 跟进备注")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "保存 Admin 跟进" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(getSupabase().rpc).not.toHaveBeenCalledWith("admin_set_camper_followup_v1", expect.anything());
   });
 });
