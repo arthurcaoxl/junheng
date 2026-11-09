@@ -243,6 +243,15 @@
 5. **最小权限**：coach 只能读取或操作本人当前营员、本人库存与本人跟进；staff 继续只读当前有效分配范围内的五字段雷达，不能读取教练目录或云库存。staff 的云库存 `FORBIDDEN` 拒绝不得写入随后必然回滚的 `staff_finance_denied` 审计；只有成功 RBAC 变更才审计。角色停用后，新请求立即失去 coach 能力，但历史归属、激活与审计事实不改写。
 6. **Vault 全链路收口**：所有最新生效且需要 `box_code_pepper` 的 RPC 必须从 `vault.decrypted_secrets` 按 `name = 'box_code_pepper'` 读取，不再读取 `current_setting('app.box_code_pepper')`。覆盖生成、手动申请、旧激活函数、待审列表、审核补发、云库存与教练直推；密钥缺失或为空时统一抛出或返回 `BOX_CODE_PEPPER_NOT_CONFIGURED`，不得回退 GUC 或泄露密钥。保留各函数原签名、事务边界、授权状态与业务语义。
 
+## 教练身份 SSOT 与 Pepper Vault（TASK-10.13 增量）
+
+1. **唯一身份来源**：`camp_admins` 中 `role = 'coach' AND is_active AND auth_user_id IS NOT NULL` 是“谁是教练”的唯一事实源；`user_coach_relation` 只回答“谁名下有哪些当前营员”。目录、划拨、staff 分配、审核、补货、雷达、权限档案、云库存、营员列表、跟进与直推不得再以当前学员数或 `auth.users` 存在代替教练身份。
+2. **受控写入**：`admin_set_coach_role(p_email, p_is_active, p_expected_version, p_idempotency_key)` 仅有效 Admin 可调用。新建要求版本 0，已有行必须精确匹配版本；同一幂等键、命令类型、载荷与调用者可重放原结果，异载荷或异调用者返回 `IDEMPOTENCY_CONFLICT`。创建、变更、停用均递增版本并写成功审计；已有 admin/staff 行或其他认证主体占用行返回 `ROLE_ASSIGNMENT_CONFLICT`，不得降成 coach。
+3. **存量安全回填**：迁移为当前有效关系中的教练创建或同步有效 coach 角色行，已有停用 coach 行恢复有效，保证存量教练不断权；已有 admin/staff 角色行保持不变，认证主体或规范化邮箱被其他角色占用时跳过，不自动降权或抢占身份。`SystemConfig.platform_official_account_id` 指向的平台官方账号即使持有当前归属关系，也不得被回填为 coach。
+4. **空盘教练**：没有当前营员的新教练仍可被 Admin 目录搜索、staff 分配、码池划拨、审核选择与补货申请，并可读取本人 `get_my_access_profile`、空雷达和空云库存。`admin_get_coach_directory` 联系方式仍仅向有效 Admin 返回；普通用户、coach、staff 均不能枚举该目录。
+5. **最小权限**：coach 只能读取或操作本人当前营员、本人库存与本人跟进；staff 继续只读当前有效分配范围内的五字段雷达，不能读取教练目录或云库存。staff 的云库存 `FORBIDDEN` 拒绝不得写入随后必然回滚的 `staff_finance_denied` 审计；只有成功 RBAC 变更才审计。角色停用后，新请求立即失去 coach 能力，但历史归属、激活与审计事实不改写。
+6. **Vault 全链路收口**：所有最新生效且需要 `box_code_pepper` 的 RPC 必须从 `vault.decrypted_secrets` 按 `name = 'box_code_pepper'` 读取，不再读取 `current_setting('app.box_code_pepper')`。覆盖生成、手动申请、旧激活函数、待审列表、审核补发、云库存与教练直推；密钥缺失或为空时统一抛出或返回 `BOX_CODE_PEPPER_NOT_CONFIGURED`，不得回退 GUC 或泄露密钥。保留各函数原签名、事务边界、授权状态与业务语义。
+
 ## CSV 导出
 
 文件为 UTF-8 with BOM、逗号分隔、LF 换行，末尾保留换行。记录按 `record_date` 升序，只包含有内容日期。
