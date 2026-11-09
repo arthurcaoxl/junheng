@@ -4,6 +4,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import CoachDashboardPanels from "../components/coach/CoachDashboardPanels";
 import { getSupabase } from "../lib/supabase";
 
+let inventoryReads = 0;
+
 function mockRenewalRadar() {
   (getSupabase().rpc as ReturnType<typeof vi.fn>).mockImplementation((name: string) => {
     if (name === "get_my_access_profile") return Promise.resolve({ data: [{ role: "coach", can_view_radar: true, can_manage_inventory: true }], error: null });
@@ -21,16 +23,18 @@ function mockRenewalRadar() {
       ],
       error: null,
     });
-    if (name === "get_coach_inventory_v3") return Promise.resolve({
-      data: {
-        availableCount: 1,
-        restockPoint: 12,
-        needsRestock: false,
-        codes: [{ codeId: "rc-1", code: "JH-RC-CD45", boxSpec: "21_bags", maxCheckins: 21, createdAt: "2026-11-09" }],
-      },
-      error: null,
-    });
+    if (name === "get_coach_inventory_v3") {
+      const codes = inventoryReads === 0
+        ? [{ codeId: "rc-1", code: "JH-RC-CD45", boxSpec: "21_bags", maxCheckins: 21, createdAt: "2026-11-09" }]
+        : [];
+      inventoryReads += 1;
+      return Promise.resolve({
+        data: { availableCount: codes.length, restockPoint: 12, needsRestock: false, codes },
+        error: null,
+      });
+    }
     if (name === "get_coach_pending_reviews") return Promise.resolve({ data: [], error: null });
+    if (name === "coach_push_code_v1") return Promise.resolve({ data: { ok: true, state: "pending_review" }, error: null });
     return Promise.resolve({ data: [], error: null });
   });
 }
@@ -38,6 +42,7 @@ function mockRenewalRadar() {
 describe("TASK-10.13 D3 满期续费引导", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    inventoryReads = 0;
     vi.stubEnv("VITE_SUPABASE_URL", "https://test.supabase.co");
     vi.stubEnv("VITE_SUPABASE_ANON_KEY", "test-anon-key");
     mockRenewalRadar();
@@ -70,5 +75,19 @@ describe("TASK-10.13 D3 满期续费引导", () => {
     expect(screen.getByLabelText("直推目标 JH-RC-CD45")).toHaveValue("relation-grad");
     expect(screen.getByText("已为 JH-GRAD 预选直推目标，请选择 RC 充值码；提交后仍需 Admin 审核。")).toBeInTheDocument();
     expect(getSupabase().rpc).not.toHaveBeenCalledWith("coach_push_code_v1", expect.anything());
+  });
+
+  it("满期预选直推成功并重拉库存后保留成功反馈且清理预选", async () => {
+    const user = userEvent.setup();
+    render(<CoachDashboardPanels />);
+
+    await user.click(await screen.findByRole("button", { name: "云仓直推 RC 充值码 JH-GRAD" }));
+    expect(await screen.findByText("已为 JH-GRAD 预选直推目标，请选择 RC 充值码；提交后仍需 Admin 审核。")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "直推 JH-RC-CD45" }));
+
+    expect(await screen.findByText("暂无激活码")).toBeInTheDocument();
+    expect(getSupabase().rpc).toHaveBeenCalledWith("coach_push_code_v1", expect.objectContaining({ p_camper_ref: "relation-grad", p_code_id: "rc-1" }));
+    expect(screen.getByText("已提交 Admin 审核，库存将在审核通过时扣减")).toBeInTheDocument();
+    expect(screen.queryByText("已为 JH-GRAD 预选直推目标，请选择 RC 充值码；提交后仍需 Admin 审核。")).not.toBeInTheDocument();
   });
 });

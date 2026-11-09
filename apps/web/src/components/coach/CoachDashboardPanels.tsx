@@ -216,7 +216,11 @@ export default function CoachDashboardPanels({ onRole }: { onRole?: (role: Acces
         {profile?.canManageInventory && (
           <section id="coach-cloud-inventory" className="admin-block coach-dashboard-panel" aria-labelledby="coach-inventory-title">
             <h2 id="coach-inventory-title">教练云仓库存</h2>
-            <CoachCodeInventory campers={campers} preferredCamperRef={renewalTarget?.camperRef} />
+            <CoachCodeInventory
+              campers={campers}
+              preferredCamperRef={renewalTarget?.camperRef}
+              onPreferredCamperConsumed={() => setRenewalTarget(null)}
+            />
           </section>
         )}
         <section className="admin-block coach-dashboard-panel coach-quarter-card" aria-labelledby="coach-quarter-title">

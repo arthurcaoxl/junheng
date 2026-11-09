@@ -8,9 +8,13 @@ import {
 } from "../../services/codePool";
 import type { CoachCamper } from "../../services/coachRadar";
 
-type Props = { campers?: CoachCamper[]; preferredCamperRef?: string };
+type Props = {
+  campers?: CoachCamper[];
+  preferredCamperRef?: string;
+  onPreferredCamperConsumed?: () => void;
+};
 
-export default function CoachCodeInventory({ campers = [], preferredCamperRef }: Props) {
+export default function CoachCodeInventory({ campers = [], preferredCamperRef, onPreferredCamperConsumed }: Props) {
   const [inventory, setInventory] = useState<Inventory | null>(null);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -90,6 +94,7 @@ export default function CoachCodeInventory({ campers = [], preferredCamperRef }:
         return next;
       });
       setCopiedId("");
+      if (preferredCamperRef) onPreferredCamperConsumed?.();
       setNotice("已提交 Admin 审核，库存将在审核通过时扣减");
       window.dispatchEvent(new Event(COACH_PENDING_REVIEWS_EVENT));
       await refreshInventory();
