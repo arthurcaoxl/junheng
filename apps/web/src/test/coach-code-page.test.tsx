@@ -31,7 +31,7 @@ describe("教练码库页面", () => {
 
     expect(await screen.findByRole("heading", { name: "产品激活码库" })).toBeInTheDocument();
     expect(await screen.findByText("JH-EL-CO23")).toBeInTheDocument();
-    expect(getSupabase().rpc).toHaveBeenCalledWith("get_my_code_inventory");
+    expect(getSupabase().rpc).toHaveBeenCalledWith("get_my_code_inventory", { p_dummy: null });
   });
 
   it("未登录访客只看到教练登录入口而看不到码池管理表单", async () => {

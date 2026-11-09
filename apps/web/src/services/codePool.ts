@@ -69,7 +69,7 @@ export async function allocateCodesToCoach(coachId: string, count: number): Prom
 }
 
 export async function fetchMyCodeInventory(): Promise<CoachCodeInventory> {
-  const { data, error } = await getSupabase().rpc("get_my_code_inventory");
+  const { data, error } = await getSupabase().rpc("get_my_code_inventory", { p_dummy: null });
   if (error) throw rpcFailure(error);
   const result = data as Record<string, unknown> | null;
   if (
