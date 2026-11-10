@@ -66,9 +66,9 @@ describe("独立教练经营看板", () => {
 
     expect(await screen.findByRole("heading", { name: "教练经营看板" })).toBeInTheDocument();
     const allCampers = await screen.findByRole("region", { name: "名下体验官列表" });
-    expect(within(allCampers).getByText("JH-GREEN")).toBeInTheDocument();
-    expect(within(allCampers).getByText("JH-RED")).toBeInTheDocument();
-    expect(within(allCampers).getByText("JH-YELLOW")).toBeInTheDocument();
+    expect(await within(allCampers).findByText("JH-GREEN")).toBeInTheDocument();
+    expect(await within(allCampers).findByText("JH-RED")).toBeInTheDocument();
+    expect(await within(allCampers).findByText("JH-YELLOW")).toBeInTheDocument();
     const active = screen.getByRole("region", { name: "名下活跃用户" });
     const dormant = screen.getByRole("region", { name: "休眠雷达" });
     const inventory = await screen.findByRole("region", { name: "教练云仓库存" });
