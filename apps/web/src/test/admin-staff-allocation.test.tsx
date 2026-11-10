@@ -100,7 +100,7 @@ describe("Admin 直营员工与教练划拨分流", () => {
 
     await user.click(screen.getByRole("button", { name: "平台直营员工" }));
     expect(screen.getByRole("button", { name: "划拨给员工" })).toBeDisabled();
-    await user.click(screen.getByRole("button", { name: "教练", exact: true }));
+    await user.click(screen.getByRole("button", { name: /^教练$/ }));
 
     expect(screen.getByLabelText("划拨教练邮箱")).toHaveValue("");
     expect(screen.queryByText("已选择 coach@example.com")).not.toBeInTheDocument();
