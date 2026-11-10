@@ -18,19 +18,28 @@ describe("教练码库页面", () => {
     (getSupabase().auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { session: { user: { id: "coach-1", email: "coach@example.com" } } },
     });
-    (getSupabase().rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
-      data: {
-        availableCount: 1,
-        restockPoint: 12,
-        needsRestock: true,
-        codes: [{ codeId: "code-1", code: "JH-EL-CO23", boxSpec: "21_bags", maxCheckins: 21, createdAt: "2026-11-08" }],
-      },
-      error: null,
+    (getSupabase().rpc as ReturnType<typeof vi.fn>).mockImplementation((name: string) => {
+      if (name === "get_coach_inventory_v3") return Promise.resolve({
+        data: {
+          availableCount: 1,
+          restockPoint: 12,
+          needsRestock: true,
+          codes: [{ codeId: "code-1", code: "JH-EL-CO23", boxSpec: "21_bags", maxCheckins: 21, createdAt: "2026-11-08" }],
+        },
+        error: null,
+      });
+      if (name === "get_coach_campers_v1") return Promise.resolve({
+        data: [{ camper_ref: "relation-1", camper_code: "JH-CAMPER", activity_status: "active", followup_status: "pending", followup_note: "", followup_version: 0 }],
+        error: null,
+      });
+      return Promise.resolve({ data: [], error: null });
     });
     render(<MemoryRouter initialEntries={["/coach/codes"]}><App /></MemoryRouter>);
 
     expect(await screen.findByRole("heading", { name: "产品激活码库" })).toBeInTheDocument();
     expect(await screen.findByText("JH-EL-CO23")).toBeInTheDocument();
+    expect(await screen.findByRole("button", { name: "推送激活码 JH-EL-CO23" })).toBeInTheDocument();
+    expect(screen.getByLabelText("直推目标 JH-EL-CO23")).toContainElement(screen.getByRole("option", { name: "JH-CAMPER" }));
     expect(getSupabase().rpc).toHaveBeenCalledWith("get_coach_inventory_v3", { p_dummy: null });
   });
 

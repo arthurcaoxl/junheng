@@ -70,7 +70,7 @@ function mockAdminSession() {
 
 async function renderAdminStaff() {
   render(<MemoryRouter initialEntries={["/admin/check-in"]}><App /></MemoryRouter>);
-  await userEvent.click(await screen.findByRole("tab", { name: "员工管理区" }));
+  await userEvent.click(await screen.findByRole("tab", { name: "员工管理" }));
 }
 
 describe("Admin 员工 RBAC 管理区", () => {
@@ -87,7 +87,7 @@ describe("Admin 员工 RBAC 管理区", () => {
   it("独立 Tab 只显示员工目录、有效分配和非阻断容量警告", async () => {
     await renderAdminStaff();
 
-    const panel = screen.getByRole("tabpanel", { name: "员工管理区" });
+    const panel = screen.getByRole("tabpanel", { name: "员工管理" });
     expect(await within(panel).findByText("staff@example.com")).toBeInTheDocument();
     expect(within(panel).getByText("coach@example.com")).toBeInTheDocument();
     expect(within(panel).getAllByText(/STAFF_CAPACITY_WARNING/)).toHaveLength(2);
@@ -166,7 +166,8 @@ describe("staff 界面最小权限", () => {
   it("staff 只看脱敏服务雷达，不渲染也不调用教练云仓", async () => {
     render(<MemoryRouter initialEntries={["/coach"]}><App /></MemoryRouter>);
 
-    expect(await screen.findByText("JH-STAFF")).toBeInTheDocument();
+    const allCampers = await screen.findByRole("region", { name: "名下体验官列表" });
+    expect(await within(allCampers).findByText("JH-STAFF")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "员工服务看板" })).toBeInTheDocument();
     expect(screen.queryByRole("region", { name: "教练云仓库存" })).not.toBeInTheDocument();
     expect(getSupabase().rpc).not.toHaveBeenCalledWith("get_coach_inventory_v3");

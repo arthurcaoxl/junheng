@@ -53,7 +53,7 @@ describe("TASK-10.13 D1 云仓与补货刷新", () => {
     expect(await screen.findByText("JH-EL-AB23")).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText("直推目标 JH-EL-AB23"), "relation-1");
-    await user.click(screen.getByRole("button", { name: "直推 JH-EL-AB23" }));
+    await user.click(screen.getByRole("button", { name: "推送激活码 JH-EL-AB23" }));
 
     expect(await screen.findByText("JH-RC-CD45")).toBeInTheDocument();
     await waitFor(() => expect(rpc.mock.calls.filter(([name]) => name === "get_coach_inventory_v3")).toHaveLength(2));

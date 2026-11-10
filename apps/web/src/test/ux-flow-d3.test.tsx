@@ -83,7 +83,7 @@ describe("TASK-10.13 D3 满期续费引导", () => {
 
     await user.click(await screen.findByRole("button", { name: "云仓直推 RC 充值码 JH-GRAD" }));
     expect(await screen.findByText("已为 JH-GRAD 预选直推目标，请选择 RC 充值码；提交后仍需 Admin 审核。")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "直推 JH-RC-CD45" }));
+    await user.click(screen.getByRole("button", { name: "推送激活码 JH-RC-CD45" }));
 
     expect(await screen.findByText("暂无激活码")).toBeInTheDocument();
     expect(getSupabase().rpc).toHaveBeenCalledWith("coach_push_code_v1", expect.objectContaining({ p_camper_ref: "relation-grad", p_code_id: "rc-1" }));

@@ -29,7 +29,7 @@ async function login() {
   await user.click(screen.getByRole("button", { name: "获取管理员验证码" }));
   await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
   await user.click(screen.getByRole("button", { name: "登录并查看统计" }));
-  const productionTab = await screen.findByRole("tab", { name: "生产区" });
+  const productionTab = await screen.findByRole("tab", { name: "生产调度" });
   await user.click(productionTab);
   return user;
 }

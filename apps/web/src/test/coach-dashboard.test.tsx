@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
@@ -29,8 +30,19 @@ function mockCoachSession() {
       error: null,
     });
     if (name === "get_coach_inventory_v3") return Promise.resolve({
-      data: { availableCount: 8, restockPoint: 12, needsRestock: true, codes: [] },
+      data: {
+        availableCount: 2,
+        restockPoint: 12,
+        needsRestock: true,
+        codes: [
+          { codeId: "code-green", code: "JH-EL-GREEN", boxSpec: "21_bags", maxCheckins: 21, createdAt: "2026-11-09" },
+          { codeId: "code-red", code: "JH-RC-RED", boxSpec: "30_bags", maxCheckins: 30, createdAt: "2026-11-09" },
+        ],
+      },
       error: null,
+    });
+    if (name === "coach_push_code_v1") return Promise.resolve({
+      data: { ok: true, state: "pending_review", activationId: "activation-1" }, error: null,
     });
     if (name === "admin_checkin_overview") return Promise.resolve({
       data: null,
@@ -48,10 +60,15 @@ describe("独立教练经营看板", () => {
     mockCoachSession();
   });
 
-  it("在 /coach 展示活跃用户、休眠雷达、云仓和季度提醒双栏", async () => {
+  it("在 /coach 真实挂载完整名下列表、分类雷达和逐码推送交互", async () => {
+    const user = userEvent.setup();
     render(<MemoryRouter initialEntries={["/coach"]}><App /></MemoryRouter>);
 
     expect(await screen.findByRole("heading", { name: "教练经营看板" })).toBeInTheDocument();
+    const allCampers = await screen.findByRole("region", { name: "名下体验官列表" });
+    expect(within(allCampers).getByText("JH-GREEN")).toBeInTheDocument();
+    expect(within(allCampers).getByText("JH-RED")).toBeInTheDocument();
+    expect(within(allCampers).getByText("JH-YELLOW")).toBeInTheDocument();
     const active = screen.getByRole("region", { name: "名下活跃用户" });
     const dormant = screen.getByRole("region", { name: "休眠雷达" });
     const inventory = await screen.findByRole("region", { name: "教练云仓库存" });
@@ -59,7 +76,15 @@ describe("独立教练经营看板", () => {
     expect(within(active).queryByText("JH-RED")).not.toBeInTheDocument();
     expect(await within(dormant).findByText("JH-RED")).toBeInTheDocument();
     expect(within(dormant).getByText("JH-YELLOW")).toBeInTheDocument();
-    expect(await within(inventory).findByText("可用 8 枚")).toBeInTheDocument();
+    expect(await within(inventory).findByText("可用 2 枚")).toBeInTheDocument();
+    expect(within(inventory).getByRole("button", { name: "推送激活码 JH-EL-GREEN" })).toBeInTheDocument();
+    expect(within(inventory).getByRole("button", { name: "推送激活码 JH-RC-RED" })).toBeInTheDocument();
+    await user.selectOptions(within(inventory).getByLabelText("直推目标 JH-EL-GREEN"), "relation-green");
+    await user.click(within(inventory).getByRole("button", { name: "推送激活码 JH-EL-GREEN" }));
+    expect(getSupabase().rpc).toHaveBeenCalledWith("coach_push_code_v1", expect.objectContaining({
+      p_camper_ref: "relation-green",
+      p_code_id: "code-green",
+    }));
     expect(await screen.findByRole("region", { name: "D1–D21 营期趋势" })).toBeInTheDocument();
     expect(screen.getByRole("region", { name: "季度推荐提醒" })).toHaveTextContent(/Q\d 服务复盘/);
     expect(screen.queryByRole("button", { name: "批量生成码" })).not.toBeInTheDocument();

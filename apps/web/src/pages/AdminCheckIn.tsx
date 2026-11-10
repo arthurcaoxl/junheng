@@ -26,7 +26,7 @@ function percent(value: number | null): string {
   return value === null ? "—" : `${value}%`;
 }
 
-type AdminSection = "stats" | "production" | "staff";
+type AdminSection = "stats" | "production" | "staff" | "radar";
 
 export default function AdminCheckInPage() {
   const [configured] = useState(() => {
@@ -213,7 +213,7 @@ export default function AdminCheckInPage() {
             className={`admin-tab${activeSection === "stats" ? " is-active" : ""}`}
             onClick={() => setActiveSection("stats")}
           >
-            用户统计区
+            用户统计
           </button>
           <button
             type="button"
@@ -224,7 +224,7 @@ export default function AdminCheckInPage() {
             className={`admin-tab${activeSection === "production" ? " is-active" : ""}`}
             onClick={() => setActiveSection("production")}
           >
-            生产区
+            生产调度
           </button>
           <button
             type="button"
@@ -235,14 +235,24 @@ export default function AdminCheckInPage() {
             className={`admin-tab${activeSection === "staff" ? " is-active" : ""}`}
             onClick={() => setActiveSection("staff")}
           >
-            员工管理区
+            员工管理
+          </button>
+          <button
+            type="button"
+            id="admin-radar-tab"
+            role="tab"
+            aria-selected={activeSection === "radar"}
+            aria-controls="admin-radar-panel"
+            className={`admin-tab${activeSection === "radar" ? " is-active" : ""}`}
+            onClick={() => setActiveSection("radar")}
+          >
+            教练雷达
           </button>
         </div>
 
         {activeSection === "stats" && (
           <div id="admin-stats-panel" role="tabpanel" aria-labelledby="admin-stats-tab">
             <KpiCards kpis={kpis} />
-            <CoachRadar />
 
             <section className="admin-block" aria-labelledby="admin-campers-title">
               <div className="admin-block-heading">
@@ -313,6 +323,11 @@ export default function AdminCheckInPage() {
         {activeSection === "staff" && (
           <div id="admin-staff-panel" role="tabpanel" aria-labelledby="admin-staff-tab">
             <AdminStaffManagement />
+          </div>
+        )}
+        {activeSection === "radar" && (
+          <div id="admin-radar-panel" role="tabpanel" aria-labelledby="admin-radar-tab">
+            <CoachRadar />
           </div>
         )}
 

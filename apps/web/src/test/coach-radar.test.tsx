@@ -1,4 +1,4 @@
-import { act, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import AdminCheckInPage from "../pages/AdminCheckIn";
 import { getSupabase } from "../lib/supabase";
@@ -32,6 +32,7 @@ function mockRadar(result: RadarResult | (() => Promise<RadarResult>)) {
 async function renderReadyPage() {
   render(<AdminCheckInPage />);
   await screen.findByRole("heading", { name: "体验官" });
+  fireEvent.click(screen.getByRole("tab", { name: "教练雷达" }));
 }
 
 function alertRow(camperCode: string, alertLevel: "red" | "yellow" | "green") {

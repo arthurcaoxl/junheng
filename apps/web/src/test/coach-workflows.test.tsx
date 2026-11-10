@@ -151,7 +151,7 @@ describe("教练无码补货与直推码", () => {
     await screen.findByText("JH-EL-AB23");
 
     await user.selectOptions(screen.getByLabelText("直推目标 JH-EL-AB23"), "relation-new");
-    await user.click(screen.getByRole("button", { name: "直推 JH-EL-AB23" }));
+    await user.click(screen.getByRole("button", { name: "推送激活码 JH-EL-AB23" }));
     const call = vi.mocked(getSupabase().rpc).mock.calls.find(([name]) => name === "coach_push_code_v1");
     expect(call?.[1]).toMatchObject({ p_camper_ref: "relation-new", p_code_id: "code-1" });
     expect(call?.[1]).toHaveProperty("p_idempotency_key");

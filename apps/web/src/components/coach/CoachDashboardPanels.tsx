@@ -178,6 +178,15 @@ export default function CoachDashboardPanels({ onRole }: { onRole?: (role: Acces
     <div className="coach-dashboard-grid">
       <div className="coach-dashboard-main">
         {error && <p className="admin-error" role="alert">{error}</p>}
+        <section className="admin-block coach-dashboard-panel" aria-labelledby="coach-all-campers-title">
+          <div className="admin-block-heading">
+            <h2 id="coach-all-campers-title">名下体验官列表</h2>
+            <span>{rows.length} 人 · 完整展示服务端返回的脱敏雷达行</span>
+          </div>
+          {loading && <p role="status">名下体验官列表加载中…</p>}
+          {!loading && !error && rows.length === 0 && <p className="admin-empty">暂无名下体验官。</p>}
+          {rows.length > 0 && <CoachMetricTable rows={rows} />}
+        </section>
         {!isStaff && (
           <section className="admin-block coach-dashboard-panel" aria-labelledby="coach-new-title">
             <div className="admin-block-heading"><h2 id="coach-new-title">新注册用户</h2><span>{newRows.length} 人 · 当前 21 天窗口内尚无有效打卡</span></div>

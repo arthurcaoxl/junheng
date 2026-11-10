@@ -145,7 +145,7 @@ export default function CoachCodeInventory({ campers = [], preferredCamperRef, o
                     {campers.map((camper) => <option key={camper.camperRef} value={camper.camperRef}>{camper.camperCode}</option>)}
                   </select>
                   <button type="button" className="admin-secondary" disabled={!targets[item.codeId] || busy === item.codeId} onClick={() => void push(item.codeId)}>
-                    {busy === item.codeId ? "提交审核中…" : `直推 ${item.code}`}
+                    {busy === item.codeId ? "提交审核中…" : `推送激活码 ${item.code}`}
                   </button>
                 </div>
               )}

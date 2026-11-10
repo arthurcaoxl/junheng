@@ -2,12 +2,14 @@ import { useEffect, useState, type FormEvent } from "react";
 import CoachCodeInventory from "../components/coach/CoachCodeInventory";
 import { getSupabase } from "../lib/supabase";
 import { sendLoginCode } from "../services/checkinSync";
+import { fetchCoachCampers, type CoachCamper } from "../services/coachRadar";
 import { isValidOtpCode, normalizeOtpInput, OTP_INPUT_HINT, OTP_INPUT_PROPS } from "../services/otp";
 
 export default function CoachCodesPage() {
   const [phase, setPhase] = useState<"checking" | "email" | "code" | "ready">("checking");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
+  const [campers, setCampers] = useState<CoachCamper[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -18,6 +20,15 @@ export default function CoachCodesPage() {
     }).catch(() => { if (alive) setPhase("email"); });
     return () => { alive = false; };
   }, []);
+
+  useEffect(() => {
+    if (phase !== "ready") return;
+    let alive = true;
+    fetchCoachCampers()
+      .then((rows) => { if (alive) setCampers(rows); })
+      .catch((cause: unknown) => { if (alive) setError(cause instanceof Error ? cause.message : "名下体验官读取失败。"); });
+    return () => { alive = false; };
+  }, [phase]);
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
@@ -41,7 +52,14 @@ export default function CoachCodesPage() {
   };
 
   if (phase === "ready") {
-    return <div className="admin-page"><section className="admin-shell"><CoachCodeInventory /></section></div>;
+    return (
+      <div className="admin-page">
+        <section className="admin-shell">
+          {error && <p className="admin-error" role="alert">{error}</p>}
+          <CoachCodeInventory campers={campers} />
+        </section>
+      </div>
+    );
   }
 
   return (

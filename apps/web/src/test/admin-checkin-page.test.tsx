@@ -67,16 +67,16 @@ describe("admin check-in page", () => {
     expect(screen.getByText("2 天")).toBeInTheDocument();
     expect(screen.getByText("D21")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "导出脱敏 CSV" })).toBeEnabled();
-    expect(screen.getByRole("tab", { name: "用户统计区" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "用户统计" })).toHaveAttribute("aria-selected", "true");
   // 用户端 21 天见证 Banner 仅在用户中心按需挂载，不得进入 Admin 页面。
   expect(screen.queryByRole("region", { name: "21 天代谢重塑见证" })).not.toBeInTheDocument();
   expect(screen.queryByText("21-DAY METABOLIC RESET · WITNESSED")).not.toBeInTheDocument();
 
-  expect(screen.getByRole("tab", { name: "员工管理区" })).toBeInTheDocument();
+  expect(screen.getByRole("tab", { name: "员工管理" })).toBeInTheDocument();
   expect(screen.getByRole("heading", { name: "体验官" })).toBeInTheDocument();
   expect(screen.queryByRole("heading", { name: "已备份体验官" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "批量生成码" })).not.toBeInTheDocument();
-    await user.click(screen.getByRole("tab", { name: "生产区" }));
+    await user.click(screen.getByRole("tab", { name: "生产调度" }));
     expect(screen.getByRole("button", { name: "批量生成码" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "划拨给教练" })).toBeInTheDocument();
     expect(screen.queryByText("JH-ADMIN1")).not.toBeInTheDocument();
@@ -228,7 +228,7 @@ describe("admin check-in page", () => {
     expect(detail).toHaveTextContent("下方明细、个人趋势与海报仅展示本期 21 天");
   });
 
-  it("登录后挂载独立雷达且雷达失败不影响既有营员列表", async () => {
+  it("Admin 四 Tab 完整且教练雷达只在独立 tabpanel 挂载", async () => {
     const user = userEvent.setup();
     const client = getSupabase();
     (client.rpc as ReturnType<typeof vi.fn>).mockImplementation((name: string) => {
@@ -258,7 +258,17 @@ describe("admin check-in page", () => {
     await user.click(screen.getByRole("button", { name: "登录并查看统计" }));
 
     expect(await screen.findByText("JH-RADAR-KEEP")).toBeInTheDocument();
-    expect(await screen.findByText("雷达读取失败，请稍后重试。")).toBeInTheDocument();
-    expect(screen.getByText("JH-RADAR-KEEP")).toBeInTheDocument();
+    const tabs = within(screen.getByRole("tablist", { name: "管理后台功能区" })).getAllByRole("tab");
+    expect(tabs.map((tab) => tab.textContent)).toEqual(["用户统计", "生产调度", "员工管理", "教练雷达"]);
+    expect(screen.getByRole("tabpanel", { name: "用户统计" })).toHaveAttribute("aria-labelledby", "admin-stats-tab");
+    expect(screen.queryByRole("region", { name: "教练雷达" })).not.toBeInTheDocument();
+    expect(client.rpc).not.toHaveBeenCalledWith("get_coach_radar_v1");
+
+    await user.click(screen.getByRole("tab", { name: "教练雷达" }));
+    const radarPanel = screen.getByRole("tabpanel", { name: "教练雷达" });
+    expect(radarPanel).toHaveAttribute("aria-labelledby", "admin-radar-tab");
+    expect(screen.getByRole("tab", { name: "教练雷达" })).toHaveAttribute("aria-controls", "admin-radar-panel");
+    expect(await within(radarPanel).findByText("雷达读取失败，请稍后重试。")).toBeInTheDocument();
+    expect(screen.queryByText("JH-RADAR-KEEP")).not.toBeInTheDocument();
   });
 });

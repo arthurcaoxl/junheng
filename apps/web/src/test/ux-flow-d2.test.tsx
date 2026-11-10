@@ -165,7 +165,7 @@ describe("TASK-10.13 D2 教练在审激活码", () => {
     expect(await screen.findByLabelText("直推目标 JH-EL-AB23")).toBeInTheDocument();
 
     await user.selectOptions(screen.getByLabelText("直推目标 JH-EL-AB23"), "relation-1");
-    await user.click(screen.getByRole("button", { name: "直推 JH-EL-AB23" }));
+    await user.click(screen.getByRole("button", { name: "推送激活码 JH-EL-AB23" }));
 
     const reviews = await screen.findByRole("region", { name: "在审激活码" });
     expect(await within(reviews).findByText("在审 2 枚")).toBeInTheDocument();
