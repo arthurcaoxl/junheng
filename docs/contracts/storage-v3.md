@@ -150,14 +150,14 @@
 
 本增量不改变本机 v3 快照、打卡记录或既有激活状态机，只扩展服务端盒码库存：
 
-1. `coach_inventory` 以 `coach_id` 唯一标识教练，记录累计划拨数、当前可用码数与并发版本；可用数不得为负。平台未划拨码由 `box_codes.inventory_status = 'platform'` 的码行构成，不另设可被客户端改写的库存计数。
-2. `inventory_logs` 为追加式台账，逐笔记录平台生成、教练划拨和激活扣减的操作者、数量、服务端时间、关联码/箱及 `offline_receipt_no`。平台生成必须填写非空线下打款凭证号；流水不得记录完整码面。
+1. `coach_inventory` 以 `coach_id` 唯一标识库存持有者，记录累计划拨数、当前可用码数与并发版本；持有者是正式 coach，TASK-10.13-FINAL-CLEARANCE 定向例外另含有效直营 staff。可用数不得为负。平台未划拨码由 `box_codes.inventory_status = 'platform'` 的码行构成，不另设可被客户端改写的库存计数。
+2. `inventory_logs` 为追加式台账，逐笔记录平台生成、教练或直营员工划拨和激活扣减的操作者、数量、服务端时间、关联码/箱及 `offline_receipt_no`。平台生成必须填写非空线下打款凭证号；流水不得记录完整码面。
 3. `generate_platform_codes` 与 `allocate_codes_to_coach` 仅允许 `camp_admins` 中有效 `role = 'admin'` 的调用者执行。`p_count` 接受任意正整数，不再要求 24 的倍数，也不另设固定上限；每枚码仍表示一盒，每箱最多 24 枚只是既有物理装箱边界，尾箱按实际数量落码并写同额 `platform_generated` 流水，不得把整箱 24 写进部分箱流水。生成时分别读取并锁定 `max_checkins_per_box` 与 `default_box_spec` 配置，显式写入每枚码的快照；配置缺失或与请求规格不一致时 fail-closed。划拨在同事务内锁定平台未分配码行，数量不足整体失败，不得超发。
-4. 码面仅以服务端密钥加密后的 `code_ciphertext` 保存；表权限继续对客户端关闭。教练只能通过 `get_my_code_inventory` 读取本人 `unused` 且已划拨码的解密码面，其他角色与其他教练的码不得返回。
-5. `activate_box_code` 在既有码、激活申请和归属锁之后锁定教练库存行；教练码激活时必须同步扣减一个可用库存并追加流水，库存不存在或不足时以 `INVENTORY_INSUFFICIENT` 整体回滚。历史平台码没有库存行时不得伪造教练扣减。
+4. 码面仅以服务端密钥加密后的 `code_ciphertext` 保存；表权限继续对客户端关闭。正式 coach 与第 3.1 节直营 staff 只能通过 `get_my_code_inventory` 读取本人 `unused` 且已划拨码的解密码面，其他角色及任何非本人持有者的码不得返回。
+5. `activate_box_code` 在既有码、激活申请和归属锁之后锁定持有者库存行；持有者码激活时必须同步扣减一个可用库存并追加流水，库存不存在或不足时以 `INVENTORY_INSUFFICIENT` 整体回滚。历史平台码没有库存行时不得伪造持有者扣减。
 6. 多表写锁顺序遵循 [BIZ-V1.2]：`box_codes` → `code_activations` → `user_coach_relation` → `coach_inventory`；所有 RPC 由数据库函数提供单事务原子性。
 7. **TASK-10.12-P0 配置适配**：`get_my_code_inventory` 必须从 `vault.decrypted_secrets` 按名称 `box_code_pepper` 读取解密密钥，不再读取 `current_setting('app.box_code_pepper')`。密钥缺失或为空时抛出独立错误码 `BOX_CODE_PEPPER_NOT_CONFIGURED`，前端统一显示“系统维护中，请稍后重试。”；仓库、前端和错误响应不得包含密钥。
-8. **TASK-10.13-UX-FLOW-FIX 浏览器签名兼容**：`get_coach_inventory_v3(p_dummy boolean default null)` 是 `get_my_code_inventory()` 的安全包装，显式传 `null` 与省略参数均返回完全相同的 JSON 契约；`p_dummy` 仅供 PostgREST 缓存规避，不参与鉴权或业务计算。包装不得复制库存查询或旧版权限逻辑，必须委托最新函数以保留正式 coach SSOT、准教练/staff/普通用户拒绝、Vault 缺失及配置语义。撤销 `public / anon` 执行权，仅授予 `authenticated`。
+8. **TASK-10.13-UX-FLOW-FIX 浏览器签名兼容**：`get_coach_inventory_v3(p_dummy boolean default null)` 是 `get_my_code_inventory()` 的安全包装，显式传 `null` 与省略参数均返回完全相同的 JSON 契约；`p_dummy` 仅供 PostgREST 缓存规避，不参与鉴权或业务计算。包装不得复制库存查询或旧版权限逻辑，必须委托最新函数以保留正式 coach／定向直营 staff 本人库存、准教练及普通用户拒绝、Vault 缺失及配置语义。撤销 `public / anon` 执行权，仅授予 `authenticated`。
 
 ## 服务教练联系方式（TASK-10.12 增量）
 
@@ -224,16 +224,16 @@
 2. `staff_coach_assignment` 保存员工与教练的分配历史。创建分配要求目标 staff 有效、目标教练具有有效 `camp_admins.role = 'coach'` 角色行，并校验 `expectedVersion` 与 `idempotencyKey`；撤销立即结束有效期并递增版本。浏览器角色对角色表、分配表、命令表与审计表无直写权限。
 3. Admin 员工管理区只调用 `admin_get_staff_directory / admin_set_staff_role / admin_assign_staff_coach / admin_revoke_staff_coach`。所有管理 RPC 在服务端以 `auth.uid()` 验证有效 Admin，成功的角色变更与分配变更均追加审计；拒绝异常不承诺审计落库，不得在异常回滚前写入虚假的拒入审计。审计不记录体验官明细、联系方式或财务金额。
 4. `get_coach_radar_v1` 对 staff 仅返回当前有效分配教练名下的五字段脱敏雷达，仍由服务端 `auth.uid()` 决定范围，不接受 coach、staff、体验官或分页范围参数。分配撤销、staff 停用或用户转移后，新请求立即失去对应数据。
-5. `get_my_access_profile` 仅返回当前有效角色及 `can_view_radar / can_manage_inventory` 两个界面能力。前端据此隐藏员工不可见模块，但隐藏不是授权；staff 调用 `get_my_code_inventory` 必须由服务端在读取 Vault 前以 `FORBIDDEN` 拒绝，该拒绝异常不承诺审计落库，其他 Admin RPC 继续独立鉴权。
+5. `get_my_access_profile` 仅返回当前有效角色及 `can_view_radar / can_manage_inventory` 两个界面能力。前端据此隐藏员工不可见模块，但隐藏不是授权；有效直营 staff 的 `can_manage_inventory` 仅对应本人被划拨库存读取与第 3.1 节受控直推，`get_my_code_inventory` 仍必须在服务端按 `auth.uid()` 隔离本人库存，失效 staff 与其他角色继续拒绝，其他 Admin RPC 独立鉴权。
 6. 既有 `admin_checkin_overview` 与 `checkin_sync` Admin 直读策略必须同时限定有效 `role = 'admin'` 的认证主体，防止 staff 借历史白名单策略读取体验官记录。
 7. 员工分配沿用 `staff-role-permissions-v1.md` 的非阻断软容量口径：超过 5 名教练或 150 名当前体验官仍允许成功，返回 `STAFF_CAPACITY_WARNING`、在 Admin 显示红字并追加容量警告与治理跟进审计，不得将其实现为硬限制。
 
 ## 双路径激活唯一终审与来源审计（TASK-10.13 增量）
 
 1. `code_activations.request_source` 为必填且不可变的 `manual_code / coach_push`，分别只能由 `request_box_code_activation` 与 `coach_push_code_v1` 写入；两条路径的 `CodeActivationRequested` 事件 metadata 同步保存 `requestSource`。历史行按请求事件的 actor 与申请人是否一致回填，无该事件的 10.9 前自助申请归为 `manual_code`。回填仅在同一事务内临时禁用真实 `code_activation_mutation_guard`，完成后立即恢复，不递增存量 `version`；异常由事务整体回滚，随后启用的来源不可变守护不受影响。
-2. 两条 pending 申请仍只经 `admin_review_box_code_activation_v2` 公开终审；其内部复用既有 `admin_review_box_code_activation` 原子事务，继续强制有效 Admin、目标教练与码归属一致、码和申请双版本匹配。旧 `activate_box_code(text,text)` 与 `activate_box_code(text,integer,integer,text)` 必须删除，原审核函数对浏览器角色回收执行权限，禁止形成第二终审或自助激活路径。
+2. 两条 pending 申请仍只经 `admin_review_box_code_activation_v2` 公开终审；其内部复用既有 `admin_review_box_code_activation` 原子事务，继续强制有效 Admin、目标持有者与码归属一致、码和申请双版本匹配。目标持有者默认是有效 coach；TASK-10.13-FINAL-CLEARANCE 仅允许符合第 3.1 节范围证明的有效直营 staff 持有码进入同一终审，营员归属仍为当前关系中的 coach。旧 `activate_box_code(text,text)` 与 `activate_box_code(text,integer,integer,text)` 必须删除，原审核函数对浏览器角色回收执行权限，禁止形成第二终审或自助激活路径。
 3. 两入口在读取 `box_code_commands` 前按同一幂等键获取事务级咨询锁，串行化并发首写；同键同载荷返回首次结果并标记 `replayed=true`，同键异载荷返回 `IDEMPOTENCY_CONFLICT`，不得创建第二条申请。既有码行锁、状态冲突与终审乐观版本语义保持不变。
-4. staff 调用 `coach_push_code_v1` 必须先以可提交的 JSON `FORBIDDEN` 结果返回并追加 `staff_rbac_audit`；其他调用者随后必须具有有效 `camp_admins.role = 'coach' AND is_active`，停用 coach 即使保留关系和库存也在 Vault 与目标读取前返回 `FORBIDDEN`。有效教练只能使用本人云库存 unused 码及本人当前营员关系。两入口均从 Vault `box_code_pepper` 读取密钥，缺失错误码为 `BOX_CODE_PEPPER_NOT_CONFIGURED`，不得回退 GUC。
+4. 调用 `coach_push_code_v1` 必须具有有效 `camp_admins.role = 'coach'` 或符合定向例外的有效 `role = 'staff'`；失效角色即使保留关系和库存也在 Vault 与目标读取前返回 `FORBIDDEN`。有效教练只能使用本人云库存 unused 码及本人当前营员关系；有效直营 staff 只能使用本人库存及当前有效分配教练名下的当前营员关系，不再对这一类受控直推写 `staff_finance_denied`。两入口均从 Vault `box_code_pepper` 读取密钥，缺失错误码为 `BOX_CODE_PEPPER_NOT_CONFIGURED`，不得回退 GUC。
 5. 既有终审 `audit_logs` 在插入时由数据库触发器从申请行补充 `requestSource`，通过和拒绝均保留来源；不得在终审函数之外另写激活、归属或库存状态。
 ## 教练身份 SSOT 与 Pepper Vault（TASK-10.13 增量）
 
@@ -241,7 +241,7 @@
 2. **受控写入**：`admin_set_coach_role(p_email, p_is_active, p_expected_version, p_idempotency_key)` 仅有效 Admin 可调用。新建要求版本 0，已有行必须精确匹配版本；同一幂等键、命令类型、载荷与调用者可重放原结果，异载荷或异调用者返回 `IDEMPOTENCY_CONFLICT`。创建、变更、停用均递增版本并写成功审计；已有 admin/staff 行或其他认证主体占用行返回 `ROLE_ASSIGNMENT_CONFLICT`，不得降成 coach。
 3. **存量安全回填**：迁移为当前有效关系中的教练创建或同步有效 coach 角色行，已有停用 coach 行恢复有效，保证存量教练不断权；已有 admin/staff 角色行保持不变，认证主体或规范化邮箱被其他角色占用时跳过，不自动降权或抢占身份。`SystemConfig.platform_official_account_id` 指向的平台官方账号即使持有当前归属关系，也不得被回填为 coach。
 4. **空盘教练**：没有当前营员的新教练仍可被 Admin 目录搜索、staff 分配、码池划拨、审核选择与补货申请，并可读取本人 `get_my_access_profile`、空雷达和空云库存。`admin_get_coach_directory` 联系方式仍仅向有效 Admin 返回；普通用户、coach、staff 均不能枚举该目录。
-5. **最小权限**：coach 只能读取或操作本人当前营员、本人库存与本人跟进；staff 继续只读当前有效分配范围内的五字段雷达，不能读取教练目录或云库存。staff 的云库存 `FORBIDDEN` 拒绝不得写入随后必然回滚的 `staff_finance_denied` 审计；只有成功 RBAC 变更才审计。角色停用后，新请求立即失去 coach 能力，但历史归属、激活与审计事实不改写。
+5. **最小权限**：coach 只能读取或操作本人当前营员、本人库存与本人跟进；staff 的雷达继续只读当前有效分配范围内的脱敏字段，不能读取教练目录。TASK-10.13-FINAL-CLEARANCE 仅追加本人被划拨云库存与当前分配范围受控直推，具体边界见 staff-role-permissions-v1.md 第 3.1 节；不得借此开放财务、员工管理、平台生成、他人库存或跨范围雷达。角色停用后，新请求立即失去相应能力，但历史归属、激活与审计事实不改写。
 6. **Vault 全链路收口**：所有最新生效且需要 `box_code_pepper` 的 RPC 必须从 `vault.decrypted_secrets` 按 `name = 'box_code_pepper'` 读取，不再读取 `current_setting('app.box_code_pepper')`。覆盖生成、手动申请、旧激活函数、待审列表、审核补发、云库存与教练直推；密钥缺失或为空时统一抛出或返回 `BOX_CODE_PEPPER_NOT_CONFIGURED`，不得回退 GUC 或泄露密钥。保留各函数原签名、事务边界、授权状态与业务语义。
 
 ## 教练身份 SSOT 与 Pepper Vault（TASK-10.13 增量）
@@ -250,7 +250,7 @@
 2. **受控写入**：`admin_set_coach_role(p_email, p_is_active, p_expected_version, p_idempotency_key)` 仅有效 Admin 可调用。新建要求版本 0，已有行必须精确匹配版本；同一幂等键、命令类型、载荷与调用者可重放原结果，异载荷或异调用者返回 `IDEMPOTENCY_CONFLICT`。创建、变更、停用均递增版本并写成功审计；已有 admin/staff 行或其他认证主体占用行返回 `ROLE_ASSIGNMENT_CONFLICT`，不得降成 coach。
 3. **存量安全回填**：迁移为当前有效关系中的教练创建或同步有效 coach 角色行，已有停用 coach 行恢复有效，保证存量教练不断权；已有 admin/staff 角色行保持不变，认证主体或规范化邮箱被其他角色占用时跳过，不自动降权或抢占身份。`SystemConfig.platform_official_account_id` 指向的平台官方账号即使持有当前归属关系，也不得被回填为 coach。
 4. **空盘教练**：没有当前营员的新教练仍可被 Admin 目录搜索、staff 分配、码池划拨、审核选择与补货申请，并可读取本人 `get_my_access_profile`、空雷达和空云库存。`admin_get_coach_directory` 联系方式仍仅向有效 Admin 返回；普通用户、coach、staff 均不能枚举该目录。
-5. **最小权限**：coach 只能读取或操作本人当前营员、本人库存与本人跟进；staff 继续只读当前有效分配范围内的五字段雷达，不能读取教练目录或云库存。staff 的云库存 `FORBIDDEN` 拒绝不得写入随后必然回滚的 `staff_finance_denied` 审计；只有成功 RBAC 变更才审计。角色停用后，新请求立即失去 coach 能力，但历史归属、激活与审计事实不改写。
+5. **最小权限**：coach 只能读取或操作本人当前营员、本人库存与本人跟进；staff 的雷达继续只读当前有效分配范围内的脱敏字段，不能读取教练目录。TASK-10.13-FINAL-CLEARANCE 仅追加本人被划拨云库存与当前分配范围受控直推，具体边界见 staff-role-permissions-v1.md 第 3.1 节；不得借此开放财务、员工管理、平台生成、他人库存或跨范围雷达。角色停用后，新请求立即失去相应能力，但历史归属、激活与审计事实不改写。
 6. **Vault 全链路收口**：所有最新生效且需要 `box_code_pepper` 的 RPC 必须从 `vault.decrypted_secrets` 按 `name = 'box_code_pepper'` 读取，不再读取 `current_setting('app.box_code_pepper')`。覆盖生成、手动申请、旧激活函数、待审列表、审核补发、云库存与教练直推；密钥缺失或为空时统一抛出或返回 `BOX_CODE_PEPPER_NOT_CONFIGURED`，不得回退 GUC 或泄露密钥。保留各函数原签名、事务边界、授权状态与业务语义。
 
 ## 教练晋升状态机与准教练权限（TASK-10.13-CORE-UNLOCK 增量）
@@ -274,6 +274,13 @@
 2. **教练本人在审列表**：`get_coach_pending_reviews()` 无参数、只读返回 `code_id / code / camper_code / requested_at / entry_path`。调用者必须先由 `camp_admins` 中本人有效 `role = 'coach'` 行鉴权，再读取 Vault `box_code_pepper` 解密码面；匿名返回 `UNAUTHORIZED`，其他角色（含 staff、Admin、准教练和失效 coach）返回 `FORBIDDEN`，密钥缺失沿用 `BOX_CODE_PEPPER_NOT_CONFIGURED`。仅选择 `box_codes.coach_id = auth.uid()`、`inventory_status = 'coach'` 且码与申请均为 pending 的行；`entry_path` 直接取不可变 `request_source`，同时覆盖 `manual_code / coach_push`。`camper_code` 取服务端申请行（手动申请源于本人云端快照、直推源于当前关系），不连接或返回认证 UID、邮箱、原始健康数据、审核信息或其他教练数据。
 3. **雷达营期状态**：`get_coach_radar_v1()` 与 `get_coach_radar_v1(p_scope)` 在原五字段后新增 `cycle_state`，原字段顺序、灯号优先级、Admin/coach/staff/准教练权限与脱敏边界不变。函数从 `system_configs.max_checkins_per_box` 读取正整数营期天数，缺失或非法时以 `SYSTEM_CONFIG_MISSING` fail-closed，不新增字面值阈值；窗口结束日为 `start_date + 营期天数 - 1`。服务端 `Asia/Shanghai` 当前日期已超过窗口结束日，且不存在本人已激活且码状态为 active 的 recharge 事实时，返回 `cycle_complete_pending_renewal`，其余为 `in_cycle`。该维度与原断卡灯号独立：满期待续费优先保持红灯，窗口内漏打卡仍只由 `alert_level` 表达，前端不得自行推算。
 4. **最小权限**：三个新公开入口及两个雷达重载均为 `STABLE SECURITY DEFINER`，固定 `search_path = public, pg_temp`，撤销 `public / anon` 执行权，仅授予 `authenticated`；函数内仍独立鉴权。不得向浏览器角色新增 `code_activations / box_codes / vault` 直读权限。迁移只新增或替换最新函数，不改写历史迁移。
+
+## 直营员工搜索、库存划拨与受控直推（TASK-10.13-FINAL-CLEARANCE 增量）
+
+1. `admin_search_staff_directory_v1(p_query text)` 仅有效 Admin 可调用，按 email 模糊搜索有效 staff，返回 `staff_id / email / is_active / version / coach_count / camper_count / assignments`，统计及分配 JSON 直接复用 `admin_get_staff_directory`。空或 NULL 查询返回空，非空查询最多 10 条，不返回其他角色或失效 staff。
+2. `allocate_codes_to_staff_v1(p_staff_id uuid, p_count integer)` 仅有效 Admin 可调用，接受任意正整数；目标必须是有效 staff。函数在同一事务锁定平台 `unused` 码，复用 `box_codes / coach_inventory` 将持有者设为目标 staff，追加 `staff_allocated` 库存流水与 `staff_inventory_allocated` 员工审计。库存不足或任何写入失败时整体回滚，返回仅含 `{ok:true, allocatedCount:number}`。
+3. 有效直营 staff 通过 `get_my_code_inventory / get_coach_inventory_v3` 只读本人库存；`coach_push_code_v1` 只接受本人码与当前有效分配教练名下的当前营员。`admin_review_box_code_activation_v2` 对 staff 持有码仍只由 Admin 终审，并重新证明申请来源、staff 状态、当前关系和分配范围；不得把营员改归 staff。详细定向例外及禁止项以 `staff-role-permissions-v1.md` 第 3.1 节为准。
+4. 新增及本增量替换且涉及扩展的函数固定 `search_path = public, extensions, pg_temp`，撤销 `public / anon` 执行权，仅授予 `authenticated`，函数内以 `auth.uid()` 独立鉴权。不得新增平行库存、硬编码账号或业务配置，不得改变教练原库存和直推路径。
 
 ## CSV 导出
 

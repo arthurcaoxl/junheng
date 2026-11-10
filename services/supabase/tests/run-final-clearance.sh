@@ -35,4 +35,5 @@ docker exec \
   -e PGPASSWORD="$POSTGRES_PASSWORD" \
   "$CONTAINER_NAME" \
   psql -U postgres -d "$POSTGRES_DB" -v ON_ERROR_STOP="$PSQL_ON_ERROR_STOP" \
-  -f /workspace/services/supabase/tests/final_clearance.test.sql
+  -f /workspace/services/supabase/tests/final_clearance.test.sql \
+  -f /workspace/services/supabase/tests/final_staff_allocation.test.sql
