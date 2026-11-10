@@ -1,18 +1,24 @@
 import { useEffect, useState, type FormEvent } from "react";
 import {
   allocateCodesToCoach,
+  allocateCodesToStaff,
   fetchAdminRestockRequests,
   generatePlatformCodes,
   resolveAdminRestockRequest,
   type AdminRestockRequest,
 } from "../../services/codePool";
 import CoachEmailSearchSelect from "./CoachEmailSearchSelect";
+import StaffEmailSearchSelect from "./StaffEmailSearchSelect";
+
+type AllocationRole = "staff" | "coach";
 
 export default function AdminCodePool() {
   const [count, setCount] = useState("1");
   const [boxSpec, setBoxSpec] = useState("21_bags");
   const [receipt, setReceipt] = useState("");
+  const [allocationRole, setAllocationRole] = useState<AllocationRole>("coach");
   const [coachId, setCoachId] = useState("");
+  const [staffId, setStaffId] = useState("");
   const [allocateCount, setAllocateCount] = useState("");
   const [requests, setRequests] = useState<AdminRestockRequest[]>([]);
   const [busy, setBusy] = useState(false);
@@ -51,9 +57,21 @@ export default function AdminCodePool() {
   const allocate = (event: FormEvent) => {
     event.preventDefault();
     void run(async () => {
+      if (allocationRole === "staff") {
+        const allocated = await allocateCodesToStaff(staffId, Number(allocateCount));
+        return `已向平台直营员工划拨 ${allocated} 枚码。`;
+      }
       const allocated = await allocateCodesToCoach(coachId, Number(allocateCount));
       return `已向教练划拨 ${allocated} 枚码，教练端刷新后可见。`;
     });
+  };
+
+  const switchAllocationRole = (role: AllocationRole) => {
+    setAllocationRole(role);
+    setCoachId("");
+    setStaffId("");
+    setError("");
+    setNotice("");
   };
 
   const resolve = (requestId: string, decision: "fulfilled" | "rejected") => {
@@ -86,17 +104,33 @@ export default function AdminCodePool() {
           <button type="submit" className="admin-primary" disabled={busy}>批量生成码</button>
         </form>
         <form onSubmit={allocate}>
-          <h3>教练库存划拨</h3>
-          <CoachEmailSearchSelect
-            id="code-coach-email"
-            label="划拨教练邮箱"
-            selectedId={coachId}
-            disabled={busy}
-            onSelect={(coach) => setCoachId(coach?.coachId ?? "")}
-          />
+          <div role="group" aria-label="划拨对象角色">
+            <button type="button" className="admin-secondary" aria-pressed={allocationRole === "staff"} disabled={busy} onClick={() => switchAllocationRole("staff")}>平台直营员工</button>
+            <button type="button" className="admin-secondary" aria-pressed={allocationRole === "coach"} disabled={busy} onClick={() => switchAllocationRole("coach")}>教练</button>
+          </div>
+          <h3>{allocationRole === "staff" ? "平台直营员工库存划拨" : "教练库存划拨"}</h3>
+          {allocationRole === "staff" ? (
+            <StaffEmailSearchSelect
+              id="code-staff-email"
+              label="划拨直营员工邮箱"
+              selectedId={staffId}
+              disabled={busy}
+              onSelect={(staff) => setStaffId(staff?.staffId ?? "")}
+            />
+          ) : (
+            <CoachEmailSearchSelect
+              id="code-coach-email"
+              label="划拨教练邮箱"
+              selectedId={coachId}
+              disabled={busy}
+              onSelect={(coach) => setCoachId(coach?.coachId ?? "")}
+            />
+          )}
           <label htmlFor="code-allocate-count">划拨数量</label>
           <input id="code-allocate-count" type="number" min="1" step="1" value={allocateCount} onChange={(event) => setAllocateCount(event.target.value)} required />
-          <button type="submit" className="admin-secondary" disabled={busy || !coachId}>划拨给教练</button>
+          <button type="submit" className="admin-secondary" disabled={busy || !(allocationRole === "staff" ? staffId : coachId)}>
+            {allocationRole === "staff" ? "划拨给员工" : "划拨给教练"}
+          </button>
         </form>
       </div>
       <section className="admin-restock-requests" aria-labelledby="admin-restock-title">

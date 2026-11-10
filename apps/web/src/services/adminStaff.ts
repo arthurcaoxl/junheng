@@ -65,9 +65,7 @@ function parseWarnings(input: unknown): StaffCapacityWarning[] {
   });
 }
 
-export async function fetchAdminStaffDirectory(): Promise<StaffMember[]> {
-  const { data, error } = await getSupabase().rpc("admin_get_staff_directory");
-  if (error) throw rpcFailure(error);
+function parseStaffDirectory(data: unknown): StaffMember[] {
   if (!Array.isArray(data)) throw new Error("员工目录返回格式异常。");
   return data.flatMap((raw): StaffMember[] => {
     const row = raw as Record<string, unknown>;
@@ -98,6 +96,20 @@ export async function fetchAdminStaffDirectory(): Promise<StaffMember[]> {
       assignments,
     }];
   });
+}
+
+export async function fetchAdminStaffDirectory(): Promise<StaffMember[]> {
+  const { data, error } = await getSupabase().rpc("admin_get_staff_directory");
+  if (error) throw rpcFailure(error);
+  return parseStaffDirectory(data);
+}
+
+export async function searchAdminStaffDirectory(query: string): Promise<StaffMember[]> {
+  const p_query = query.trim();
+  if (p_query.length < 2) return [];
+  const { data, error } = await getSupabase().rpc("admin_search_staff_directory_v1", { p_query });
+  if (error) throw rpcFailure(error);
+  return parseStaffDirectory(data);
 }
 
 export async function setStaffRole(email: string, isActive: boolean, expectedVersion: number): Promise<void> {

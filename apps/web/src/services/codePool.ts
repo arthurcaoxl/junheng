@@ -67,6 +67,21 @@ export async function allocateCodesToCoach(coachId: string, count: number): Prom
   return allocatedCount;
 }
 
+export async function allocateCodesToStaff(staffId: string, count: number): Promise<number> {
+  positiveInteger(count, "划拨数量");
+  if (!staffId.trim()) throw new Error("请选择平台直营员工。");
+  const { data, error } = await getSupabase().rpc("allocate_codes_to_staff_v1", {
+    p_staff_id: staffId.trim(),
+    p_count: count,
+  });
+  if (error) throw rpcFailure(error);
+  const result = data as { ok?: unknown; allocatedCount?: unknown } | null;
+  if (result?.ok !== true || typeof result.allocatedCount !== "number") {
+    throw new Error("产品激活码库返回数据格式异常。");
+  }
+  return result.allocatedCount;
+}
+
 export async function fetchMyCodeInventory(): Promise<CoachCodeInventory> {
   const { data, error } = await getSupabase().rpc("get_coach_inventory_v3", { p_dummy: null });
   if (error) throw rpcFailure(error);
