@@ -280,7 +280,7 @@
 1. `admin_search_staff_directory_v1(p_query text)` 仅有效 Admin 可调用，按 email 模糊搜索有效 staff，返回 `staff_id / email / is_active / version / coach_count / camper_count / assignments`，统计及分配 JSON 直接复用 `admin_get_staff_directory`。空或 NULL 查询返回空，非空查询最多 10 条，不返回其他角色或失效 staff。
 2. `allocate_codes_to_staff_v1(p_staff_id uuid, p_count integer)` 仅有效 Admin 可调用，接受任意正整数；目标必须是有效 staff。函数在同一事务锁定平台 `unused` 码，复用 `box_codes / coach_inventory` 将持有者设为目标 staff，追加 `staff_allocated` 库存流水与 `staff_inventory_allocated` 员工审计。库存不足或任何写入失败时整体回滚，返回仅含 `{ok:true, allocatedCount:number}`。
 3. 有效直营 staff 通过 `get_my_code_inventory / get_coach_inventory_v3` 只读本人库存；`coach_push_code_v1` 只接受本人码与当前有效分配教练名下的当前营员。`admin_review_box_code_activation_v2` 对 staff 持有码仍只由 Admin 终审，并重新证明申请来源、staff 状态、当前关系和分配范围；不得把营员改归 staff。详细定向例外及禁止项以 `staff-role-permissions-v1.md` 第 3.1 节为准。
-4. 新增及本增量替换且涉及扩展的函数固定 `search_path = public, extensions, pg_temp`，撤销 `public / anon` 执行权，仅授予 `authenticated`，函数内以 `auth.uid()` 独立鉴权。不得新增平行库存、硬编码账号或业务配置，不得改变教练原库存和直推路径。
+4. **pgcrypto 扩展路径防线**：全量迁移后仍生效且调用 `pgp_sym_decrypt / pgp_sym_encrypt / digest / gen_random_bytes / gen_random_uuid / encode / decode / hmac` 等扩展函数的自定义 RPC，必须固定 `search_path = public, extensions, pg_temp`，或将扩展调用正确限定到 `extensions` 并保持权限安全；不得依赖会话 `search_path` 或将扩展安装到 `public`。公开 RPC 撤销 `public / anon` 执行权，仅授予 `authenticated`，函数内以 `auth.uid()` 独立鉴权。扩展路径补丁不得扩大返回字段、改变鉴权或业务语义，也不得新增平行库存、硬编码账号或业务配置。
 
 ## CSV 导出
 
