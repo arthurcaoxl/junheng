@@ -21,7 +21,6 @@ function rpcFailure(error: unknown): Error {
   if (/INVENTORY_INSUFFICIENT/i.test(message)) return new Error("可用库存不足，操作已整体取消。");
   if (/OFFLINE_RECEIPT_REQUIRED/i.test(message)) return new Error("请填写线下打款凭证号。");
   if (/BOX_SPEC_CONFIG_MISMATCH/i.test(message)) return new Error("盒规格与当前系统配置不一致，请核实后重试。");
-  if (/INVALID_CODE_COUNT/i.test(message)) return new Error("生成数量必须为 24 的正整数倍。");
   if (/BOX_CODE_PEPPER_NOT_CONFIGURED|CODE_HASH_NOT_CONFIGURED/i.test(message)) {
     return new Error("系统维护中，请稍后重试。");
   }
@@ -41,7 +40,7 @@ export async function generatePlatformCodes(
   boxSpec: string,
   offlineReceiptNo: string,
 ): Promise<number> {
-  positiveInteger(count, "生成数量");
+  positiveInteger(count, "生成盒数");
   if (!boxSpec.trim()) throw new Error("请填写盒规格。");
   if (!offlineReceiptNo.trim()) throw new Error("请填写线下打款凭证号。");
   const { data, error } = await getSupabase().rpc("generate_platform_codes", {

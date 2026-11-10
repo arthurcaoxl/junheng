@@ -9,8 +9,8 @@ import {
 import CoachEmailSearchSelect from "./CoachEmailSearchSelect";
 
 export default function AdminCodePool() {
-  const [count, setCount] = useState("");
-  const [boxSpec, setBoxSpec] = useState("");
+  const [count, setCount] = useState("1");
+  const [boxSpec, setBoxSpec] = useState("21_bags");
   const [receipt, setReceipt] = useState("");
   const [coachId, setCoachId] = useState("");
   const [allocateCount, setAllocateCount] = useState("");
@@ -73,14 +73,14 @@ export default function AdminCodePool() {
       <div className="admin-code-pool-forms">
         <form onSubmit={generate}>
           <h3>生成平台码</h3>
-          <label htmlFor="code-generate-count">生成数量</label>
+          <label htmlFor="code-generate-count">生成盒数</label>
           <input id="code-generate-count" type="number" min="1" step="1" value={count} onChange={(event) => setCount(event.target.value)} required />
           <label htmlFor="code-generate-spec">盒规格</label>
           <select id="code-generate-spec" value={boxSpec} onChange={(event) => setBoxSpec(event.target.value)} required>
-            <option value="" disabled>请选择盒规格</option>
             <option value="21_bags">21袋</option>
             <option value="30_bags">30袋</option>
           </select>
+          <p className="admin-hint">当前规格：{boxSpec === "30_bags" ? "30袋/盒（1码支持30次打卡）" : "21袋/盒（1码支持21次打卡）"}</p>
           <label htmlFor="code-offline-receipt">激活码审批号</label>
           <input id="code-offline-receipt" value={receipt} onChange={(event) => setReceipt(event.target.value)} placeholder="TEST / INIT / 线下审批号" required />
           <button type="submit" className="admin-primary" disabled={busy}>批量生成码</button>

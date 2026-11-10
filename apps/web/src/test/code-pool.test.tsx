@@ -20,8 +20,6 @@ vi.mock("../services/codePool", async (importOriginal) => {
   };
 });
 
-const rpcResult = { data: { ok: true, generatedCount: 24 }, error: null };
-
 describe("产品激活码库服务与界面", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -29,18 +27,34 @@ describe("产品激活码库服务与界面", () => {
     vi.stubEnv("VITE_SUPABASE_ANON_KEY", "test-anon-key");
   });
 
-  it("生成 RPC 显式提交数量、盒规格和线下凭证号", async () => {
-    (getSupabase().rpc as ReturnType<typeof vi.fn>).mockResolvedValue(rpcResult);
-    await expect(generatePlatformCodes(24, "21_bags", "PAY-20261108-01")).resolves.toBe(24);
+  it.each([1, 2, 25])("生成 RPC 接受任意正整数盒数 %i", async (count) => {
+    (getSupabase().rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: { ok: true, generatedCount: count }, error: null,
+    });
+    await expect(generatePlatformCodes(count, "21_bags", "PAY-20261108-01")).resolves.toBe(count);
     expect(getSupabase().rpc).toHaveBeenCalledWith("generate_platform_codes", {
-      p_count: 24,
+      p_count: count,
       p_box_spec: "21_bags",
       p_offline_receipt_no: "PAY-20261108-01",
     });
   });
 
+  it.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])("非正整数盒数 %s 在前端拦截", async (count) => {
+    await expect(generatePlatformCodes(count, "21_bags", "PAY-20261108-01")).rejects.toThrow("生成盒数必须为正整数");
+    expect(getSupabase().rpc).not.toHaveBeenCalled();
+  });
+
+  it("INVALID_CODE_COUNT 不再错译为 24 倍数业务限制", async () => {
+    (getSupabase().rpc as ReturnType<typeof vi.fn>).mockResolvedValue({
+      data: null,
+      error: { message: "INVALID_CODE_COUNT" },
+    });
+    await expect(generatePlatformCodes(1, "21_bags", "PAY-20261108-01")).rejects.toThrow("产品激活码库操作失败，请稍后重试。");
+    await expect(generatePlatformCodes(1, "21_bags", "PAY-20261108-01")).rejects.not.toThrow("24");
+  });
+
   it("空白线下凭证在前端拦截且不调用生成 RPC", async () => {
-    await expect(generatePlatformCodes(24, "21_bags", "  ")).rejects.toThrow("请填写线下打款凭证号");
+    await expect(generatePlatformCodes(1, "21_bags", "  ")).rejects.toThrow("请填写线下打款凭证号");
     expect(getSupabase().rpc).not.toHaveBeenCalled();
   });
 
@@ -63,7 +77,8 @@ describe("产品激活码库服务与界面", () => {
 
     await user.click(screen.getByRole("button", { name: "批量生成码" }));
     expect(generatePlatformCodes).not.toHaveBeenCalled();
-    await user.type(screen.getByLabelText("生成数量"), "24");
+    await user.clear(screen.getByLabelText("生成盒数"));
+    await user.type(screen.getByLabelText("生成盒数"), "24");
     await user.selectOptions(screen.getByLabelText("盒规格"), "21_bags");
     await user.type(screen.getByLabelText("激活码审批号"), "PAY-OFFLINE-88");
     await user.click(screen.getByRole("button", { name: "批量生成码" }));

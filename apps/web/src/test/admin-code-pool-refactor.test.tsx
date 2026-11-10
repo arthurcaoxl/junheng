@@ -25,22 +25,27 @@ describe("Admin 产品激活码库防呆与教练搜索", () => {
     });
   });
 
-  it("盒规格只允许 21 袋或 30 袋并保留 TEST 激活码审批号", async () => {
+  it("默认生成 1 盒 21 袋规格，切换 30 袋时提示同步且可提交 25 盒", async () => {
     const user = userEvent.setup();
     render(<AdminCodePool />);
 
+    expect(screen.getByLabelText("生成盒数")).toHaveValue(1);
+    expect(screen.getByText("当前规格：21袋/盒（1码支持21次打卡）")).toBeInTheDocument();
     const spec = screen.getByLabelText("盒规格");
     expect(spec.tagName).toBe("SELECT");
     expect(screen.getByRole("option", { name: "21袋" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "30袋" })).toBeInTheDocument();
-    await user.selectOptions(spec, "21_bags");
-    await user.type(screen.getByLabelText("生成数量"), "24");
+    await user.selectOptions(spec, "30_bags");
+    expect(screen.getByText("当前规格：30袋/盒（1码支持30次打卡）")).toBeInTheDocument();
+    expect(screen.queryByText("当前规格：21袋/盒（1码支持21次打卡）")).not.toBeInTheDocument();
+    await user.clear(screen.getByLabelText("生成盒数"));
+    await user.type(screen.getByLabelText("生成盒数"), "25");
     await user.type(screen.getByLabelText("激活码审批号"), "TEST");
     await user.click(screen.getByRole("button", { name: "批量生成码" }));
 
     expect(getSupabase().rpc).toHaveBeenCalledWith("generate_platform_codes", {
-      p_count: 24,
-      p_box_spec: "21_bags",
+      p_count: 25,
+      p_box_spec: "30_bags",
       p_offline_receipt_no: "TEST",
     });
   });
