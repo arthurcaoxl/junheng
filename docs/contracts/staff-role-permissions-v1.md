@@ -13,7 +13,7 @@
 - `camp_admins` 是历史表名，不代表其中每行都是管理员。
 - 角色只由受控服务端或 admin 管理，用户不得通过前端、JWT 自定义声明或修改本地存储自助提权。
 - 默认拒绝：没有有效角色、角色停用、分配失效或权限无法证明时，不得读取业务数据。
-- staff 的基础业务数据能力是查看被分配教练当前名下的脱敏雷达及处理相应服务工单；TASK-10.13-FINAL-CLEARANCE 仅追加第 3.1 节的直营库存定向例外。任何例外都不开放财务分润、员工管理、平台生成、他人库存或跨范围雷达。
+- staff 的基础业务数据能力仅是查看被分配教练当前名下的脱敏雷达及处理相应服务工单。TASK-10.15-STAFF-RBAC-UI 撤销 TASK-10.13-FINAL-CLEARANCE 的直营库存与直推例外；staff 不得成功调用库存查询、补货或直推码 RPC，也不得访问财务分润、员工管理、平台生成、他人库存或跨范围雷达。
 
 ## 2. `camp_admins.role` 逻辑变更
 
@@ -41,17 +41,17 @@
 | 查看原始 `records` | 不因 admin 身份自动获得；另行授权 | 禁止 | 禁止 |
 | 查看原始 `height / weight / height_cm / initial_weight_kg` | 不通过雷达返回；其他管理能力另行授权 | 禁止 | 禁止 |
 | 查看财务分润 RPC | 按财务权限另行批准 | 仅本人财务且另行批准 | **绝对禁止** |
-| 管理产品码、撤销激活 | 按专门命令授权 | 仅本人被授权操作 | 仅第 3.1 节的本人被划拨库存与受控直推；其余禁止 |
+| 管理产品码、撤销激活 | 按专门命令授权 | 仅本人被授权操作 | **禁止库存查询、补货、直推、终审及撤销激活** |
 | 执行休眠批处理 | 仅受控系统／专门管理命令 | 禁止 | 禁止 |
 | 修改 `referrer_id` | 仅受控托管或人工裁定命令 | 禁止 | 禁止 |
 
-### 3.1 平台直营员工库存定向例外（TASK-10.13-FINAL-CLEARANCE）
+### 3.1 Staff 服务辅助角色最终边界（TASK-10.15-STAFF-RBAC-UI）
 
-1. 仅有效 Admin 可通过 `allocate_codes_to_staff_v1(p_staff_id, p_count)` 从平台可用库存向有效 staff 划拨任意正整数盒。事务复用 `box_codes / coach_inventory / inventory_logs`，追加 `staff_allocated` 流水与 `staff_inventory_allocated` 审计；库存不足时码行、计数、流水与审计整体回滚。返回固定为 `{ok:true, allocatedCount:number}`。
-2. 有效 staff 只能通过 `get_my_code_inventory / get_coach_inventory_v3` 读取 `auth.uid()` 本人名下 `unused` 且已划拨的码；不得传入持有者参数，不得读取其他 staff、coach 或平台库存。`get_my_access_profile.can_manage_inventory` 仅同步这一本人库存能力，不构成额外授权。
-3. 有效 staff 可调用既有 `coach_push_code_v1`，但码必须为本人持有，目标关系必须同时满足 `valid_to IS NULL` 和“其当前 `referrer_id` 教练在该 staff 当前有效 `staff_coach_assignment` 范围内”。不满足时返回 `FORBIDDEN`，不得扩展为任意用户、历史归属或其他教练范围。
-4. 直推仍只创建 `coach_push` 来源的 pending 申请，不能直接激活、改归属或扣库存。Admin 唯一终审保持不变；对 staff 持有码，`admin_review_box_code_activation_v2` 只有在目标为有效 staff、申请为 `coach_push` 且当前关系仍在该 staff 分配范围时才允许继续，终审归属仍为关系中的 coach，库存从 staff 持有者扣减。
-5. staff 不得平台生成、向任何人划拨、管理员工或角色、补货申请、读取教练在审列表、终审或撤销激活；原雷达仍只有当前分配范围五字段及既有营期状态，财务权限继续绝对禁止。staff 停用或分配撤销后，新请求立即失去相应直推能力，历史库存与审计事实不改写。
+1. staff 登录 `/coach` 后只可查看当前有效分配教练名下的脱敏雷达及处理相应服务工单。TASK-10.13-FINAL-CLEARANCE 曾开放的本人库存读取与受控直推例外自本任务起撤销，历史库存、申请与审计事实不因权限收紧而删除或改写。
+2. staff 调用 `get_my_code_inventory()` 或 `get_coach_inventory_v3(p_dummy)` 必须在读取 Vault、配置或库存数据之前以 `FORBIDDEN` 和 SQLSTATE `42501` 拒绝，不得返回空库存伪装成功。`get_my_access_profile.can_manage_inventory` 对 staff 必须返回 `false`；正式 coach 的本人库存查询保持原契约，Admin 不因角色自动获得该教练库存接口。
+3. `request_coach_restock_v1(p_note)` 继续仅允许有效 coach。staff 调用必须以 `FORBIDDEN` 和 SQLSTATE `42501` 拒绝，且不得新增或修改 `coach_restock_requests`。
+4. staff 调用 `coach_push_code_v1(p_camper_ref, p_code_id, p_idempotency_key)` 必须在读取 Vault、码、关系或幂等命令之前以 `FORBIDDEN` 和 SQLSTATE `42501` 拒绝，不得创建申请、事件或命令，不得改变码状态。正式 coach 的本人码与本人当前营员直推路径保持不变。
+5. staff 不得平台生成、向任何人划拨、管理员工或角色、读取教练在审列表、终审或撤销激活。既有 Admin 员工搜索、角色管理、分配与历史申请终审权限不因本次 staff 禁令扩大或缩小。
 6. `admin_search_staff_directory_v1(p_query)` 仅有效 Admin 可调用，按 email 模糊搜索有效 staff，空或 NULL 查询返回空，非空结果最多 10 条；字段与 `admin_get_staff_directory` 完全一致，不泄露 Admin、coach 或失效 staff。
 
 前端菜单隐藏不是权限。所有 RPC、直接表访问、视图、导出、事件订阅和错误响应都必须执行同样的服务端授权。
@@ -154,8 +154,8 @@ staff 只能处理分配范围内的客情服务工单，包括黄灯跟进、�
 ## 10. 契约验收清单
 
 - [ ] `camp_admins.role` 仅允许 admin／coach／staff，每个 `auth.uid` 只有一个有效角色，历史行未经核验无新增权限。
-- [ ] staff 的雷达仍只覆盖当前分配教练，撤销或托管后立即不可见；库存例外不扩大雷达范围。
-- [ ] 直营 staff 只能读取本人被划拨库存并向当前分配范围营员直推，不能读取他人库存、平台生成、划拨或管理员工。
+- [ ] staff 的雷达仍只覆盖当前分配教练，撤销或托管后立即不可见；不存在库存或直推例外。
+- [ ] staff 调用库存查询、补货、直推码 RPC 均由服务端以 `FORBIDDEN` / SQLSTATE `42501` 拒绝，且无数据、无写入副作用；正式 coach 的对应路径不回归。
 - [ ] staff 对每一个财务分润 RPC 均为服务端拒绝，而非仅隐藏菜单。
 - [ ] 第 6 个 coach 和超过 150 用户的分配均允许成功，同时出现醒目红字警告、审计和治理跟进。
 - [ ] 不存在任何以 1:5 或 1:150 阻断分配的数据库、触发器、RPC 或服务端硬限制。
@@ -163,4 +163,4 @@ staff 只能处理分配范围内的客情服务工单，包括黄灯跟进、�
 - [ ] `alert_level` 由 SQL 层计算且仅含 red／yellow／green，staff 无原始字段可重建灯号。
 - [ ] dormant 后原 coach／staff 失去已转平台用户的雷达和工单访问。
 - [ ] 用户 `userCode` 与 `auth.uid` 不因角色、分配或托管变化而改变。
-- [ ] 未修改 `storage-v3`，未混入 CEO 沙盘纯函数引擎代码。
+- [ ] `storage-v3` 已同步 TASK-10.15 权限终裁，未混入 CEO 沙盘纯函数引擎代码。
