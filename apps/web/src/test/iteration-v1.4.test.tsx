@@ -3,6 +3,16 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
+import { fetchMyActivationStatus } from "../services/boxCodeActivation";
+
+vi.mock("../services/boxCodeActivation", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/boxCodeActivation")>();
+  return { ...actual, fetchMyActivationStatus: vi.fn() };
+});
+
+beforeEach(() => {
+  vi.mocked(fetchMyActivationStatus).mockResolvedValue({ state: "active", requestedAt: null, rejectionHint: null });
+});
 
 function renderApp(route = "/") {
   return render(<MemoryRouter initialEntries={[route]}><App /></MemoryRouter>);
@@ -12,9 +22,9 @@ describe("v1.4 science, plate and personal records", () => {
   beforeEach(() => window.localStorage.clear());
   afterEach(() => vi.restoreAllMocks());
 
-  it("explains the 24-hour weight timeline and three water switches without absolute claims", () => {
+  it("explains the 24-hour weight timeline and three water switches without absolute claims", async () => {
     renderApp("/check-in");
-    const checkIn = screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" });
+    const checkIn = await screen.findByRole("region", { name: "21 天，构建你的脂代谢稳态。" });
     expect(within(checkIn).getByRole("heading", { name: "一天 24 小时：体重的“真实时间轴”" })).toBeInTheDocument();
     expect(within(checkIn).getByRole("heading", { name: "早晨 7:00–8:00" })).toBeInTheDocument();
     expect(within(checkIn).getByRole("heading", { name: "中午 12:00–14:00" })).toBeInTheDocument();
@@ -50,11 +60,11 @@ describe("v1.4 science, plate and personal records", () => {
     vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue("data:image/png;base64,named-poster");
     const user = userEvent.setup();
     const first = renderApp("/check-in");
-    await user.type(screen.getByLabelText("姓名或网名"), "小菌");
+    await user.type(await screen.findByLabelText("姓名或网名"), "小菌");
     expect(window.localStorage.getItem("junheng-checkin-name-v1")).toBe("小菌");
     first.unmount();
     renderApp("/check-in");
-    expect(screen.getByLabelText("姓名或网名")).toHaveValue("小菌");
+    expect(await screen.findByLabelText("姓名或网名")).toHaveValue("小菌");
     await user.click(screen.getByRole("link", { name: "查看我的脂代谢报告" }));
     await user.click(screen.getByRole("button", { name: "生成专属成就海报" }));
     expect(context.fillText).toHaveBeenCalledWith("记录人：小菌", 70, 410);
@@ -63,7 +73,7 @@ describe("v1.4 science, plate and personal records", () => {
   it("clears the saved name together with local check-in records", async () => {
     const user = userEvent.setup();
     renderApp("/check-in");
-    await user.type(screen.getByLabelText("姓名或网名"), "小菌");
+    await user.type(await screen.findByLabelText("姓名或网名"), "小菌");
     await user.click(screen.getByRole("button", { name: "清空本机记录" }));
     expect(screen.getByLabelText("姓名或网名")).toHaveValue("");
     expect(window.localStorage.getItem("junheng-checkin-name-v1")).toBeNull();

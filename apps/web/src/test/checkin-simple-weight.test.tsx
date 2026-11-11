@@ -3,11 +3,19 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
+import { fetchMyActivationStatus } from "../services/boxCodeActivation";
 import { addDays, emptyDay, STORAGE_KEY, todayKey } from "../utils/checkin";
 import { getRepresentativeWeight } from "../utils/weight";
 
-function renderCheckIn() {
-  return render(<MemoryRouter initialEntries={["/check-in"]}><App /></MemoryRouter>);
+vi.mock("../services/boxCodeActivation", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/boxCodeActivation")>();
+  return { ...actual, fetchMyActivationStatus: vi.fn() };
+});
+
+async function renderCheckIn() {
+  const view = render(<MemoryRouter initialEntries={["/check-in"]}><App /></MemoryRouter>);
+  await screen.findByRole("region", { name: "21 天，构建你的脂代谢稳态。" });
+  return view;
 }
 
 function savedState() {
@@ -19,13 +27,14 @@ describe("极简体重记录与衣物扣减", () => {
     window.localStorage.clear();
     vi.stubEnv("VITE_SUPABASE_URL", "");
     vi.stubEnv("VITE_SUPABASE_ANON_KEY", "");
+    vi.mocked(fetchMyActivationStatus).mockResolvedValue({ state: "active", requestedAt: null, rejectionHint: null });
   });
 
   afterEach(() => vi.unstubAllEnvs());
 
   it("新用户默认扣除 0.5 kg，且默认只展示早晨与腰围", async () => {
     const user = userEvent.setup();
-    renderCheckIn();
+    await renderCheckIn();
 
     expect(screen.getByText("晨起称重衣物扣减：默认 0.5 kg（可调整）")).toBeInTheDocument();
     expect(screen.getByText("仅晨起空腹记录会扣除该重量。建议晨起穿轻便睡衣测量。")).toBeInTheDocument();
@@ -46,14 +55,14 @@ describe("极简体重记录与衣物扣减", () => {
 
   it("整数净重在总结区也保留一位小数", async () => {
     const user = userEvent.setup();
-    renderCheckIn();
+    await renderCheckIn();
     await user.type(screen.getByLabelText("早晨体重（空腹）"), "68.5");
     expect(screen.getByText("今日体重：68.0 kg")).toBeInTheDocument();
   });
 
   it("衣物编辑取消不落盘，确认后更新今天的扣减与净重", async () => {
     const user = userEvent.setup();
-    renderCheckIn();
+    await renderCheckIn();
     await user.type(screen.getByLabelText("早晨体重（空腹）"), "68");
 
     await user.click(screen.getByRole("button", { name: "修改" }));
@@ -97,7 +106,7 @@ describe("极简体重记录与衣物扣减", () => {
       },
     }));
     const user = userEvent.setup();
-    renderCheckIn();
+    await renderCheckIn();
 
     await user.click(screen.getByRole("tab", { name: "第 2 天" }));
     await user.click(screen.getByRole("button", { name: "修改" }));
@@ -116,7 +125,7 @@ describe("极简体重记录与衣物扣减", () => {
 
   it("展开中晚后仅早晨扣衣物，并用人话展示参考体重", async () => {
     const user = userEvent.setup();
-    renderCheckIn();
+    await renderCheckIn();
     await user.type(screen.getByLabelText("早晨体重（空腹）"), "68");
     await user.click(screen.getByRole("button", { name: "+ 记录中午/晚间体重（选填）" }));
     await user.type(screen.getByLabelText("晚间体重"), "69");
@@ -131,7 +140,7 @@ describe("极简体重记录与衣物扣减", () => {
 
   it("收起其他时段后隐藏中晚输入但保留已记录数据", async () => {
     const user = userEvent.setup();
-    renderCheckIn();
+    await renderCheckIn();
     await user.click(screen.getByRole("button", { name: "+ 记录中午/晚间体重（选填）" }));
     await user.type(screen.getByLabelText("中午体重"), "68.4");
     await user.type(screen.getByLabelText("晚间体重"), "68.8");

@@ -20,6 +20,13 @@ function renderCheckIn(entry = "/check-in?code=JH-EL-AB23") {
   );
 }
 
+async function waitForActivationForm() {
+  const input = await screen.findByLabelText("产品激活码");
+  const button = screen.getByRole("button", { name: "提交激活审核" });
+  await waitFor(() => expect(button).toBeEnabled());
+  return { input, button };
+}
+
 type ServerActivationState = "none" | "pending_review" | "active" | "rejected";
 
 function activationStatus(state: ServerActivationState) {
@@ -62,8 +69,9 @@ describe("打卡页产品码人工审核申请", () => {
     const user = userEvent.setup();
     renderCheckIn();
 
-    expect(screen.getByLabelText("产品激活码")).toHaveValue("JH-EL-AB23");
-    await user.click(screen.getByRole("button", { name: "提交激活审核" }));
+    const { input, button } = await waitForActivationForm();
+    expect(input).toHaveValue("JH-EL-AB23");
+    await user.click(button);
 
     expect((await screen.findAllByText("审核中，暂不能打卡")).length).toBeGreaterThan(0);
     const deviceHash = window.localStorage.getItem("junheng-device-fingerprint-v1");
@@ -82,7 +90,8 @@ describe("打卡页产品码人工审核申请", () => {
     const user = userEvent.setup();
     renderCheckIn();
 
-    await user.click(screen.getByRole("button", { name: "提交激活审核" }));
+    const { button } = await waitForActivationForm();
+    await user.click(button);
     await screen.findAllByText("审核中，暂不能打卡");
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
@@ -97,11 +106,12 @@ describe("打卡页产品码人工审核申请", () => {
     const user = userEvent.setup();
     renderCheckIn();
 
-    await user.click(screen.getByRole("button", { name: "提交激活审核" }));
+    const { button } = await waitForActivationForm();
+    await user.click(button);
     await screen.findAllByText("审核中，暂不能打卡");
 
-    expect(screen.getByLabelText("早晨体重（空腹）")).toBeDisabled();
-    expect(screen.getByLabelText("开营日期")).toBeDisabled();
+    expect(screen.queryByLabelText("早晨体重（空腹）")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("开营日期")).not.toBeInTheDocument();
     const state = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}");
     expect(state.records?.[todayKey()]?.weights?.morning).toBeUndefined();
   });
@@ -110,7 +120,8 @@ describe("打卡页产品码人工审核申请", () => {
     const user = userEvent.setup();
     renderCheckIn("/check-in?code=invalid");
 
-    await user.click(screen.getByRole("button", { name: "提交激活审核" }));
+    const { button } = await waitForActivationForm();
+    await user.click(button);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("请输入有效的产品激活码。");
     expect(getSupabase().rpc).not.toHaveBeenCalledWith("request_box_code_activation", expect.anything());
@@ -125,7 +136,8 @@ describe("打卡页产品码人工审核申请", () => {
     const user = userEvent.setup();
     renderCheckIn();
 
-    await user.click(screen.getByRole("button", { name: "提交激活审核" }));
+    const { button } = await waitForActivationForm();
+    await user.click(button);
 
     expect(await screen.findByRole("alert")).toHaveTextContent("尝试次数过多，请稍后再试。");
     expect(screen.queryByText("审核中，暂不能打卡")).not.toBeInTheDocument();
@@ -150,7 +162,7 @@ describe("打卡页产品码人工审核申请", () => {
     renderCheckIn();
 
     await screen.findAllByText("审核中，暂不能打卡");
-    expect(screen.getByTestId("activation-search-params").textContent).toBe("");
+    await waitFor(() => expect(screen.getByTestId("activation-search-params").textContent).toBe(""));
     expect(screen.queryByLabelText("产品激活码")).not.toBeInTheDocument();
     expect(getSupabase().rpc).not.toHaveBeenCalledWith("request_box_code_activation", expect.anything());
   });
@@ -160,7 +172,8 @@ describe("打卡页产品码人工审核申请", () => {
     const user = userEvent.setup();
     const firstRender = renderCheckIn();
 
-    await user.click(screen.getByRole("button", { name: "提交激活审核" }));
+    const { button } = await waitForActivationForm();
+    await user.click(button);
     await screen.findAllByText("审核中，暂不能打卡");
     expect(screen.queryByLabelText("产品激活码")).not.toBeInTheDocument();
 
@@ -181,9 +194,7 @@ describe("打卡页产品码人工审核申请", () => {
     });
     renderCheckIn();
 
-    const input = screen.getByLabelText("产品激活码");
-    const button = screen.getByRole("button", { name: "提交激活审核" });
-    await waitFor(() => expect(button).toBeEnabled());
+    const { input, button } = await waitForActivationForm();
     const form = button.closest("form");
     expect(form).not.toBeNull();
     act(() => {

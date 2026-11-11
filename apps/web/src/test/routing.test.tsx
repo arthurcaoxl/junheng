@@ -3,6 +3,12 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import App from "../App";
+import { fetchMyActivationStatus } from "../services/boxCodeActivation";
+
+vi.mock("../services/boxCodeActivation", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/boxCodeActivation")>();
+  return { ...actual, fetchMyActivationStatus: vi.fn() };
+});
 
 vi.mock("../services/consent", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../services/consent")>();
@@ -17,11 +23,12 @@ describe("check-in routing", () => {
   beforeEach(() => {
     window.localStorage.clear();
     window.localStorage.setItem("junheng-consent", "true");
+    vi.mocked(fetchMyActivationStatus).mockResolvedValue({ state: "active", requestedAt: null, rejectionHint: null });
   });
 
-  it("serves the check-in flow on its own route without the home narrative", () => {
+  it("serves the check-in flow on its own route without the home narrative", async () => {
     renderAt("/check-in");
-    expect(screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "21 天，构建你的脂代谢稳态。" })).toBeInTheDocument();
     // 打卡页头部使用功能型文案，与首页营销入口区做视觉区分，避免“点了没反应”的错觉
     expect(screen.getByText("每日一分钟，记录你的身体数据")).toBeInTheDocument();
     expect(screen.queryByText("感受到的减脂，坚持方能长期健康。")).not.toBeInTheDocument();
@@ -30,9 +37,9 @@ describe("check-in routing", () => {
     expect(screen.queryByRole("heading", { name: "餐前一杯精准膳食，好身材需要能量代谢助力。" })).not.toBeInTheDocument();
   });
 
-  it("serves the check-in flow on the static-host deep-link path", () => {
+  it("serves the check-in flow on the static-host deep-link path", async () => {
     renderAt("/check-in/index.html");
-    expect(screen.getByRole("region", { name: "21 天，构建你的脂代谢稳态。" })).toBeInTheDocument();
+    expect(await screen.findByRole("region", { name: "21 天，构建你的脂代谢稳态。" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "返回首页" })).toHaveAttribute("href", "/");
   });
 

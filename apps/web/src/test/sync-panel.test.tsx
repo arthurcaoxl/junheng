@@ -4,7 +4,17 @@ import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import { getSupabase } from "../lib/supabase";
+import { fetchMyActivationStatus } from "../services/boxCodeActivation";
 import { addDays, emptyDay, STORAGE_KEY, todayKey } from "../utils/checkin";
+
+vi.mock("../services/boxCodeActivation", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/boxCodeActivation")>();
+  return { ...actual, fetchMyActivationStatus: vi.fn() };
+});
+
+beforeEach(() => {
+  vi.mocked(fetchMyActivationStatus).mockResolvedValue({ state: "active", requestedAt: null, rejectionHint: null });
+});
 
 function renderCheckIn(route = "/check-in") {
   return render(<MemoryRouter initialEntries={[route]}><App /></MemoryRouter>);
@@ -49,10 +59,11 @@ describe("sync panel", () => {
     vi.restoreAllMocks();
   });
 
-  it("hides every sync entry when supabase env is not configured", () => {
+  it("hides every sync entry when supabase env is not configured", async () => {
     vi.stubEnv("VITE_SUPABASE_URL", "");
     vi.stubEnv("VITE_SUPABASE_ANON_KEY", "");
     renderCheckIn();
+    await screen.findByRole("region", { name: "21 天，构建你的脂代谢稳态。" });
     expect(screen.queryByText("跨设备同步")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "未同步，绑定邮箱" })).not.toBeInTheDocument();
     expect(screen.getAllByText("数据已在本机自动保存。绑定邮箱可同步至云端，换设备随时恢复。")).toHaveLength(1);
@@ -80,6 +91,7 @@ describe("sync panel", () => {
     it("exposes the header pill and inline guide, both opening the shared modal", async () => {
       const user = userEvent.setup();
       renderCheckIn();
+      await screen.findByRole("region", { name: "21 天，构建你的脂代谢稳态。" });
       expect(screen.getByRole("button", { name: "未同步，绑定邮箱" })).toBeInTheDocument();
       expect(screen.getAllByText("数据已在本机自动保存。绑定邮箱可同步至云端，换设备随时恢复。")).toHaveLength(3);
 
@@ -196,9 +208,10 @@ describe("sync panel", () => {
     });
 
     it("shows a dismissible soft prompt exactly when the third day is recorded", async () => {
-      vi.useFakeTimers();
       seedRecordedDays(2, true);
       renderCheckIn();
+      await screen.findByRole("region", { name: "21 天，构建你的脂代谢稳态。" });
+      vi.useFakeTimers();
       fireEvent.click(screen.getByRole("checkbox", { name: "早餐前已饮用" }));
       await act(async () => { await vi.advanceTimersByTimeAsync(1500); });
 
@@ -219,7 +232,7 @@ describe("sync panel", () => {
       await user.click(screen.getByRole("button", { name: "暂不，返回打卡" }));
       await user.click(screen.getByRole("link", { name: "继续记录今日体重与腰围" }));
 
-      await user.type(screen.getByLabelText("早晨体重（空腹）"), "68");
+      await user.type(await screen.findByLabelText("早晨体重（空腹）"), "68");
       await bindFromMilestone("after-d7@example.com");
       const saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "{}");
       expect(saved.records[todayKey()].weights.morning).toBe("68");

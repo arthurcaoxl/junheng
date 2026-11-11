@@ -4,11 +4,23 @@ import { MemoryRouter } from "react-router";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import { getSupabase } from "../lib/supabase";
+import { fetchMyActivationStatus } from "../services/boxCodeActivation";
 import { flushSyncToCloud } from "../services/checkinSync";
 import { addDays, emptyDay, STORAGE_KEY, todayKey } from "../utils/checkin";
 
-function renderCheckIn() {
-  return render(<MemoryRouter initialEntries={["/check-in"]}><App /></MemoryRouter>);
+vi.mock("../services/boxCodeActivation", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/boxCodeActivation")>();
+  return { ...actual, fetchMyActivationStatus: vi.fn() };
+});
+
+beforeEach(() => {
+  vi.mocked(fetchMyActivationStatus).mockResolvedValue({ state: "active", requestedAt: null, rejectionHint: null });
+});
+
+async function renderCheckIn() {
+  const view = render(<MemoryRouter initialEntries={["/check-in"]}><App /></MemoryRouter>);
+  await screen.findByRole("region", { name: "21 天，构建你的脂代谢稳态。" });
+  return view;
 }
 
 function savedToday() {
@@ -31,7 +43,7 @@ describe("保存打卡强制登录", () => {
 
   it("匿名 uid 存在时仍拦截保存，取消 OTP 后本地没有新增打卡", async () => {
     const user = userEvent.setup();
-    renderCheckIn();
+    await renderCheckIn();
 
     await user.type(screen.getByLabelText("早晨体重（空腹）"), "68");
 
@@ -43,7 +55,7 @@ describe("保存打卡强制登录", () => {
 
   it("OTP 成功后只恢复一次 pendingSave，保存完整输入且不产生重复记录", async () => {
     const user = userEvent.setup();
-    renderCheckIn();
+    await renderCheckIn();
     const input = screen.getByLabelText("早晨体重（空腹）");
 
     await user.type(input, "68");
@@ -78,7 +90,7 @@ describe("保存打卡强制登录", () => {
       error: null,
     });
     const user = userEvent.setup();
-    renderCheckIn();
+    await renderCheckIn();
 
     await user.type(screen.getByLabelText("早晨体重（空腹）"), "68");
     await user.type(screen.getByLabelText("邮箱地址"), "first-save@example.com");
@@ -104,7 +116,7 @@ describe("保存打卡强制登录", () => {
       data: { session: { user: { id: "bound-uid", email: "bound@example.com" } } },
     });
     const user = userEvent.setup();
-    renderCheckIn();
+    await renderCheckIn();
     await screen.findByText(/已绑定邮箱：bound@example.com/);
 
     await user.type(screen.getByLabelText("早晨体重（空腹）"), "67");

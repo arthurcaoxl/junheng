@@ -4,7 +4,17 @@ import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import { getSupabase } from "../lib/supabase";
+import { fetchMyActivationStatus } from "../services/boxCodeActivation";
 import { addDays, emptyDay, STORAGE_KEY, todayKey } from "../utils/checkin";
+
+vi.mock("../services/boxCodeActivation", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/boxCodeActivation")>();
+  return { ...actual, fetchMyActivationStatus: vi.fn() };
+});
+
+beforeEach(() => {
+  vi.mocked(fetchMyActivationStatus).mockResolvedValue({ state: "active", requestedAt: null, rejectionHint: null });
+});
 
 function renderAt(route = "/user-center") {
   return render(<MemoryRouter initialEntries={[route]}><App /></MemoryRouter>);
@@ -94,9 +104,9 @@ describe("用户中心本机档案与报告", () => {
     expect(screen.queryByText("跨设备同步")).not.toBeInTheDocument();
   });
 
-  it("打卡页只保留脂代谢报告入口，不再渲染趋势和海报", () => {
+  it("打卡页只保留脂代谢报告入口，不再渲染趋势和海报", async () => {
     renderAt("/check-in");
-    expect(screen.getByRole("link", { name: "查看我的脂代谢报告" })).toHaveAttribute("href", "/user-center");
+    expect(await screen.findByRole("link", { name: "查看我的脂代谢报告" })).toHaveAttribute("href", "/user-center");
     expect(screen.queryByRole("button", { name: "生成专属成就海报" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "导出完整数据 (CSV)" })).not.toBeInTheDocument();
     expect(screen.queryByRole("img", { name: "体重趋势图" })).not.toBeInTheDocument();

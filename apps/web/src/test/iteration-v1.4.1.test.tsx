@@ -3,6 +3,16 @@ import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
+import { fetchMyActivationStatus } from "../services/boxCodeActivation";
+
+vi.mock("../services/boxCodeActivation", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/boxCodeActivation")>();
+  return { ...actual, fetchMyActivationStatus: vi.fn() };
+});
+
+beforeEach(() => {
+  vi.mocked(fetchMyActivationStatus).mockResolvedValue({ state: "active", requestedAt: null, rejectionHint: null });
+});
 
 function renderApp(route = "/") {
   return render(<MemoryRouter initialEntries={[route]}><App /></MemoryRouter>);
@@ -95,7 +105,7 @@ describe("v1.4.1 interface refinement", () => {
     const user = userEvent.setup();
     seedRecords();
     renderApp("/check-in");
-    await user.type(screen.getByLabelText("姓名或网名"), "小菌");
+    await user.type(await screen.findByLabelText("姓名或网名"), "小菌");
     expect(screen.getByText("海报署名：小菌")).toBeInTheDocument();
     await user.click(screen.getByRole("link", { name: "查看我的脂代谢报告" }));
     await user.click(screen.getByRole("button", { name: "生成专属成就海报" }));

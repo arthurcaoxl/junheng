@@ -4,6 +4,12 @@ import { MemoryRouter } from "react-router";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import App from "../App";
 import { getSupabase } from "../lib/supabase";
+import { fetchMyActivationStatus } from "../services/boxCodeActivation";
+
+vi.mock("../services/boxCodeActivation", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../services/boxCodeActivation")>();
+  return { ...actual, fetchMyActivationStatus: vi.fn() };
+});
 
 function renderHome() {
   return render(<MemoryRouter initialEntries={["/"]}><App /></MemoryRouter>);
@@ -39,6 +45,7 @@ describe("用户数据合规总授权", () => {
     (getSupabase().auth.getSession as ReturnType<typeof vi.fn>).mockResolvedValue({
       data: { session: { user: { id: "anonymous-uid" } } },
     });
+    vi.mocked(fetchMyActivationStatus).mockResolvedValue({ state: "active", requestedAt: null, rejectionHint: null });
   });
 
   afterEach(() => {
