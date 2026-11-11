@@ -18,6 +18,7 @@ create extension pgcrypto with schema extensions;
 \ir ../migrations/20261110213500_pgcrypto_search_path_guard.sql
 \ir ../migrations/20261111121500_drop_legacy_inventory_overload.sql
 \ir ../migrations/20261111130000_staff_inventory_forbidden.sql
+\ir ../migrations/20261111133000_staff_push_forbidden.sql
 
 create or replace function test.assert_raises_sqlstate(p_expected text, p_sql text)
 returns void language plpgsql as $$
