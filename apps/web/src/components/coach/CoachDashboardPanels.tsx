@@ -161,6 +161,7 @@ export default function CoachDashboardPanels({ onRole }: { onRole?: (role: Acces
   }, [onRole]);
 
   const isStaff = profile?.role === "staff";
+  const canMountCoachInventory = profile?.role === "coach" && profile.canManageInventory;
   const newRows = rows.filter((row): row is WorkbenchRow => !isStaff && isWorkbenchRow(row) && row.activityStatus === "new_registered");
   const activeRows = rows.filter((row) => isStaff
     ? row.alertLevel === "green"
@@ -187,7 +188,7 @@ export default function CoachDashboardPanels({ onRole }: { onRole?: (role: Acces
           {!loading && !error && rows.length === 0 && <p className="admin-empty">暂无名下体验官。</p>}
           {rows.length > 0 && <CoachMetricTable rows={rows} />}
         </section>
-        {!isStaff && (
+        {(profile !== null || isProbational) && !isStaff && (
           <section className="admin-block coach-dashboard-panel" aria-labelledby="coach-new-title">
             <div className="admin-block-heading"><h2 id="coach-new-title">新注册用户</h2><span>{newRows.length} 人 · 当前 21 天窗口内尚无有效打卡</span></div>
             {loading && <p role="status">新注册用户加载中…</p>}
@@ -222,7 +223,7 @@ export default function CoachDashboardPanels({ onRole }: { onRole?: (role: Acces
       </div>
       <aside className="coach-dashboard-side">
         {profile?.role === "coach" && <CoachPendingReviews />}
-        {profile?.canManageInventory && (
+        {canMountCoachInventory && (
           <section id="coach-cloud-inventory" className="admin-block coach-dashboard-panel" aria-labelledby="coach-inventory-title">
             <h2 id="coach-inventory-title">教练云仓库存</h2>
             <CoachCodeInventory
@@ -235,9 +236,11 @@ export default function CoachDashboardPanels({ onRole }: { onRole?: (role: Acces
         <section className="admin-block coach-dashboard-panel coach-quarter-card" aria-labelledby="coach-quarter-title">
           <h2 id="coach-quarter-title">季度推荐提醒</h2>
           <strong>Q{quarter} 服务复盘</strong>
-          <p>{profile?.role === "staff"
-            ? "优先跟进分配范围内红黄灯体验官；不得查看库存、财务或原始健康档案。"
-            : "优先跟进休眠雷达中的红黄灯营员，并结合本人可用库存安排补货；不以空指标代替首测数据。"}</p>
+          <p>{profile === null
+            ? "正在读取服务端角色与权限；受限功能在角色确认前不会显示。"
+            : profile.role === "staff"
+              ? "优先跟进分配范围内红黄灯体验官；不得查看库存、财务或原始健康档案。"
+              : "优先跟进休眠雷达中的红黄灯营员，并结合本人可用库存安排补货；不以空指标代替首测数据。"}</p>
         </section>
       </aside>
     </div>

@@ -46,11 +46,13 @@ export default function CoachDashboardPage() {
     return (
       <div className="admin-page coach-dashboard-page">
         <section className="admin-shell" aria-labelledby="coach-dashboard-title">
-          <p className="admin-eyebrow">{accessRole === "staff" ? "STAFF · SERVICE" : "COACH · OPERATIONS"}</p>
-          <h1 id="coach-dashboard-title">{accessRole === "staff" ? "员工服务看板" : "教练经营看板"}</h1>
-          <p className="admin-intro">{accessRole === "staff"
-            ? "仅查看当前分配教练名下的脱敏体验官灯号与服务提醒。"
-            : "查看本人名下脱敏营员灯号、云仓库存与季度服务提醒。"}</p>
+          <p className="admin-eyebrow">{accessRole === null ? "SERVICE · ACCESS" : accessRole === "staff" ? "STAFF · SERVICE" : "COACH · OPERATIONS"}</p>
+          <h1 id="coach-dashboard-title">{accessRole === null ? "服务看板" : accessRole === "staff" ? "员工服务看板" : "教练经营看板"}</h1>
+          <p className="admin-intro">{accessRole === null
+            ? "正在读取服务端角色与权限，受限功能在角色确认前不会显示。"
+            : accessRole === "staff"
+              ? "仅查看当前分配教练名下的脱敏体验官灯号与服务提醒。"
+              : "查看本人名下脱敏营员灯号、云仓库存与季度服务提醒。"}</p>
           <CoachDashboardPanels onRole={setAccessRole} />
         </section>
       </div>
