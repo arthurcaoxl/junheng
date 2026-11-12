@@ -80,6 +80,7 @@ export async function fetchMyActivationStatus(): Promise<MyActivationStatus> {
     syncBoxCodeActivationCache(status.state);
     return status;
   } catch (cause) {
+    syncBoxCodeActivationCache("none");
     if (cause instanceof ActivationStatusError) throw cause;
     if (isUnauthorizedError(cause)) throw new ActivationStatusError("unauthorized");
     throw new ActivationStatusError("unavailable");

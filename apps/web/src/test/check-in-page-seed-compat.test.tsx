@@ -190,8 +190,8 @@ describe("CheckInPage 种子激活兼容（仅拦截 Supabase RPC）", () => {
     expect(screen.getByRole("button", { name: "重试" })).toBeInTheDocument();
     expectNoActivationForm();
     expect(screen.queryByRole("tablist", { name: "21 天打卡日期" })).not.toBeInTheDocument();
-    expect(window.localStorage.getItem(ACTIVATED_KEY)).toBe("true");
-    expect(window.localStorage.getItem(PENDING_KEY)).toBe("true");
+    expect(window.localStorage.getItem(ACTIVATED_KEY)).toBeNull();
+    expect(window.localStorage.getItem(PENDING_KEY)).toBeNull();
   });
 
   it("异常重试重新进入 Loading，成功后才按 runtime 状态放行", async () => {
@@ -215,10 +215,12 @@ describe("CheckInPage 种子激活兼容（仅拦截 Supabase RPC）", () => {
 
   it("42501 显示重登而非重试，并通过真实同步面板打开恢复登录", async () => {
     const user = userEvent.setup();
+    window.localStorage.setItem(ACTIVATED_KEY, "true");
     mockStatusSequence({ data: null, error: { code: "42501", message: "UNAUTHORIZED" } });
     renderPage();
 
     expect(await screen.findByRole("alert")).toHaveTextContent("登录状态已失效，请重新登录。");
+    expect(window.localStorage.getItem(ACTIVATED_KEY)).toBeNull();
     expect(screen.queryByRole("button", { name: "重试" })).not.toBeInTheDocument();
     expectNoActivationForm();
 

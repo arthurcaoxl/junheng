@@ -119,7 +119,7 @@ describe("TASK-10.13 D2 用户激活状态服务端回读", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("激活状态读取失败，请稍后重试。");
     expect(screen.queryByText("已绑定专属教练")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("产品激活码")).toBeInTheDocument();
+    expect(screen.queryByLabelText("产品激活码")).not.toBeInTheDocument();
     expect(window.localStorage.getItem("junheng-box-code-activated-v1")).toBeNull();
   });
 

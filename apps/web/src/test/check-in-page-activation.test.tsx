@@ -108,13 +108,13 @@ describe("CheckInPage 服务端激活状态守卫", () => {
     mockedFetchStatus.mockRejectedValueOnce(new Error("网络异常")).mockResolvedValue(status("active"));
     renderPage();
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("网络异常");
+    expect(await screen.findByRole("alert")).toHaveTextContent("激活状态读取失败，请稍后重试。");
     expect(screen.queryByTestId("seven-day-check-in")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("产品激活码")).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: "重试" }));
     expect(await screen.findByTestId("seven-day-check-in")).toBeInTheDocument();
-    expect(mockedFetchStatus).toHaveBeenCalledTimes(3);
+    expect(mockedFetchStatus).toHaveBeenCalledTimes(2);
   });
 
   it("组件卸载后迟到的 active 响应不会触发状态更新", async () => {
