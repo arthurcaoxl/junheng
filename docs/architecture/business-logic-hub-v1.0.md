@@ -1,8 +1,8 @@
-# 业务逻辑中枢字典 [BIZ-V1.7]（Logic Hub）
+# 业务逻辑中枢字典 [BIZ-V1.8]（Logic Hub）
 
-- 版本：**[BIZ-V1.7]**（2026-11-09 升版：TASK-10.13 核心链路落地核对（2.6 SSOT、2.8 晋升机已实现）＋ 新增 2.9 三端业务流 SOP 与状态联动契约，登记断头路 D1/D2 与收敛机制）
-- 四轨标识：**[BIZ-V1.7]**（本字典即 BIZ 轨业务规则载体）
-- 基线：[CORE-v1.13.3]，main @ 4c005f3（TASK-10.13 核心实现已合入）
+- 版本：**[BIZ-V1.8]**（2026-11-12 升版：TASK-10.16 种子用户兼容契约——新增 2.10 节（G-C1 量化判定 / G-C2 双方案评估 / G-C3 状态 RPC 扩展伪 SQL / G-C4 迁移风险评估）＋ SystemConfig 三个种子判定配置键）
+- 四轨标识：**[BIZ-V1.8]**（本字典即 BIZ 轨业务规则载体，版本号唯一权威）
+- 基线：[CORE-v1.13.3]，main @ ddc76e3（TASK-10.15 staff RBAC 已合入）
 - 定位：打卡 App（10 号体系）后续所有子任务的**唯一业务事实源**。本字典只做契约提炼，不包含任何 RPC SQL、迁移或前端代码。
 - 文件约定：字典固定维护在本路径 `business-logic-hub-v1.0.md`，版本号以内嵌 [BIZ-Vx.x] 标识为准；`business-logic-hub-v1.2.md` 为历史快照。
 - 事实来源：
@@ -23,7 +23,7 @@
 3. 未来业务调整（如出 30 袋装、雷达时间窗变更、补货点调整、平台账号更换）**只需修改配置值，严禁改动核心逻辑代码**。
 4. 逻辑代码只描述"规则的形状"（如"未打卡时长超过黄灯阈值则亮黄灯"），不描述"阈值是几"（如 48 小时）。
 5. 本字典与 `docs/business/` 文档冲突时，以裁判终裁的最新版业务文档为准，并按第四节"变更四步法"同步修订本字典。
-6. 代号规范遵循 AGENTS.md 〇节四轨制：业务规则引用本字典写 `[BIZ-V1.7]`，核对基线写 `[CORE-<hash>]`，派工写 `[TASK-x.x]`，前端发布写 `[APP-Vx.x.x]`；严禁裸写无前缀版本号。
+6. 代号规范遵循 AGENTS.md 〇节四轨制：业务规则引用本字典写 `[BIZ-V1.8]`，核对基线写 `[CORE-<hash>]`，派工写 `[TASK-x.x]`，前端发布写 `[APP-Vx.x.x]`；严禁裸写无前缀版本号。
 
 ---
 
@@ -85,6 +85,26 @@ interface SystemConfig {
    * 只统计本人直接 referrer 关系，不计历史无效、未激活、间接关系或平台官方账号。
    */
   probational_coach_required_recruits: 8;
+
+  /**
+   * ⏳ 种子用户运行时判定时间边界（ISO 日期）。契约默认 '2026-11-06'：
+   * 一盒一码体系首个迁移（20261106130000）落地日，此前开营的用户物理上不可能持有激活码。
+   * 形状已经 TASK-10.16 派工单确认；具体日期值待裁判终裁后播种，调整只改配置。
+   */
+  seed_cutoff_date: '2026-11-06';
+
+  /**
+   * ⏳ 种子用户运行时判定的有效打卡记录数门槛（records jsonb 有效日期键计数）。契约默认 1。
+   * 待裁判终裁后播种；收紧（如 ≥3）只改配置，不改判定逻辑形状。
+   */
+  seed_min_records: 1;
+
+  /**
+   * ⏳ 种子用户人工白名单（小写邮箱 jsonb 数组，默认空）。
+   * 人工终审通道：覆盖运行时判定遗漏（如云端快照丢失的历史用户）。
+   * 变更必须走 system_config_audit 审计；严禁代码内置任何邮箱字面值。
+   */
+  seed_user_whitelist: string[];
 }
 ```
 
@@ -112,6 +132,9 @@ interface SystemConfig {
 | `platform_official_account_id` | 无字面默认，运营播种 | V7.1 指南第七章：休眠托管转至平台官方账号；10.1 激活契约：`PLATFORM_ID` 归属 |
 | `coach_promotion_required_checkins` | 21（已终裁） | 裁判批令 TASK-10.13-CORE-UNLOCK：21 个 verify_checkin 实际有效打卡物理日 |
 | `probational_coach_required_recruits` | 8（已终裁） | 裁判批令 TASK-10.13-CORE-UNLOCK：recruit_baseline 后净增 8 名真实有效直推营员 |
+| `seed_cutoff_date` | '2026-11-06'（形状已确认，数值待终裁） | TASK-10.16 派工单：一盒一码首个迁移日（20261106130000）为物理分界 |
+| `seed_min_records` | 1（形状已确认，数值待终裁） | TASK-10.16 派工单 G-C1 强制量化要求 |
+| `seed_user_whitelist` | 空数组（人工通道） | TASK-10.16 派工单 G-C1：最终裁定方含人工白名单 |
 
 ### 1.3 读取纪律
 
@@ -588,6 +611,159 @@ type GraduationGuidanceAction = 'prompt_witness_poster_offline' | 'push_recharge
 - 合规红线：续约引导话术不得承诺固定减重结果、不得使用确定收益表述（V7.1 指南 L227；收益表达纪律不变）。
 - 满期判定阈值（21 天窗口）与 `max_checkins_per_box` 同源，禁止前端写死 21。
 
+### 2.10 种子用户兼容契约（TASK-10.16-SEED-COMPAT-CONTRACT，v1.8 新增）
+
+> P0 背景（物理复现）：历史种子用户/Admin 白名单（如 cnwine@126.com）进入 `/check-in` 被强制阻断。
+> 根因（物理证据）：`CheckInPage.tsx:57` 仅在 `status?.state === 'active'` 时渲染打卡区，`'none'` 状态落入 `BoxCodeActivation` 输码绑定 UI；种子用户无 `code_activations` 行，`get_my_activation_status`（`20261109158000`）只能返回 `'none'`。
+> 服务端数据通道本身未断：`guard_checkin_sync_quota` 触发器（`20261107120000_verify_checkin.sql:142-173`）只拦截**已有 active 码**的用户绕 RPC 直写；无码种子用户的 `checkin_sync` 直写天然放行。故本契约只需解决"身份认定与前端门控"，不动打卡数据链路。
+
+#### G-C1 种子用户 SSOT 判定规则（量化）
+
+```typescript
+/**
+ * 种子用户判定（全部服务端计算，前端不得自判）。
+ * 双通道：人工白名单优先，运行时数据判定兜底；任一命中即种子用户。
+ */
+interface SeedUserRule {
+  /** 通道一（最终裁定方）：人工白名单。本人登录邮箱小写后在 SystemConfig.seed_user_whitelist 中。 */
+  whitelist: 'system_configs.seed_user_whitelist ∋ lower(email)';
+
+  /** 通道二（运行时预审）：同时满足以下三条。 */
+  runtime: {
+    /** 时间边界：checkin_sync.start_date 早于 SystemConfig.seed_cutoff_date（默认 2026-11-06）。 */
+    time_boundary: 'checkin_sync.start_date < seed_cutoff_date';
+    /** 记录数量门槛：records jsonb 有效日期键计数 >= SystemConfig.seed_min_records（默认 1）。 */
+    min_records: 'jsonb_valid_day_count >= seed_min_records';
+    /** 排除项：已存在任何 code_activations 行的用户走既有激活状态机，不进入种子通道。 */
+    exclusion: 'not exists code_activations for auth.uid()';
+  };
+
+  /** 邮箱域：不限定（种子用户为个人邮箱，限域会误伤；防冒认由人工白名单承担）。 */
+  email_domain: 'unrestricted';
+
+  /**
+   * 最终裁定方：配置（人工白名单）为终审；运行时数据判定为自动预审通道。
+   * 数据判定只放行"物理上不可能是刷码用户"的历史账号；争议账号一律走人工白名单，不回退数据口径。
+   */
+  final_arbiter: 'config_whitelist_over_runtime';
+}
+```
+
+- SSOT 声明：种子身份判定只存在于 `get_my_activation_status`（扩展后）一处；前端、雷达、统计一律消费其返回，严禁第二处判定逻辑。
+- 防冒认：种子通道只恢复打卡使用权，**不产生**任何码、额度、教练归属或分润事实。
+
+#### G-C2 白名单数据落点双方案冲击评估
+
+| 评估维度 | 方案 X：插入虚拟 box_codes 记录 | 方案 Y：user_profiles 增加白名单字段 |
+| --- | --- | --- |
+| 码四态机（2.4）触发器 | **致命破坏**：`guard_box_code_mutation` 禁止 DELETE（`BOX_CODE_HISTORY_IMMUTABLE`），虚拟码永远不可删除；`state='active'` 的 CHECK 强制要求 `activation_id` 非空 → 必须连带伪造 `code_activations` 行（其 CHECK 又强制 `decided_by`/`decided_at`/`target_referrer_id`），伪造链至少穿透三张表的白名单约束 | 无侵入：不触碰 box_codes / code_activations / 触发器体系 |
+| 21 次计数与流水统计 | **污染**：虚拟码的 `max_checkins/used_checkins` 进入码体系计数；激活须写 `inventory_logs(code_activated)`，教练云库存 -1（`coach_inventory` 不变量被虚构消耗）；发码审计（5.1）出现无线下凭证的生成记录 | 无污染：码体系指标零变化；种子用户打卡继续走 `checkin_sync`（既有直写通道），不进 verify_checkin 额度体系 |
+| Admin 库存 / 教练云仓统计 | 虚拟划拨导致 `coach_inventory` 与库存台账虚增虚减，超卖不变量被人为消耗 | 不涉及库存概念 |
+| 教练归属与雷达 | 虚拟码必须伪造 `user_coach_relation` 否则雷达/归属断裂 → 污染晋升直推计数（2.8 真实直推口径被虚增） | 种子用户无归属即无归属，雷达自然不出现（语义正确）；如需归属走正常审核绑定 |
+| 回滚难度 | **不可逆**：删除被触发器物理禁止，只能 revoked 留痕，虚拟数据永久留在台账 | 可逆：删字段/清配置即完整回滚，无历史污染 |
+
+结论：**方案 X 物理上不可接受（不可逆 + 三表伪造 + 统计污染）；方案 Y 可行但仍需一次 schema 变更。**
+
+**推荐落点（方案 Z，G-C4 强制优先的运行时判定）**：不建虚拟码、不加表字段——种子判定完全在 `get_my_activation_status` 内运行时计算（白名单配置 + checkin_sync 数据），唯一持久化载体是 `system_configs.seed_user_whitelist` 配置行。Y 的 user_profiles 字段仅在裁判认定需要"用户级显式标记"时作为 Z 的存储增强另行评审。
+
+#### G-C3 get_my_activation_status 扩展伪 SQL（依赖 G-C6 调用方清单）
+
+```text
+-- 伪 SQL（仅契约表达，禁止直接执行；实现须走迁移评审）
+function get_my_activation_status() returns jsonb:
+  v_uid := auth.uid()
+  if v_uid is null:
+    raise exception 'UNAUTHORIZED' errcode 42501        -- 【forbidden 态】
+
+  -- 通道一：人工白名单（配置缺失视为空数组，不 fail-closed——白名单是增强通道）
+  v_email := lower(本人邮箱)                             -- auth.users，服务端取
+  if v_email is not null and v_email ∈ SystemConfig.seed_user_whitelist:
+    return { state: 'legacy_granted', source: 'whitelist',
+             requested_at: null, rejection_hint: null }
+
+  -- 通道二：运行时数据判定（配置缺失或非法即 SYSTEM_CONFIG_MISSING fail-closed）
+  if 不存在本人 code_activations 行
+     and 存在本人 checkin_sync 行
+     and start_date < SystemConfig.seed_cutoff_date
+     and records 有效日期键计数 >= SystemConfig.seed_min_records:
+    return { state: 'legacy_granted', source: 'runtime',
+             requested_at: null, rejection_hint: null }
+
+  -- 通道三：既有激活申请状态机（现状保留，逐字不动）
+  /* 现有 code_activations 最新行映射沿用既有逻辑 */
+```
+
+**返回契约变更**：`state` 枚举新增 `'legacy_granted'`，新增字段 `source: 'whitelist' | 'runtime' | null`；既有四态语义逐字不变（向后兼容）。
+
+**前端三态纪律（强制）**：
+
+| 态 | 判定来源 | 前端行为 | 文案 |
+| --- | --- | --- | --- |
+| none（含四态返回） | RPC 成功返回 | 按 state 渲染：none→输码绑定；active/legacy_granted→打卡区；pending_review→审核中；rejected→联系教练 | 各态既有文案 |
+| 异常 | RPC 网络/5xx/返回体校验失败 | **只显示"重试"按钮，绝不渲染输码 UI** | "激活状态读取失败，请稍后重试。" |
+| forbidden | RPC 返回 42501 / UNAUTHORIZED | 引导重新登录，**不得**落入输码或重试分支 | "登录状态已失效，请重新登录。" |
+
+- 现状缺陷登记：`boxCodeActivation.ts:31-34` 的 catch-all 把 forbidden 与异常混为一谈，统一抛"激活状态读取失败"——违反本契约，属 TASK-10.16 实施修复点。
+- `CheckInPage.tsx:57` 门控须放行 `legacy_granted`（与 `active` 同等渲染打卡区）；`activationStorage` 本地缓存仅作 UX 优化，与服务端冲突以服务端为准（2.9 纪律不变）。
+
+#### G-C4 历史数据兼容与迁移风险评估
+
+| 方案 | 评估 | 结论 |
+| --- | --- | --- |
+| 一次性 SQL 迁移（批量改写历史行/插虚拟数据） | **禁止**：`box_codes`/`code_activations`/`inventory_logs`/`audit_logs` 均有 append-only 或不可变触发器，批量写入必然触发约束伪造链（见 G-C2 方案 X）；且无法枚举"该有谁"——checkin_sync 无 created_at 列（物理事实：`20261030100000_admin_checkin_overview.sql:7-13`），迁移脚本自身就缺乏权威筛选依据 | 弃用 |
+| 运行时判定（推荐） | 零数据迁移、零 schema 变更；判定逻辑集中在单个 stable 只读 RPC；配置值错误可秒级回滚（改配置即恢复阻断，无副作用残留）；风险仅剩判定口径本身，由 G-C1 双通道兜底 | 采纳 |
+| user_profiles 加列（Y） | 可逆且无害，但仍需一次 schema 迁移 + 人工圈定数据写入；仅在裁判要求显式用户级标记时启用 | 备选 |
+
+- 不可逆风险声明：本契约不引入任何历史数据改写；`checkin_sync` 种子用户行保持原样，其 RLS（本人读写 + admin 只读）不变。
+- 回滚预案：关闭通道 = 清空 `seed_user_whitelist` 并将 `seed_min_records` 置为不可能值（或删除配置行使运行时通道 fail-closed）；种子用户立即回到 none 态，无任何数据残留。
+
+#### admin 免码打卡数据落点（G-C2 / G-C4 交叉项判定）
+
+1. **是否真实入库**：是。`guard_checkin_sync_quota` 只拦截"存在 active 码"的用户；无码的 admin/种子用户直写 `checkin_sync` 被放行，记录真实入库。
+2. **是否打 is_test_record 标记**：否。全库不存在该字段（物理检索为零）；种子用户是真实用户，其记录**应当**计入统计；admin 测试账号的记录当前会污染雷达/趋势统计。
+3. **是否构成 Mock 假全绿**：否。链路真实入库，无假反馈。
+
+#### 测试记录标记契约（is_test_record，裁判红线二选一：选 A）
+
+> 裁判裁定口径：admin/内部账号打卡记录当前无标记、统计口径被污染（知悉事项第 13 条），不得以登记 DEBT 了结。契约选定 **方案 A**，方案 B（Feature Flag 开关）弃用——B 只控制"通道开关"，无法清洗已入库的测试记录，统计污染不可回收。
+
+```typescript
+/**
+ * 测试记录标记契约（方案 A）。本契约只给定义，迁移由实施任务落地，本节不建迁移文件。
+ */
+interface TestRecordMarker {
+  /**
+   * 物理落点：checkin_sync 新增列 is_test_record boolean not null default false。
+   * 既有全部历史行由 default false 覆盖，零数据改写风险。
+   */
+  column: 'checkin_sync.is_test_record';
+
+  /**
+   * 写入规则：
+   * - 种子用户与真实营员：永为 false（种子通道恢复的是真实用户身份，2.10 G-C1）；
+   * - admin/内部账号经任何打卡路径（含未来免码通道）产生的记录：必须写 true；
+   *   写入主体判定 = 服务端 camp_admins 有效角色行，严禁客户端传参自标。
+   */
+  write_rule: 'server_side_role_based';
+
+  /**
+   * 统计过滤（伪 SQL 契约）：一切统计/雷达/趋势/晋升计数读取 checkin_sync 处，
+   * 必须显式追加过滤，缺此过滤的统计 RPC 视为违例：
+   * SELECT 前缀 from public.checkin_sync c where c.is_test_record = false
+   * 覆盖点（实现时逐一核对）：get_coach_radar_v1、get_coach_camp_trends_v1、
+   * admin_checkin_overview、晋升有效打卡日聚合（2.8）。
+   */
+  stats_filter: 'is_test_record = false (explicit, mandatory)';
+
+  /**
+   * 历史存量处理：本契约生效前的 admin 测试记录由运营人工圈定清单、
+   * 经裁判批准后一次性置 true（配置驱动名单，非盲改）；
+   * 圈定完成前统计口径声明为"含未标记测试数据"，不得声称干净。
+   */
+  legacy_backfill: 'manual_whitelist_then_mark';
+}
+```
+
 ---
 
 ## 三、阻断与并发契约
@@ -714,6 +890,8 @@ interface ActivationRequestRateLimit {
 | 2026-11-09 | v1.6（终裁冻结） | TASK-10.13-CONTRACT-FREEZE：晋升条件 21 天/8 人清除 [待确认] 固化入 SystemConfig；废弃邀请码，后台审核制固化为绑定唯一 SSOT（3.2 第 5 条）；pepper 口径写死全库废 GUC、统一 Vault（知悉事项第 8 条） | 主脑裁决 TASK-10.13-CONTRACT-FREEZE（main @ 0eff51c） | 见提交记录 |
 | 2026-11-09 | v1.7 | 2.8 晋升状态机转正式契约：21 个有效打卡物理日、基线后净增 8 名真实直推、拒绝历史保留且可重申；补齐受控 RPC、原子自动晋升、审计、并发与准教练最小权限边界；SystemConfig 两项参数改标已终裁 | 裁判批令 TASK-10.13-CORE-UNLOCK | 见本模块契约提交 |
 | 2026-11-09 | v1.7（UX 契约） | TASK-10.13-UX-FLOW-CONTRACT：新增 2.9 三端业务流 SOP 与状态联动契约；登记断头路 D1（划拨后 Coach 云仓无刷新机制）与 D2（`markBoxCodeActivated` 零调用、审核状态本机化）；裁定刷新基线为"动作后重取＋手动刷新"，Realtime 订阅入 Backlog；新增 `MyActivationStatus` / `CoachPendingReviewItem` / `CoachRadarCycleState` 契约接口；满 21 天引导动作固化（见证海报仅用户端＋直推充值码锚点） | 裁判派工 TASK-10.13-UX-FLOW-CONTRACT；前端 `AdminCodePool.tsx` / `CoachCodeInventory.tsx` / `CoachDashboardPanels.tsx` / `activationStorage.ts` 核对（main @ 4c005f3） | 见提交记录 |
+| 2026-11-12 | v1.8 | TASK-10.16 种子用户兼容契约：新增 2.10 节（G-C1 量化双通道判定、G-C2 方案 X/Y/Z 冲击评估——X 因触发器禁删物理否决、推荐运行时判定 Z、G-C3 状态 RPC 扩展伪 SQL 与前端三态纪律、G-C4 迁移风险评估与回滚预案、admin 免码打卡交叉项判定）；SystemConfig 新增 `seed_cutoff_date` / `seed_min_records` / `seed_user_whitelist` 三键（形状确认、数值待终裁） | 裁判派工 TASK-10.16-SEED-COMPAT-CONTRACT-URGENT；迁移 `20261030100000` / `20261107120000` / `20261109158000` 与前端 `CheckInPage.tsx` / `boxCodeActivation.ts` 核对（main @ ddc76e3） | 见提交记录 |
+| 2026-11-12 | v1.8（红线补强） | TASK-10.16-CONTRACT-RESUBMIT：is_test_record 红线二选一裁定选 A——2.10 末尾新增测试记录标记契约（checkin_sync 加列定义、服务端角色判定写入、统计 RPC 强制显式过滤、历史存量人工圈定置标），方案 B（Feature Flag）弃用并写明弃用理由 | 裁判批令 TASK-10.16-CONTRACT-RESUBMIT（main @ ddc76e3） | 见提交记录 |
 ---
 
 ## 五、前瞻演进契约（裁判批令 v1.2 新增，v1.5 更新落地状态）
@@ -831,7 +1009,7 @@ interface OpsMetrics {
 
 ---
 
-## 六、裁判知悉事项（非阻断观察，v1.7 已按最终代码核对）
+## 六、裁判知悉事项（非阻断观察，v1.8 已按最终代码核对）
 
 1. ~~申请入口限流缺口~~ → **✅ 已封堵（TASK-10.10，main @ 5f1a9d7）**：`request_box_code_activation` 已接入三维限流（auth_user / ip / device），阈值动态读 `SystemConfig`，共享 IP 兼容语义按 3.3 落实；旧两参重载已删除。本条目关闭，历史描述保留备查：10.9 新设的申请入口曾未接入限流（10.4 旧 RPC 的限流随权限回收失效），码枚举攻击面曾集中在申请入口。
 2. **平台池标识方式**：平台池以 `inventory_status = 'platform'` 标识，`coach_id` 记录生成操作的管理员；归属终点则以配置 `platform_official_account_id` 为准。两套"平台"标识各司其职（库存归属 vs 关系归属），无冲突；若裁判认可，建议下一轮契约升版时回写 10.1 契约的 `PLATFORM_ID` 表述。
@@ -844,6 +1022,9 @@ interface OpsMetrics {
 9. **晋升条件已终裁固化**：coach_promotion_required_checkins=21、probational_coach_required_recruits=8 经 TASK-10.13-CONTRACT-FREEZE 写死为正式条件，入SystemConfig（未播种）；准教练能力边界（雷达/划拨权）已终裁：仅限查看本人名下雷达，严禁划拨库存。见 2.8。
 10. **绑定机制已终裁**：废弃邀请码方案，后台审核制为唯一 SSOT（见 3.2 第 5 条）。
 11. **人工审核申请来源澄清（TASK-10.13 裁定依据）**：`admin_get_pending_box_code_reviews`（`20261108130000_manual_review_trusteeship.sql:201`）的待审申请有且仅有两个合法来源——用户手动输码 `request_box_code_activation`（`20261108140000:104`）与教练直推 `coach_push_code_v1`（`20261109120000_coach_workflows.sql:421`）；两路径均只建 `pending` 审核单，终审唯一。契约固化见 2.7。
+12. **种子用户阻断 P0（TASK-10.16 登记）**：历史种子用户进 `/check-in` 被 `'none'` 态强制导入输码绑定 UI（`CheckInPage.tsx:57` 门控 + `get_my_activation_status` 无种子通道）；服务端 `checkin_sync` 直写通道未断（守卫只拦有码用户）。修复契约见 2.10（G-C1~G-C4），实现待 TASK-10.16 主单派工。
+13. **admin/内部账号测试数据污染统计**：admin 无免码打卡通道，其打卡真实入库且无测试标记，会进入雷达与趋势统计口径；`is_test_record` 类标记字段为独立演进项，须另行派工，不混入 2.10 种子契约。
+14. **G-C6 边界声明（TASK-10.16）**：`get_my_activation_status` 全部调用方已列全（生产唯一调用 `apps/web/src/services/boxCodeActivation.ts:15`；RPC 定义 `20261109158000`；契约 `storage-v3.md:273`；测试 mock 三处六个文件位）。G-U1 / G-U5 任务书与文件清单未下发至本中枢，撞车评估缺输入；本契约的全部改动只落在本字典一个文件，与任何代码任务零文件重叠；实施任务（RPC 扩展 + 前端三态）若与 G-U1/G-U5 撞车，合并顺序由主脑裁决，本中枢不建议、不执行。
 
 ---
 
@@ -858,7 +1039,7 @@ interface OpsMetrics {
 
 ```typescript
 interface BoxCode {
-  // ...既有字段略
+  // 既有字段见上方定义
   /**
    * ⏳ Backlog：产品有效期截止（服务端时间）。
    * 落码时按批次写入；过期后 verify_checkin 拒绝（新闸门，优先级在状态拦截之后、额度拦截之前）。
@@ -893,6 +1074,8 @@ interface BoxCode {
 - [x] 2.8 教练晋升状态机已冻结：晋升条件（21 天打卡 / 直推满 8 人）经裁判终裁固化入 SystemConfig，跃迁全部服务端化，实现待派工。
 - [x] 人工审核申请来源已澄清并指向 2.7（知悉事项第 10 条）。
 - [x] 2.9 三端业务流契约完整：三链路均带物理路径证据、断头路登记（D1/D2）与收敛机制；跨端状态权威归服务端，本机标记降级为 UX 缓存。
+- [x] 2.10 种子用户兼容契约完整：G-C1 量化双通道判定（时间边界/记录门槛/不限邮箱域/人工白名单终审）、G-C2 双方案逐项冲击评估（X 物理否决）、G-C3 伪 SQL 与前端三态纪律、G-C4 运行时判定优先与回滚预案、admin 免码打卡交叉项判定。
+- [x] 版本号唯一权威 [BIZ-V1.8]，无 Accept Both 残留。
 - [x] 第七节 Backlog 已登记 `expires_at` 产品有效期（P1），仅记录不实现。
 - [x] 全文对齐四轨制代号规范，无裸写版本号（历史 Hash 除外）。
 - [x] 本文档不含任何 RPC SQL、迁移或前端实现代码。
