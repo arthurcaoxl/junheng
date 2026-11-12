@@ -14,9 +14,9 @@ export type SaveAuthResult = "saved" | "login-required";
  */
 export function requestCheckinSave(
   save: () => void,
-  auth: { configured: boolean; email: string | null },
+  auth: { configured: boolean; email: string | null; legacyGranted?: boolean },
 ): SaveAuthResult {
-  if (!auth.configured || auth.email || hasBoxCodeActivation()) {
+  if (!auth.configured || auth.email || auth.legacyGranted || hasBoxCodeActivation()) {
     save();
     return "saved";
   }

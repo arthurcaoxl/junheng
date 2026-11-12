@@ -77,11 +77,12 @@ async function writeCloudSnapshot(
   state: CheckInState,
   cloudUserCode: string | null,
   consumeQuota = false,
+  legacyGranted = false,
 ): Promise<void> {
   const client = getSupabase();
   if (cloudUserCode !== null) {
-    if (consumeQuota && hasBoxCodeActivation()) {
-      await verifyCheckinSnapshot(state);
+    if (consumeQuota && (legacyGranted || hasBoxCodeActivation())) {
+      await verifyCheckinSnapshot(state, !legacyGranted);
     } else {
       const { error } = await client.from("checkin_sync").update({
         start_date: state.startDate,
@@ -187,7 +188,11 @@ export function ensureInitialMerge(): Promise<InitialMergeResult> {
   return ensureSession().then((session) => ensureInitialMergeForUid(session.user.id));
 }
 
-async function uploadCurrentSnapshot(uid: string, consumeQuota: boolean): Promise<void> {
+async function uploadCurrentSnapshot(
+  uid: string,
+  consumeQuota: boolean,
+  legacyGranted: boolean,
+): Promise<void> {
   const v3 = readV3SnapshotStrict();
   const client = getSupabase();
   // 体验官代码终身唯一：云端已有记录时以云端 user_code 为准，绝不覆盖
@@ -202,16 +207,17 @@ async function uploadCurrentSnapshot(uid: string, consumeQuota: boolean): Promis
     v3,
     existing ? (existing as { user_code: string }).user_code : null,
     consumeQuota,
+    legacyGranted,
   );
 }
 
-/** 首次合并不扣次；普通增量上传才进入已激活盒码的物理日额度校验。 */
-export async function syncToCloud(consumeQuota = true): Promise<SyncResult> {
+/** 首次合并不扣次；普通增量上传才进入已激活盒码或 legacy 的物理日校验。 */
+export async function syncToCloud(consumeQuota = true, legacyGranted = false): Promise<SyncResult> {
   try {
     const session = await ensureSession();
     const mergeResult = await ensureInitialMergeForUid(session.user.id);
     if (mergeResult !== "already-merged") return "synced";
-    await uploadCurrentSnapshot(session.user.id, consumeQuota);
+    await uploadCurrentSnapshot(session.user.id, consumeQuota, legacyGranted);
     return "synced";
   } catch {
     return "offline"; // 断网/未配置/RLS 拒绝：本地为准，下次保存自动重试
@@ -221,9 +227,11 @@ export async function syncToCloud(consumeQuota = true): Promise<SyncResult> {
 // ---- 防抖：打卡改动只调度，停止操作 4 秒后才真正上传 ----
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let pending = false;
+let pendingLegacyGranted = false;
 
-export function scheduleSyncToCloud(delayMs = 4000): void {
+export function scheduleSyncToCloud(delayMs = 4000, legacyGranted = false): void {
   pending = true;
+  pendingLegacyGranted = legacyGranted;
   if (debounceTimer) clearTimeout(debounceTimer);
   debounceTimer = setTimeout(() => {
     debounceTimer = null;
@@ -233,12 +241,14 @@ export function scheduleSyncToCloud(delayMs = 4000): void {
 
 export async function flushSyncToCloud(): Promise<SyncResult | "noop"> {
   if (!pending) return "noop";
+  const legacyGranted = pendingLegacyGranted;
   pending = false;
+  pendingLegacyGranted = false;
   if (debounceTimer) {
     clearTimeout(debounceTimer);
     debounceTimer = null;
   }
-  return syncToCloud();
+  return syncToCloud(true, legacyGranted);
 }
 
 /** 在应用入口调用一次即可；离开页面时尽力冲刷。 */

@@ -85,6 +85,7 @@ export function SevenDayCheckIn({ activationStatus }: { activationStatus?: MyAct
   const [checkinQuota, setCheckinQuota] = useState<CheckinQuota | null>(null);
   const [pendingReview, setPendingReview] = useState(() => activationStatus ? activationStatus.state === "pending_review" : hasPendingBoxCodeReview());
   const [activated, setActivated] = useState(() => activationStatus ? activationStatus.state === "active" : hasBoxCodeActivation());
+  const [legacyGranted, setLegacyGranted] = useState(activationStatus?.state === "legacy_granted");
   const [activationLoaded, setActivationLoaded] = useState(Boolean(activationStatus));
   const [rejected, setRejected] = useState(activationStatus?.state === "rejected");
   const [activationError, setActivationError] = useState("");
@@ -95,6 +96,7 @@ export function SevenDayCheckIn({ activationStatus }: { activationStatus?: MyAct
       if (!mounted) return;
       setPendingReview(nextStatus.state === "pending_review");
       setActivated(nextStatus.state === "active");
+      setLegacyGranted(nextStatus.state === "legacy_granted");
       setRejected(nextStatus.state === "rejected");
       setActivationError("");
       setActivationLoaded(true);
@@ -160,14 +162,14 @@ export function SevenDayCheckIn({ activationStatus }: { activationStatus?: MyAct
     } catch {
       setStorageError(true);
     }
-    scheduleSyncToCloud(); // 只调度防抖上传，不改 v3 写入逻辑本身
+    scheduleSyncToCloud(4000, legacyGranted); // 只调度防抖上传，不改 v3 写入逻辑本身
   };
 
   const commitState = (next: CheckInState) => {
     if (pendingReview) return;
     // 匿名时只保留内存草稿，保证连续输入完整；OTP 成功后才由 pendingSave 写入 v3。
     if (syncConfigured && !syncEmail) setState(next);
-    requestCheckinSave(() => persistState(next), { configured: syncConfigured, email: syncEmail });
+    requestCheckinSave(() => persistState(next), { configured: syncConfigured, email: syncEmail, legacyGranted });
 
     // D3 轻提醒保持原触发时机：达到第 3 天即提示，与保存硬拦截互不替代。
     if (syncConfigured && !syncEmail && !toastShownRef.current && !isToastSnoozed()) {
@@ -291,7 +293,7 @@ export function SevenDayCheckIn({ activationStatus }: { activationStatus?: MyAct
         {pendingReview && <p className="check-in-quota" role="status">审核中，暂不能打卡</p>}
         {rejected && <p className="check-in-quota" role="status">未通过，请联系教练</p>}
         {activationError && <p className="admin-error" role="alert">{activationError}</p>}
-        {!pendingReview && checkinQuota && (
+        {!pendingReview && checkinQuota && checkinQuota.boxSpec !== "legacy" && (
           <p className="check-in-quota" role="status">
             剩余 {checkinQuota.remainingCheckins}/{checkinQuota.maxCheckins} 次
           </p>

@@ -57,7 +57,10 @@ export async function getCheckinQuota(): Promise<CheckinQuota | null> {
   return parseQuota(data);
 }
 
-export async function verifyCheckinSnapshot(state: CheckInState): Promise<CheckinQuota> {
+export async function verifyCheckinSnapshot(
+  state: CheckInState,
+  publishQuotaEvent = true,
+): Promise<CheckinQuota> {
   const { data, error } = await getSupabase().rpc("verify_checkin", {
     p_start_date: state.startDate,
     p_records: state.records,
@@ -67,6 +70,6 @@ export async function verifyCheckinSnapshot(state: CheckInState): Promise<Checki
   if (error) throw error;
   const quota = parseQuota(data);
   if (!quota) throw new Error("打卡保存未通过服务端校验。");
-  publishQuota(quota);
+  if (publishQuotaEvent) publishQuota(quota);
   return quota;
 }
