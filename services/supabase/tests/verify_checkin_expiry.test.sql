@@ -30,6 +30,8 @@ create role authenticated;
 \ir ../migrations/20261106160000_get_coach_radar_v1.sql
 \ir ../migrations/20261107120000_verify_checkin.sql
 \ir ../migrations/20261108120000_code_pool_inventory.sql
+\ir ../migrations/20261112120000_seed_activation_compat.sql
+\ir ../migrations/20261112130000_legacy_checkin_claims.sql
 
 set client_min_messages = notice;
 create schema test;

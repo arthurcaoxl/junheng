@@ -48,6 +48,8 @@ create table vault.decrypted_secrets (name text primary key, decrypted_secret te
 \ir ../migrations/20261109160000_coach_radar_cycle_state.sql
 \ir ../migrations/20261110090000_get_coach_inventory_v3.sql
 \ir ../migrations/20261110120000_final_generation_staff_role_p0.sql
+\ir ../migrations/20261112120000_seed_activation_compat.sql
+\ir ../migrations/20261112130000_legacy_checkin_claims.sql
 
 create schema test;
 create function test.assert_true(p_condition boolean, p_message text)

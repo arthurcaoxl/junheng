@@ -39,6 +39,8 @@ create table vault.decrypted_secrets (name text primary key, decrypted_secret te
 \ir ../migrations/20261109154000_coach_ssot_vault.sql
 \ir ../migrations/20261109156000_unified_activation_review.sql
 \ir ../migrations/20261109157000_coach_promotion.sql
+\ir ../migrations/20261112120000_seed_activation_compat.sql
+\ir ../migrations/20261112130000_legacy_checkin_claims.sql
 
 set client_min_messages = notice;
 create schema test;

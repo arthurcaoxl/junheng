@@ -6,6 +6,8 @@
 \ir ../migrations/20261110120000_final_generation_staff_role_p0.sql
 \ir ../migrations/20261110121000_direct_staff_inventory.sql
 \ir ../migrations/20261110122000_pgcrypto_search_path.sql
+-- 后续历史状态函数覆盖后，恢复当前种子兼容函数；新 claims 迁移已在 bootstrap 执行。
+\ir ../migrations/20261112120000_seed_activation_compat.sql
 
 set role authenticated;
 select set_config('app.test_auth_uid', '00000000-0000-0000-0000-000000000010', false);
@@ -33,4 +35,4 @@ select test.assert_true(
     ) and p.provolatile = 's'),
   'all new read entry points must be STABLE after ordered migrations'
 );
-select 'PASS: all 18 historical, 4 UX and 3 final-clearance migrations applied in filename order' as result;
+select 'PASS: all 20 historical, 4 UX and 3 final-clearance migrations applied in filename order' as result;
