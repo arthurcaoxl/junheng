@@ -10,7 +10,7 @@ export function hasBoxCodeActivation(): boolean {
   }
 }
 
-export type CachedActivationState = "none" | "pending_review" | "active" | "rejected";
+export type CachedActivationState = "none" | "pending_review" | "active" | "rejected" | "legacy_granted";
 
 export function syncBoxCodeActivationCache(state: CachedActivationState): void {
   try {

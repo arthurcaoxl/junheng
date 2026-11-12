@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { BOX_CODE_REVIEW_EVENT, hasBoxCodeActivation, hasPendingBoxCodeReview } from "../services/activationStorage";
-import { fetchMyActivationStatus } from "../services/boxCodeActivation";
+import { fetchMyActivationStatus, type MyActivationStatus } from "../services/boxCodeActivation";
 import {
   CHECKIN_QUOTA_EVENT,
   getCheckinQuota,
@@ -62,7 +62,7 @@ function loadName() {
   }
 }
 
-export function SevenDayCheckIn() {
+export function SevenDayCheckIn({ activationStatus }: { activationStatus?: MyActivationStatus } = {}) {
   const [state, setState] = useState<CheckInState>(loadState);
   const [activeDate, setActiveDate] = useState(() => clampActiveDate(state));
   const [recordName, setRecordName] = useState(loadName);
@@ -83,27 +83,37 @@ export function SevenDayCheckIn() {
   const isNovice = actualDayIndex <= 2; // 破冰期：科普直接展示；熟练期：默认折叠，表单上移
   const [isKnowledgeExpanded, setIsKnowledgeExpanded] = useState(false);
   const [checkinQuota, setCheckinQuota] = useState<CheckinQuota | null>(null);
-  const [pendingReview, setPendingReview] = useState(hasPendingBoxCodeReview);
-  const [activated, setActivated] = useState(hasBoxCodeActivation);
-  const [activationLoaded, setActivationLoaded] = useState(false);
-  const [rejected, setRejected] = useState(false);
+  const [pendingReview, setPendingReview] = useState(() => activationStatus ? activationStatus.state === "pending_review" : hasPendingBoxCodeReview());
+  const [activated, setActivated] = useState(() => activationStatus ? activationStatus.state === "active" : hasBoxCodeActivation());
+  const [activationLoaded, setActivationLoaded] = useState(Boolean(activationStatus));
+  const [rejected, setRejected] = useState(activationStatus?.state === "rejected");
   const [activationError, setActivationError] = useState("");
 
   useEffect(() => {
     let mounted = true;
+    const applyStatus = (nextStatus: MyActivationStatus) => {
+      if (!mounted) return;
+      setPendingReview(nextStatus.state === "pending_review");
+      setActivated(nextStatus.state === "active");
+      setRejected(nextStatus.state === "rejected");
+      setActivationError("");
+      setActivationLoaded(true);
+    };
+
+    if (activationStatus) {
+      applyStatus(activationStatus);
+      return () => { mounted = false; };
+    }
+
     const refreshReviewState = () => {
       setPendingReview(hasPendingBoxCodeReview());
       setActivated(hasBoxCodeActivation());
     };
     window.addEventListener(BOX_CODE_REVIEW_EVENT, refreshReviewState);
-    fetchMyActivationStatus().then((status) => {
-      if (!mounted) return;
-      setRejected(status.state === "rejected");
-      setActivationError("");
-    }).catch((cause: unknown) => {
+    fetchMyActivationStatus().then(applyStatus).catch(() => {
       if (!mounted) return;
       setRejected(false);
-      setActivationError(cause instanceof Error ? cause.message : "激活状态读取失败，请稍后重试。");
+      setActivationError("激活状态读取失败，请稍后重试。");
     }).finally(() => {
       if (mounted) setActivationLoaded(true);
     });
@@ -111,7 +121,7 @@ export function SevenDayCheckIn() {
       mounted = false;
       window.removeEventListener(BOX_CODE_REVIEW_EVENT, refreshReviewState);
     };
-  }, []);
+  }, [activationStatus]);
 
   useEffect(() => {
     let mounted = true;

@@ -1,6 +1,15 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router";
-import { fetchMyActivationStatus, hasBoxCodeActivation, hasPendingBoxCodeReview, requestBoxCodeActivation } from "../services/boxCodeActivation";
+import {
+  ActivationStatusError,
+  fetchMyActivationStatus,
+  hasBoxCodeActivation,
+  hasPendingBoxCodeReview,
+  requestBoxCodeActivation,
+  type ActivationStatusErrorKind,
+  type MyActivationStatus,
+} from "../services/boxCodeActivation";
+import { openSyncModal } from "../services/syncUi";
 import { validateBoxCode } from "../utils/boxCode";
 
 function createIdempotencyKey(): string {
@@ -10,7 +19,7 @@ function createIdempotencyKey(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-type ActivationPhase = "idle" | "submitting" | "pending" | "bound";
+type ActivationPhase = "idle" | "submitting" | "pending" | "bound" | "legacy";
 
 function initialPhase(): ActivationPhase {
   if (hasBoxCodeActivation()) return "bound";
@@ -18,44 +27,67 @@ function initialPhase(): ActivationPhase {
   return "idle";
 }
 
-export function BoxCodeActivation() {
+function phaseForStatus(status: MyActivationStatus): ActivationPhase {
+  if (status.state === "active") return "bound";
+  if (status.state === "legacy_granted") return "legacy";
+  if (status.state === "pending_review") return "pending";
+  return "idle";
+}
+
+export function BoxCodeActivation({ status }: { status?: MyActivationStatus } = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [phase, setPhase] = useState<ActivationPhase>(initialPhase);
   const [code, setCode] = useState(() => initialPhase() === "idle" ? searchParams.get("code") ?? "" : "");
   const [error, setError] = useState("");
-  const [statusLoading, setStatusLoading] = useState(true);
+  const [statusLoading, setStatusLoading] = useState(!status);
+  const [statusErrorKind, setStatusErrorKind] = useState<ActivationStatusErrorKind | null>(null);
+  const [statusAttempt, setStatusAttempt] = useState(0);
   const [rejected, setRejected] = useState(false);
   const submissionRef = useRef<{ code: string; key: string } | null>(null);
   const inFlightRef = useRef(false);
-  const busy = phase === "submitting" || statusLoading;
+  const busy = phase === "submitting" || statusLoading || statusErrorKind !== null;
 
   useEffect(() => {
     let alive = true;
-    fetchMyActivationStatus().then((status) => {
+    const applyStatus = (nextStatus: MyActivationStatus) => {
       if (!alive) return;
-      setPhase(status.state === "active" ? "bound" : status.state === "pending_review" ? "pending" : "idle");
-      setRejected(status.state === "rejected");
-    }).catch((cause: unknown) => {
+      setPhase(phaseForStatus(nextStatus));
+      setRejected(nextStatus.state === "rejected");
+      setStatusErrorKind(null);
+    };
+
+    if (status) {
+      applyStatus(status);
+      setStatusLoading(false);
+      return () => { alive = false; };
+    }
+
+    setStatusLoading(true);
+    setStatusErrorKind(null);
+    fetchMyActivationStatus().then(applyStatus).catch((cause: unknown) => {
       if (!alive) return;
-      setPhase("idle");
-      setRejected(false);
-      setError(cause instanceof Error ? cause.message : "激活状态读取失败，请稍后重试。");
+      setStatusErrorKind(cause instanceof ActivationStatusError ? cause.kind : "unavailable");
     }).finally(() => {
       if (alive) setStatusLoading(false);
     });
     return () => { alive = false; };
-  }, []);
+  }, [status, statusAttempt]);
 
   useEffect(() => {
-    if ((phase !== "bound" && phase !== "pending") || !searchParams.has("code")) return;
+    if ((phase !== "bound" && phase !== "legacy" && phase !== "pending") || !searchParams.has("code")) return;
     const nextParams = new URLSearchParams(searchParams);
     nextParams.delete("code");
     setSearchParams(nextParams, { replace: true });
   }, [phase, searchParams, setSearchParams]);
 
+  const retryStatus = () => {
+    setError("");
+    setStatusAttempt((value) => value + 1);
+  };
+
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
-    if (phase === "bound" || phase === "pending" || statusLoading || inFlightRef.current) return;
+    if (phase === "bound" || phase === "legacy" || phase === "pending" || statusLoading || statusErrorKind || inFlightRef.current) return;
 
     setError("");
     if (!validateBoxCode(code).valid) {
@@ -85,10 +117,25 @@ export function BoxCodeActivation() {
   return (
     <section className="box-code-activation sync-panel" aria-labelledby="box-code-activation-title">
       <h2 id="box-code-activation-title">产品码激活</h2>
-      {statusLoading && <p className="sync-panel-status" role="status">激活状态读取中…</p>}
-      {phase === "bound" ? (
+      {statusLoading ? (
+        <p className="sync-panel-status" role="status">正在确认打卡权限</p>
+      ) : statusErrorKind === "unauthorized" ? (
+        <>
+          <p className="sync-panel-error" role="alert">登录状态已失效，请重新登录。</p>
+          <button type="button" className="sync-panel-primary" onClick={() => openSyncModal("restore", { onSuccess: retryStatus })}>重新登录</button>
+        </>
+      ) : statusErrorKind === "unavailable" ? (
+        <>
+          <p className="sync-panel-error" role="alert">激活状态读取失败，请稍后重试。</p>
+          <button type="button" className="sync-panel-primary" onClick={retryStatus}>重试</button>
+        </>
+      ) : phase === "bound" ? (
         <div className="sync-panel-form box-code-activation-bound">
           <p className="status-tag status-tag--green">已绑定专属教练</p>
+        </div>
+      ) : phase === "legacy" ? (
+        <div className="sync-panel-form">
+          <p className="sync-panel-notice" role="status">已开通打卡权限</p>
         </div>
       ) : phase === "pending" ? (
         <div className="sync-panel-form">
@@ -121,7 +168,7 @@ export function BoxCodeActivation() {
           </form>
         </>
       )}
-      {error && <p className="sync-panel-error" role="alert">{error}</p>}
+      {!statusLoading && !statusErrorKind && error && <p className="sync-panel-error" role="alert">{error}</p>}
     </section>
   );
 }

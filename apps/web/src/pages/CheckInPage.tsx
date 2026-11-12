@@ -3,12 +3,18 @@ import { Link, useLocation } from "react-router";
 import { BoxCodeActivation } from "../components/BoxCodeActivation";
 import { SevenDayCheckIn } from "../components/SevenDayCheckIn";
 import { SyncPanel } from "../components/SyncPanel";
-import { fetchMyActivationStatus, type MyActivationStatus } from "../services/boxCodeActivation";
+import {
+  ActivationStatusError,
+  fetchMyActivationStatus,
+  type ActivationStatusErrorKind,
+  type MyActivationStatus,
+} from "../services/boxCodeActivation";
+import { openSyncModal } from "../services/syncUi";
 
 export default function CheckInPage() {
   const { hash } = useLocation();
   const [status, setStatus] = useState<MyActivationStatus | null>(null);
-  const [error, setError] = useState("");
+  const [errorKind, setErrorKind] = useState<ActivationStatusErrorKind | null>(null);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -23,10 +29,17 @@ export default function CheckInPage() {
     fetchMyActivationStatus().then((nextStatus) => {
       if (alive) setStatus(nextStatus);
     }).catch((cause: unknown) => {
-      if (alive) setError(cause instanceof Error ? cause.message : "激活状态读取失败，请稍后重试。");
+      if (!alive) return;
+      setErrorKind(cause instanceof ActivationStatusError ? cause.kind : "unavailable");
     });
     return () => { alive = false; };
   }, [attempt]);
+
+  const retry = () => {
+    setStatus(null);
+    setErrorKind(null);
+    setAttempt((value) => value + 1);
+  };
 
   // 数据合规总授权统一在“打卡入口点击处”拦截（CheckInGateLink）；
   // 页面内不再弹授权窗——URL 直达用户的打卡数据由建档时的
@@ -38,25 +51,28 @@ export default function CheckInPage() {
       </nav>
       {status === null ? (
         <section className="sync-panel">
-          {error ? (
+          {errorKind === "unauthorized" ? (
             <>
-              <p className="sync-panel-error" role="alert">{error}</p>
+              <p className="sync-panel-error" role="alert">登录状态已失效，请重新登录。</p>
               <button
                 type="button"
                 className="sync-panel-primary"
-                onClick={() => {
-                  setStatus(null);
-                  setError("");
-                  setAttempt((value) => value + 1);
-                }}
+                onClick={() => openSyncModal("restore", { onSuccess: retry })}
               >
-                重试
+                重新登录
               </button>
+            </>
+          ) : errorKind === "unavailable" ? (
+            <>
+              <p className="sync-panel-error" role="alert">激活状态读取失败，请稍后重试。</p>
+              <button type="button" className="sync-panel-primary" onClick={retry}>重试</button>
             </>
           ) : <p className="sync-panel-status" role="status">正在确认打卡权限</p>}
         </section>
-      ) : <BoxCodeActivation />}
-      {status?.state === "active" && <SevenDayCheckIn />}
+      ) : status.state !== "legacy_granted" && <BoxCodeActivation status={status} />}
+      {(status?.state === "active" || status?.state === "legacy_granted") && (
+        <SevenDayCheckIn activationStatus={status} />
+      )}
       <SyncPanel />
     </div>
   );

@@ -4,33 +4,85 @@ import { markBoxCodePendingReview, syncBoxCodeActivationCache, type CachedActiva
 
 export { hasBoxCodeActivation, hasPendingBoxCodeReview } from "./activationStorage";
 
+export type LegacyActivationSource = "whitelist" | "runtime";
+
 export type MyActivationStatus = {
   state: CachedActivationState;
   requestedAt: string | null;
   rejectionHint: string | null;
+  source?: LegacyActivationSource | null;
 };
+
+export type ActivationStatusErrorKind = "unauthorized" | "unavailable";
+
+export class ActivationStatusError extends Error {
+  readonly kind: ActivationStatusErrorKind;
+
+  constructor(kind: ActivationStatusErrorKind) {
+    super(kind === "unauthorized" ? "登录状态已失效，请重新登录。" : "激活状态读取失败，请稍后重试。");
+    this.name = "ActivationStatusError";
+    this.kind = kind;
+  }
+}
+
+function isUnauthorizedError(cause: unknown): boolean {
+  if (!cause || typeof cause !== "object") return false;
+  const error = cause as { code?: unknown; message?: unknown };
+  const code = typeof error.code === "string" ? error.code.toUpperCase() : "";
+  const message = typeof error.message === "string" ? error.message.toUpperCase() : "";
+  return code === "42501" || code === "UNAUTHORIZED" || message.includes("UNAUTHORIZED");
+}
+
+function parseActivationStatus(data: unknown): MyActivationStatus {
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    throw new ActivationStatusError("unavailable");
+  }
+  const result = data as Record<string, unknown>;
+  const state = result.state;
+  if (
+    (state !== "none" && state !== "pending_review" && state !== "active" && state !== "rejected" && state !== "legacy_granted")
+    || (result.requested_at !== null && typeof result.requested_at !== "string")
+    || (result.rejection_hint !== null && typeof result.rejection_hint !== "string")
+  ) {
+    throw new ActivationStatusError("unavailable");
+  }
+
+  const source = result.source;
+  if (state === "legacy_granted") {
+    if (
+      (source !== "whitelist" && source !== "runtime")
+      || result.requested_at !== null
+      || result.rejection_hint !== null
+    ) {
+      throw new ActivationStatusError("unavailable");
+    }
+  } else if (source !== undefined && source !== null) {
+    throw new ActivationStatusError("unavailable");
+  }
+
+  return {
+    state,
+    requestedAt: result.requested_at as string | null,
+    rejectionHint: result.rejection_hint as string | null,
+    source: source as LegacyActivationSource | null | undefined,
+  };
+}
 
 export async function fetchMyActivationStatus(): Promise<MyActivationStatus> {
   try {
     const { data, error } = await getSupabase().rpc("get_my_activation_status");
-    if (error) throw error;
-    const result = data as Record<string, unknown> | null;
-    if (
-      !result
-      || (result.state !== "none" && result.state !== "pending_review" && result.state !== "active" && result.state !== "rejected")
-      || (result.requested_at !== null && typeof result.requested_at !== "string")
-      || (result.rejection_hint !== null && typeof result.rejection_hint !== "string")
-    ) throw new Error("INVALID_ACTIVATION_STATUS");
-    const status: MyActivationStatus = {
-      state: result.state,
-      requestedAt: result.requested_at as string | null,
-      rejectionHint: result.rejection_hint as string | null,
-    };
+    if (error) {
+      if (isUnauthorizedError(error)) throw new ActivationStatusError("unauthorized");
+      throw new ActivationStatusError("unavailable");
+    }
+    const status = parseActivationStatus(data);
+    // 只有成功且通过契约校验的服务端响应才能纠正本机 UX 缓存。
     syncBoxCodeActivationCache(status.state);
     return status;
-  } catch {
-    syncBoxCodeActivationCache("none");
-    throw new Error("激活状态读取失败，请稍后重试。");
+  } catch (cause) {
+    if (cause instanceof ActivationStatusError) throw cause;
+    if (isUnauthorizedError(cause)) throw new ActivationStatusError("unauthorized");
+    throw new ActivationStatusError("unavailable");
   }
 }
 
