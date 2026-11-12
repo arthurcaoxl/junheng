@@ -134,6 +134,9 @@
 12. **10.11 产品有效期增量**：`box_codes.expires_at` 为可空 `timestamptz` 快照。`SystemConfig.box_code_expiry_policy` 使用 JSON 对象 `{"default_expires_at": "<RFC 3339 时间戳>"}` 提供发码批次默认截止时刻；不播种业务字面值，运营必须通过受控配置层写入真实批次有效期。
 13. `generate_platform_codes` 必须在服务端读取并锁定 `box_code_expiry_policy`，将 `default_expires_at` 显式写入本次生成的每枚码；RPC 不新增有效期入参，前端不得传参覆盖。配置缺失、字段缺失或值为 `null` 时以 `SYSTEM_CONFIG_MISSING` 整体回滚，不使用默认值放行。
 14. `verify_checkin` 在 active 状态校验之后、同日幂等与额度扣减之前读取 `box_code_expiry_policy`。配置缺失或无效时以 `SYSTEM_CONFIG_MISSING` 拒绝；`expires_at` 缺失或 `expires_at <= now()` 时以 `CHECKIN_CODE_EXPIRED` 拒绝并整体回滚。未过期码才进入既有幂等与额度流程；过期不删除或改写历史打卡及归属事实。
+15. **10.16 种子兼容打卡增量**：`checkin_daily_claims` 使用 `claim_id` 代理主键与 `claim_source in ('box_code','legacy')` 区分真实盒码和种子兼容记录；历史行回填为 `box_code`。盒码记录仍要求非空 `code_id`，legacy 记录要求 `code_id IS NULL` 且 `used_checkins=1`，两类记录分别由部分唯一索引保证盒码物理日及 legacy 用户物理日唯一。表继续启用 RLS，浏览器角色无直接表权限。
+16. `verify_checkin` 只从 `auth.uid()` 取得用户并先按用户加咨询事务锁；有激活申请时仍优先锁定盒码并执行原 active、有效期、额度与审计流程。仅完全没有盒码申请时，才读取服务端 `get_my_activation_status()`；返回 `legacy_granted` 的用户以 `code_id=NULL / claim_source='legacy'` 幂等保存，固定返回 `1/1/0/boxSpec='legacy'`，不创建激活事实、不写盒码扣次、版本、事件、库存、归属或分润。
+17. 同一用户同一 Asia/Shanghai 物理日的 legacy 与真实盒码记录双向幂等，重复调用仍更新最新云端快照但不重复扣次。legacy 的 `remainingCheckins=0` 不是盒码额度耗尽，前端不得因此禁用编辑、显示盒码额度或伪造本机 activated 状态；教练晋升有效打卡仅统计 `claim_source='box_code'` 且满足原激活证据链的记录。
 
 ## 教练雷达只读 RPC（10.5 增量）
 
