@@ -33,6 +33,9 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
       setError("");
       setNotice("");
       setCooldown(0);
+      // 修改这里：读取一次性授权状态
+      const hasConsented = localStorage.getItem("junheng-privacy-consent") === "true";
+      setAgreementAccepted(hasConsented); 
     }
   }, [open, mode]);
 
@@ -63,12 +66,14 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
     }
   };
 
-  const sendCode = () => {
+    const sendCode = () => {
     // 二次拦截：未勾选协议直接 return，不进入 run 流程
     if (!agreementAccepted) {
       setError("请先阅读并同意《数据授权与隐私协议》。");
       return;
     }
+    // 新增：记录一次性授权
+    localStorage.setItem("junheng-privacy-consent", "true");
 
     run(async () => {
       if (mode === "bind" || mode === "change-email") await upgradeToPermanentAccount(email);
@@ -159,36 +164,49 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
         {phase === "email" ? (
           <>
             <label htmlFor="sync-modal-email">邮箱地址</label>
-            <input
-              id="sync-modal-email"
-              type="email"
-              autoComplete="email"
-              placeholder={!milestone && mode === "restore" ? "请输入您之前绑定的原邮箱" : "you@example.com"}
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              autoFocus={!preserveFocus}
-            />
-                        <label className="sync-modal-consent" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '12px 0', fontSize: '14px', cursor: 'pointer', textAlign: 'left' }}>
+          <input
+            id="sync-modal-email"
+            type="email"
+            autoComplete="email"
+            placeholder={!milestone && mode === "restore" ? "请输入您之前绑定的原邮箱" : "you@example.com"}
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            autoFocus={!preserveFocus}
+            onKeyDown={(e) => {
+              // 按回车且状态允许时，触发发送验证码
+              if (e.key === 'Enter' && !busy && email.includes('@') && agreementAccepted) {
+                e.preventDefault();
+                sendCode();
+              }
+            }}
+          />
+          {!(mode === "restore" && localStorage.getItem("junheng-privacy-consent") === "true") && (
+            <div 
+              style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-start', margin: '12px 0', cursor: 'pointer' }}
+              onClick={() => {
+                const nextVal = !agreementAccepted;
+                setAgreementAccepted(nextVal);
+                if (nextVal) setError("");
+              }}
+            >
               <input
                 type="checkbox"
                 checked={agreementAccepted}
-                onChange={(e) => {
-                  setAgreementAccepted(e.target.checked);
-                  if (e.target.checked) setError("");
-                }}
-                style={{ marginTop: '3px' }}
+                onChange={(e) => e.stopPropagation()} 
+                style={{ width: 'auto', marginRight: '8px', cursor: 'pointer', flexShrink: 0 }}
               />
-              <span>
+              <span style={{ fontSize: '12px', color: '#999', lineHeight: '1.4', textAlign: 'left' }}>
                 我已阅读并同意
-                <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: '#007bff', textDecoration: 'underline' }}>
+                <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: '#999', textDecoration: 'underline' }} onClick={(e) => e.stopPropagation()}>
                   《数据授权与隐私协议》
                 </a>
               </span>
-            </label>
-            <button type="button" className="sync-modal-primary" disabled={busy || cooldown > 0 || !email.includes("@")|| !agreementAccepted} onClick={sendCode}>
-              {busy ? "发送中…" : cooldown > 0 ? `重发(${cooldown}s)` : milestone && milestoneKind === "poster" ? "立即绑定并查看海报" : milestone && milestoneKind === "certificate" ? "立即绑定并查看见证" : mode === "bind" ? "获取邮箱验证码" : mode === "change-email" ? "发送修改验证码" : "发送登录验证码"}
-            </button>
-          </>
+            </div>
+          )}
+          <button type="button" className="sync-modal-primary" disabled={busy || cooldown > 0 || !email.includes("@") || !agreementAccepted} onClick={sendCode}>
+            {busy ? "发送中…" : cooldown > 0 ? `重发(${cooldown}s)` : milestone && milestoneKind === "poster" ? "立即绑定并查看海报" : milestone && milestoneKind === "certificate" ? "完成绑定并查看见证" : mode === "bind" ? "完成绑定" : mode === "restore" ? "登录恢复" : "获取验证码"}
+          </button>
+        </>
         ) : (
           <>
             <label htmlFor="sync-modal-code">邮箱验证码</label>
