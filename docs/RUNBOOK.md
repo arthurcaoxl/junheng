@@ -607,3 +607,5 @@ git merge-base --is-ancestor main origin/main; echo $?
 ## 事故库附加记录
 - INC-1015-12：基线误报。因误入旧仓导致基线丢失假象，主仓完好。防御：操作前必跑 pwd -P 确认路径。状态：closed。
 - INC-1015-13：路径偏离。执行前未核对绝对路径导致误操作。防御：任何 git 变更前须双确认 pwd -P 与 git remote -v。状态：closed。
+
+- INC-1015-14：cherry-pick 先于主脑放行。物理结果正确但执行顺序违反契约 B / 铁律 18。防御：合并类动作（含 cherry-pick）须在主脑放行指令后执行，执行前核对主脑裁决原文，条件放行须等条件满足后再动。状态：open。
