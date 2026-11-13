@@ -1,0 +1,1 @@
+pbpaste > docs/evidence/TASK-10.20-R-01-plan.txt
