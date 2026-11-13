@@ -169,7 +169,10 @@ async function runInitialMerge(uid: string): Promise<InitialMergeResult> {
 }
 
 function ensureInitialMergeForUid(uid: string): Promise<InitialMergeResult> {
-  if (hasMergedFlag(uid)) return Promise.resolve("already-merged");
+  // 空记录可能来自换机或站点数据部分清理，不能仅凭历史标记跳过云端恢复。
+  if (hasMergedFlag(uid) && Object.keys(readV3SnapshotStrict().records).length > 0) {
+    return Promise.resolve("already-merged");
+  }
   const existing = inFlightMerges.get(uid);
   if (existing) return existing;
 
