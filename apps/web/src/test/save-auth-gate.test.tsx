@@ -63,7 +63,11 @@ describe("保存打卡强制登录", () => {
     expect(savedToday()).toBeUndefined();
 
     await user.type(screen.getByLabelText("邮箱地址"), "save@example.com");
-    await user.click(screen.getByRole("button", { name: "获取邮箱验证码" }));
+    // 新增：勾选协议
+    await user.click(screen.getByRole("checkbox", { name: /我已阅读并同意/ }));
+    // 修改：统一按钮名正则
+    await user.click(screen.getByRole("button", { name: /^(获取验证码|完成绑定|登录恢复)$/ }));
+    
     await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
     await user.click(screen.getByRole("button", { name: "完成绑定" }));
 
@@ -94,7 +98,11 @@ describe("保存打卡强制登录", () => {
 
     await user.type(screen.getByLabelText("早晨体重（空腹）"), "68");
     await user.type(screen.getByLabelText("邮箱地址"), "first-save@example.com");
-    await user.click(screen.getByRole("button", { name: "获取邮箱验证码" }));
+    // 新增：勾选协议
+    await user.click(screen.getByRole("checkbox", { name: /我已阅读并同意/ }));
+    // 修改：统一按钮名正则
+    await user.click(screen.getByRole("button", { name: /^(获取验证码|完成绑定|登录恢复)$/ }));
+    
     await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
     await user.click(screen.getByRole("button", { name: "完成绑定" }));
 

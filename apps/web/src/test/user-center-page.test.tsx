@@ -191,7 +191,11 @@ describe("用户中心 D7 与绑定状态", () => {
     await user.click(screen.getByRole("button", { name: "生成专属成就海报" }));
     expect(screen.getByRole("dialog", { name: "🎉 您的专属健康海报已生成！" })).toBeInTheDocument();
     await user.type(screen.getByLabelText("邮箱地址"), "seven@example.com");
+    
+    // 新增：勾选协议
+    await user.click(screen.getByRole("checkbox", { name: /我已阅读并同意/ }));
     await user.click(screen.getByRole("button", { name: "立即绑定并查看海报" }));
+    
     await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
     await user.click(screen.getByRole("button", { name: "完成绑定并查看海报" }));
     expect(await screen.findByRole("img", { name: "21 天健康记录海报预览" })).toBeInTheDocument();
@@ -211,7 +215,12 @@ describe("用户中心 D7 与绑定状态", () => {
     expect(screen.getByRole("dialog", { name: "🎉 您的 21 天代谢重塑见证已生成！" })).toBeInTheDocument();
     expect(context.fillText).toHaveBeenCalledWith("21天代谢重塑见证", expect.any(Number), expect.any(Number));
     await user.type(screen.getByLabelText("邮箱地址"), "certificate@example.com");
-    await user.click(screen.getByRole("button", { name: "立即绑定并查看见证" }));
+    
+    // 新增：勾选协议
+    await user.click(screen.getByRole("checkbox", { name: /我已阅读并同意/ }));
+    // 修正：真实的发码按钮文案为 “完成绑定并查看见证”
+    await user.click(screen.getByRole("button", { name: "完成绑定并查看见证" }));
+    
     await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
     await user.click(screen.getByRole("button", { name: "完成绑定并查看见证" }));
     expect(await screen.findByRole("img", { name: "21 天代谢重塑见证预览" })).toBeInTheDocument();

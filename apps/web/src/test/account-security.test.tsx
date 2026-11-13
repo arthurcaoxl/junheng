@@ -60,7 +60,11 @@ describe("账号安全", () => {
       await user.click(await screen.findByRole("button", { name: "修改邮箱" }));
       expect(screen.getByText("old@example.com")).toBeInTheDocument();
       await user.type(screen.getByLabelText("邮箱地址"), "new@example.com");
-      await user.click(screen.getByRole("button", { name: "发送修改验证码" }));
+      // 新增：勾选协议
+      await user.click(screen.getByRole("checkbox", { name: /我已阅读并同意/ }));
+      // 修改：统一按钮名
+      await user.click(screen.getByRole("button", { name: /获取验证码|发送修改验证码/ }));
+      
       await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
       await user.click(screen.getByRole("button", { name: "确认修改邮箱" }));
 
@@ -74,7 +78,11 @@ describe("账号安全", () => {
       renderUserCenter();
       await user.click(await screen.findByRole("button", { name: "修改邮箱" }));
       await user.type(screen.getByLabelText("邮箱地址"), "new@example.com");
-      await user.click(screen.getByRole("button", { name: "发送修改验证码" }));
+      // 新增：勾选协议
+      await user.click(screen.getByRole("checkbox", { name: /我已阅读并同意/ }));
+      // 修改：统一按钮名
+      await user.click(screen.getByRole("button", { name: /获取验证码|发送修改验证码/ }));
+      
       expect(screen.getByText("old@example.com")).toBeInTheDocument();
       await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
       await user.click(screen.getByRole("button", { name: "确认修改邮箱" }));
@@ -95,7 +103,11 @@ describe("账号安全", () => {
       renderUserCenter();
       await user.click(await screen.findByRole("button", { name: "修改邮箱" }));
       await user.type(screen.getByLabelText("邮箱地址"), "new@example.com");
-      await user.click(screen.getByRole("button", { name: "发送修改验证码" }));
+      // 新增：勾选协议
+      await user.click(screen.getByRole("checkbox", { name: /我已阅读并同意/ }));
+      // 修改：统一按钮名
+      await user.click(screen.getByRole("button", { name: /获取验证码|发送修改验证码/ }));
+      
       await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
       await user.click(screen.getByRole("button", { name: "确认修改邮箱" }));
 
@@ -155,5 +167,5 @@ describe("账号安全", () => {
         expect(screen.queryByRole("dialog", { name: "开启前，请确认数据授权" })).not.toBeInTheDocument();
       });
     });
-  }); // 外层 describe 的闭合
-});   // 最外层 describe 的闭合
+  });
+});

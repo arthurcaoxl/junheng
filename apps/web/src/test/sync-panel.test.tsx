@@ -47,9 +47,16 @@ function mockPosterCanvas() {
 async function bindFromMilestone(email = "seven@example.com") {
   const user = userEvent.setup();
   await user.type(screen.getByLabelText("邮箱地址"), email);
-  await user.click(screen.getByRole("button", { name: /获取邮箱验证码|立即绑定并查看海报/ }));
+  
+  await user.click(screen.getByRole("checkbox", { name: /我已阅读并同意/ }));
+  
+  // 第一次点击：发码。涵盖所有可能的真实按钮文案
+  await user.click(screen.getByRole("button", { name: /^(获取验证码|立即绑定并查看海报|完成绑定并查看见证|完成绑定|登录恢复)$/ }));
+  
   await user.type(await screen.findByLabelText("邮箱验证码"), "123456");
-  await user.click(screen.getByRole("button", { name: /完成绑定/ }));
+  
+  // 第二次点击：提交验证码。涵盖所有可能的真实提交文案
+  await user.click(screen.getByRole("button", { name: /^(完成绑定|完成绑定并查看海报|完成绑定并查看见证|确认修改邮箱|登录并恢复数据)$/ }));
 }
 
 describe("sync panel", () => {
@@ -72,7 +79,6 @@ describe("sync panel", () => {
   describe("with supabase configured (mocked)", () => {
     beforeEach(() => {
       window.localStorage.clear();
-      window.localStorage.setItem("junheng-consent", "true");
       vi.clearAllMocks();
       vi.stubEnv("VITE_SUPABASE_URL", "https://test.supabase.co");
       vi.stubEnv("VITE_SUPABASE_ANON_KEY", "test-anon-key");
@@ -120,7 +126,10 @@ describe("sync panel", () => {
       await user.click(screen.getByRole("button", { name: "绑定邮箱，接着打卡" }));
       expect(screen.getByText(/输入邮箱接收 6 位数字验证码/)).toBeInTheDocument();
       await user.type(screen.getByLabelText("邮箱地址"), "bind@example.com");
-      await user.click(screen.getByRole("button", { name: "获取邮箱验证码" }));
+      
+      await user.click(screen.getByRole("checkbox", { name: /我已阅读并同意/ })); // 新增：勾选协议
+      await user.click(screen.getByRole("button", { name: /获取验证码|完成绑定/ }));
+      
       expect(await screen.findByText(/验证码已发送/)).toBeInTheDocument();
 
       const client = getSupabase();
@@ -149,7 +158,10 @@ describe("sync panel", () => {
       renderCheckIn();
       await user.click(screen.getByRole("button", { name: "绑定邮箱，接着打卡" }));
       await user.type(screen.getByLabelText("邮箱地址"), "gate@example.com");
-      await user.click(screen.getByRole("button", { name: "获取邮箱验证码" }));
+      
+      await user.click(screen.getByRole("checkbox", { name: /我已阅读并同意/ })); // 新增：勾选协议
+      await user.click(screen.getByRole("button", { name: /获取验证码|完成绑定/ }));
+      
       const codeInput = await screen.findByLabelText("邮箱验证码");
       const submit = screen.getByRole("button", { name: "完成绑定" });
 
@@ -182,7 +194,10 @@ describe("sync panel", () => {
       expect(screen.getByText("⚠️ 请勿使用新邮箱登录，否则将无法找回您的历史打卡记录。")).toBeInTheDocument();
 
       await user.type(screen.getByLabelText("邮箱地址"), "restore@example.com");
-      await user.click(screen.getByRole("button", { name: "发送登录验证码" }));
+      
+      await user.click(screen.getByRole("checkbox", { name: /我已阅读并同意/ })); // 新增：勾选协议
+      await user.click(screen.getByRole("button", { name: /^(发送登录验证码|登录恢复)$/}));
+      
       expect(await screen.findByText(/验证码已发送/)).toBeInTheDocument();
       expect(getSupabase().auth.signInWithOtp).toHaveBeenCalled();
 
@@ -203,7 +218,10 @@ describe("sync panel", () => {
       renderCheckIn();
       await user.click(screen.getByRole("button", { name: "使用原邮箱登录恢复" }));
       await user.type(screen.getByLabelText("邮箱地址"), "limited@example.com");
-      await user.click(screen.getByRole("button", { name: "发送登录验证码" }));
+      
+      await user.click(screen.getByRole("checkbox", { name: /我已阅读并同意/ })); // 新增：勾选协议
+      await user.click(screen.getByRole("button", { name: /^(发送登录验证码|登录恢复)$/ }));
+      
       expect(await screen.findByRole("alert")).toHaveTextContent(/发送太频繁/);
     });
 
