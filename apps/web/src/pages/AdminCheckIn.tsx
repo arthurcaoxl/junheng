@@ -38,6 +38,7 @@ export default function AdminCheckInPage() {
       return false;
     }
   });
+  const isWhitelistEnabled = import.meta.env.VITE_ENABLE_ADMIN_WHITELIST !== 'false';
   const [phase, setPhase] = useState<"email" | "code" | "ready">("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -319,7 +320,7 @@ export default function AdminCheckInPage() {
           <div id="admin-production-panel" role="tabpanel" aria-labelledby="admin-production-tab">
             <AdminCodePool />
             <AdminManualReview />
-            <AdminSeedWhitelist />
+            {isWhitelistEnabled && <AdminSeedWhitelist />}
           </div>
         )}
         {activeSection === "staff" && (
