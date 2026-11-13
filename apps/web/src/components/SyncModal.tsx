@@ -191,6 +191,7 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
             >
               <input
                 type="checkbox"
+                aria-label="我已阅读并同意"
                 checked={agreementAccepted}
                 onChange={(e) => e.stopPropagation()} 
                 style={{ width: 'auto', marginRight: '8px', cursor: 'pointer', flexShrink: 0 }}
