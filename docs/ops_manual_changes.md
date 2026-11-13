@@ -12,3 +12,7 @@
 - **变更 SQL**：UPDATE public.checkin_sync SET start_date = '2026-11-08' WHERE user_code = 'JH-NG46E';
 - **回滚 SQL**：UPDATE public.checkin_sync SET start_date = '2026-11-13' WHERE user_code = 'JH-NG46E';
 - **校验结果**：日历展示恢复正常。
+
+## 环境确认声明
+**签署人**：裁判
+**确认事项**：INC-1015-20 与 INC-1015-21 所涉及的迁移执行与手工数据变更，**全部仅发生于本地 Supabase 测试实例**。未触及任何预发（Staging）或生产（Production）环境。符合铁律 13 适用范围。
