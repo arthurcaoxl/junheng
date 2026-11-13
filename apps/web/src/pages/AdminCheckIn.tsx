@@ -21,6 +21,7 @@ import CoachRadar from "../components/admin/CoachRadar";
 import AdminCodePool from "../components/admin/AdminCodePool";
 import AdminManualReview from "../components/admin/AdminManualReview";
 import AdminStaffManagement from "../components/admin/AdminStaffManagement";
+import AdminSeedWhitelist from "../components/admin/AdminSeedWhitelist";
 
 function percent(value: number | null): string {
   return value === null ? "—" : `${value}%`;
@@ -318,6 +319,7 @@ export default function AdminCheckInPage() {
           <div id="admin-production-panel" role="tabpanel" aria-labelledby="admin-production-tab">
             <AdminCodePool />
             <AdminManualReview />
+            <AdminSeedWhitelist />
           </div>
         )}
         {activeSection === "staff" && (

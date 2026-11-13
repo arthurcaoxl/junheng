@@ -47,6 +47,7 @@ describe("Admin 人工审核与休眠托管", () => {
       if (name === "admin_get_dormant_coaches") return Promise.resolve({ data: [], error: null });
       if (name === "admin_get_coach_directory") return Promise.resolve({ data: [{ coach_id: "coach-1", email: "coach@example.com" }], error: null });
       if (name === "admin_review_box_code_activation_v2") return Promise.resolve({ data: { ok: true }, error: null });
+      if (name === "admin_get_seed_user_whitelist") return Promise.resolve({ data: { ok: true, configExists: true, emails: [], updatedAt: "2026-11-13T00:00:00Z" }, error: null });
       return Promise.resolve({ data: [], error: null });
     });
   });
@@ -99,6 +100,7 @@ describe("Admin 人工审核与休眠托管", () => {
       if (name === "admin_transfer_dormant_coaches") {
         return Promise.resolve({ data: { ok: true, transferredCount: 3, coachCount: 1 }, error: null });
       }
+      if (name === "admin_get_seed_user_whitelist") return Promise.resolve({ data: { ok: true, configExists: true, emails: [], updatedAt: "2026-11-13T00:00:00Z" }, error: null });
       return Promise.resolve({ data: [], error: null });
     });
     vi.spyOn(window, "confirm").mockReturnValue(true);
