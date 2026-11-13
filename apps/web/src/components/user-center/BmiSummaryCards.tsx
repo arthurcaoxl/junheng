@@ -24,17 +24,17 @@ export function BmiSummaryCards({ tracking, customizedInitial }: { tracking: Bmi
     <>
       <div className="bmi-summary-cards">
         <article>
+          <span>初始 BMI</span>
+          <strong data-testid="bmi-initial">{display(tracking.initial?.bmi ?? null)}</strong>
+          <small>{customizedInitial ? "自定义初始体重" : "基于首条记录"}</small>
+        </article>
+        <article>
           <span className="bmi-summary-label">
             当前 BMI
             <button type="button" className="bmi-info-trigger" aria-label="BMI 适用性说明" onClick={() => setInfoOpen(true)}>?</button>
           </span>
           <strong data-testid="bmi-current">{display(tracking.current?.bmi ?? null)}</strong>
           <small>{currentCategory ? CATEGORY_LABELS[currentCategory] : "等待有效体重"}</small>
-        </article>
-        <article>
-          <span>初始 BMI</span>
-          <strong data-testid="bmi-initial">{display(tracking.initial?.bmi ?? null)}</strong>
-          <small>{customizedInitial ? "自定义初始体重" : "基于首条记录"}</small>
         </article>
         <article>
           <span>BMI 变化</span>
