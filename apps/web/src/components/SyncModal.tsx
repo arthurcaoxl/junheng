@@ -24,6 +24,7 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [cooldown, setCooldown] = useState(0);
+  const [agreementAccepted, setAgreementAccepted] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -62,13 +63,21 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
     }
   };
 
-  const sendCode = () => run(async () => {
-    if (mode === "bind" || mode === "change-email") await upgradeToPermanentAccount(email);
-    else await sendLoginCode(email);
-    setPhase("code");
-    setNotice("验证码已发送，请查收邮件（含垃圾邮件）。");
-    setCooldown(resendRemainingSeconds(email) || 60);
-  });
+  const sendCode = () => {
+    // 二次拦截：未勾选协议直接 return，不进入 run 流程
+    if (!agreementAccepted) {
+      setError("请先阅读并同意《数据授权与隐私协议》。");
+      return;
+    }
+
+    run(async () => {
+      if (mode === "bind" || mode === "change-email") await upgradeToPermanentAccount(email);
+      else await sendLoginCode(email);
+      setPhase("code");
+      setNotice("验证码已发送，请查收邮件（含垃圾邮件）。");
+      setCooldown(resendRemainingSeconds(email) || 60);
+    });
+  };
 
   // 原地升级保留 auth.uid；只有服务端邮箱真正更新、且云端同步完成后才广播成功。
   const finishEmailChange = async () => {
@@ -159,8 +168,25 @@ export function SyncModal({ open, mode, onClose, onSuccess, milestone = false, m
               onChange={(event) => setEmail(event.target.value)}
               autoFocus={!preserveFocus}
             />
-            <button type="button" className="sync-modal-primary" disabled={busy || cooldown > 0 || !email.includes("@")} onClick={sendCode}>
-              {busy ? "发送中…" : cooldown > 0 ? `重发（${cooldown}s）` : milestone && milestoneKind === "poster" ? "立即绑定并查看海报" : milestone && milestoneKind === "certificate" ? "立即绑定并查看见证" : mode === "bind" ? "获取邮箱验证码" : mode === "change-email" ? "发送修改验证码" : "发送登录验证码"}
+                        <label className="sync-modal-consent" style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', margin: '12px 0', fontSize: '14px', cursor: 'pointer', textAlign: 'left' }}>
+              <input
+                type="checkbox"
+                checked={agreementAccepted}
+                onChange={(e) => {
+                  setAgreementAccepted(e.target.checked);
+                  if (e.target.checked) setError("");
+                }}
+                style={{ marginTop: '3px' }}
+              />
+              <span>
+                我已阅读并同意
+                <a href="/privacy" target="_blank" rel="noreferrer" style={{ color: '#007bff', textDecoration: 'underline' }}>
+                  《数据授权与隐私协议》
+                </a>
+              </span>
+            </label>
+            <button type="button" className="sync-modal-primary" disabled={busy || cooldown > 0 || !email.includes("@")|| !agreementAccepted} onClick={sendCode}>
+              {busy ? "发送中…" : cooldown > 0 ? `重发(${cooldown}s)` : milestone && milestoneKind === "poster" ? "立即绑定并查看海报" : milestone && milestoneKind === "certificate" ? "立即绑定并查看见证" : mode === "bind" ? "获取邮箱验证码" : mode === "change-email" ? "发送修改验证码" : "发送登录验证码"}
             </button>
           </>
         ) : (

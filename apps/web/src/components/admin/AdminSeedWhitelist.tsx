@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import {
   addSeedWhitelistEmail,
   fetchSeedWhitelist,
@@ -16,6 +16,7 @@ export default function AdminSeedWhitelist() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
+  const busyRef = useRef(false);
 
   useEffect(() => {
     let alive = true;
@@ -43,6 +44,10 @@ export default function AdminSeedWhitelist() {
   };
 
   const run = async (action: () => Promise<string>) => {
+    // 1. 防双击拦截
+    if (busyRef.current) return;
+    busyRef.current = true;
+
     setBusy(true);
     setError("");
     setNotice("");
@@ -50,10 +55,19 @@ export default function AdminSeedWhitelist() {
       const message = await action();
       setSnapshot(await fetchSeedWhitelist());
       setNotice(message);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "白名单操作失败。");
+    } catch (cause: any) {
+      // 2. 捕获 404 或网络错误，显示友好提示，防止原样抛出英文报错
+      const errMsg = cause instanceof Error ? cause.message : "";
+      if (errMsg.includes("404") || cause?.code === "PGRST202") {
+        setError("接口未部署或网络异常，请稍后重试。");
+      } else {
+        setError(cause instanceof Error ? cause.message : "白名单操作失败。");
+      }
     } finally {
+      // 3. 终极解死锁：无论成功报错，强制解除所有 loading/busy 状态
+      busyRef.current = false;
       setBusy(false);
+      setLoading(false); 
     }
   };
 
@@ -104,10 +118,10 @@ export default function AdminSeedWhitelist() {
           autoComplete="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
-          disabled={busy || loading || !snapshot}
+          disabled={busy || loading}
           required
         />
-        <button type="submit" className="admin-primary" disabled={busy || loading || !snapshot}>
+        <button type="submit" className="admin-primary" disabled={busy || loading}>
           {busy ? "添加中…" : "添加邮箱"}
         </button>
       </form>
