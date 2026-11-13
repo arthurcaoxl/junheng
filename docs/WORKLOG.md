@@ -1,6 +1,8 @@
 
 # 【主脑接力契约】
 handoff_snapshot:
+  workspace_path: "/Users/mac/Documents/kimi/Workspaces/junheng"
+  workspace_baseline: "25ac0deab107e6d45a2b2c32109c0e5afee2e7ff"
   current_core_version: "CORE-v1.13.3"
   current_biz_version: "BIZ-V1.5"
   active_task: "TASK-10.12-UI-DEBT"
