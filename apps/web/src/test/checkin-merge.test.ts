@@ -143,7 +143,8 @@ describe("按日期键补全式首次合并", () => {
 
   it("同一 uid 并发及重复调用共享一次合并，完成标记前重跑仍幂等", async () => {
     const local = snapshot("2026-10-01", { "2026-10-01": day("local") });
-    const cloud = snapshot("2026-10-01", { "2026-09-30": day("cloud") }, "JH-CLOUD");
+    // 【修改这里】：将云端 startDate 调整为 2026-09-30，与最早记录日期一致，防止触发新防线的日期补丁更新
+    const cloud = snapshot("2026-09-30", { "2026-09-30": day("cloud") }, "JH-CLOUD");
     writeV3Snapshot(local);
     cloudQuery().maybeSingle.mockResolvedValue({ data: cloudRow(cloud), error: null });
 
@@ -158,7 +159,8 @@ describe("按日期键补全式首次合并", () => {
 
     window.localStorage.removeItem(MERGED_FLAG_KEY);
     cloudQuery().maybeSingle.mockResolvedValueOnce({
-      data: cloudRow(snapshot("2026-10-01", {
+      // 【修改这里】：同理，保持一致
+      data: cloudRow(snapshot("2026-09-30", {
         "2026-09-30": day("cloud"),
         "2026-10-01": day("local"),
       }, "JH-CLOUD")),

@@ -28,6 +28,12 @@ type CloudRow = {
 
 const inFlightMerges = new Map<string, Promise<InitialMergeResult>>();
 
+// 辅助函数：根据打卡记录动态计算最早日期，防止时间锚点漂移
+function getEarliestDate(records: Record<string, any>, fallbackDate: string): string {
+  const dates = Object.keys(records).sort();
+  return dates.length > 0 ? dates[0] : fallbackDate;
+}
+
 function readMergedFlags(): MergedFlags {
   try {
     const parsed = JSON.parse(window.localStorage.getItem(MERGED_FLAG_KEY) ?? "{}") as unknown;
@@ -157,12 +163,21 @@ async function runInitialMerge(uid: string): Promise<InitialMergeResult> {
       recordsChanged = true;
     }
   });
+  
   const heightCm = local.heightCm ?? cloud.heightCm;
   const initialWeightKg = local.initialWeightKg ?? cloud.initialWeightKg;
-  const merged = { ...local, userCode: cloud.userCode, heightCm, initialWeightKg, records };
-  if (recordsChanged || cloud.startDate !== local.startDate || hasProfileDifference(merged, cloud)) {
+  
+  // 【新增防线】：计算合并后记录里的最早日期
+  const earliestDate = getEarliestDate(records, local.startDate);
+
+  // 修改 merged 对象，强制使用 earliestDate
+  const merged = { ...local, userCode: cloud.userCode, heightCm, initialWeightKg, startDate: earliestDate, records };
+  
+  // 触发云端同步的条件里，加上对 earliestDate 的判断
+  if (recordsChanged || cloud.startDate !== earliestDate || hasProfileDifference(merged, cloud)) {
     await writeCloudSnapshot(uid, merged, cloud.userCode);
   }
+  
   // 完整并集写回本机；调用方在 local-merged 后刷新，让 React 状态重新水合。
   writeV3Snapshot(merged);
   return "local-merged";
@@ -197,6 +212,9 @@ async function uploadCurrentSnapshot(
   legacyGranted: boolean,
 ): Promise<void> {
   const v3 = readV3SnapshotStrict();
+  // 【新增防线】：强制把 v3.startDate 修正为记录里的最早日期
+  v3.startDate = getEarliestDate(v3.records, v3.startDate);
+
   const client = getSupabase();
   // 体验官代码终身唯一：云端已有记录时以云端 user_code 为准，绝不覆盖
   const { data: existing, error: lookupError } = await client
@@ -205,6 +223,7 @@ async function uploadCurrentSnapshot(
     .eq("auth_user_id", uid)
     .maybeSingle();
   if (lookupError) throw lookupError;
+  
   await writeCloudSnapshot(
     uid,
     v3,

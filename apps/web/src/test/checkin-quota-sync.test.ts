@@ -52,7 +52,8 @@ describe("已激活盒码的打卡额度同步", () => {
     await expect(syncToCloud()).resolves.toBe("synced");
 
     expect(getSupabase().rpc).toHaveBeenCalledWith("verify_checkin", {
-      p_start_date: snapshot.startDate,
+      // 【修改这里】：期望值改为最早记录日期（测试新增的防线）
+      p_start_date: "2026-11-07",
       p_records: snapshot.records,
       p_height_cm: snapshot.heightCm,
       p_initial_weight_kg: snapshot.initialWeightKg,
